@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Test - Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        .instructions {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Widget Test Page</h1>
+    
+    <div class="instructions">
+        <h2>Instructions:</h2>
+        <ol>
+            <li>Open your browser's Developer Console (F12 or Right-click → Inspect → Console)</li>
+            <li>Look for the widget initialization message: "Widget BUILD:"</li>
+            <li>Check for any error messages in red</li>
+            <li>The widget should appear in the bottom-right corner</li>
+        </ol>
+    </div>
+
+    <div id="widget-status" class="status">
+        <strong>Widget Status:</strong> <span id="status-text">Loading...</span>
+    </div>
+
+    <div style="margin-top: 40px;">
+        <h2>Test Content</h2>
+        <p>This is a simple test page to verify the chat widget loads correctly.</p>
+        <p>The widget should appear as a button in the bottom-right corner of the page.</p>
+        <p>If you don't see it, check the console for errors.</p>
+    </div>
+
+    <!-- Widget Script -->
+    <script>
+        console.log('Test page loaded at:', new Date().toISOString());
+        
+        // Monitor for widget initialization
+        setTimeout(function() {
+            var widgetElement = document.getElementById('voxtro-widget');
+            var statusText = document.getElementById('status-text');
+            var statusDiv = document.getElementById('widget-status');
+            
+            if (widgetElement) {
+                statusText.textContent = 'Widget loaded successfully! ✓';
+                statusDiv.className = 'status success';
+                console.log('Widget element found:', widgetElement);
+            } else {
+                statusText.textContent = 'Widget NOT found. Check console for errors. ✗';
+                statusDiv.className = 'status error';
+                console.error('Widget element not found in DOM');
+            }
+        }, 3000);
+
+        // Load the widget - REPLACE WITH YOUR CHATBOT ID
+        (function() {
+            var chatbotId = '469256f5-bb8c-42f2-a412-316d87d4735a'; // Max chatbot
+            var script = document.createElement('script');
+            script.src = 'https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/widget/' + chatbotId + '.js?v=' + Date.now();
+            script.async = true;
+            script.onerror = function() {
+                console.error('Failed to load widget script');
+                document.getElementById('status-text').textContent = 'Failed to load widget script ✗';
+                document.getElementById('widget-status').className = 'status error';
+            };
+            script.onload = function() {
+                console.log('Widget script loaded successfully');
+            };
+            document.head.appendChild(script);
+            console.log('Widget script added to page:', script.src);
+        })();
+    </script>
+</body>
+</html>

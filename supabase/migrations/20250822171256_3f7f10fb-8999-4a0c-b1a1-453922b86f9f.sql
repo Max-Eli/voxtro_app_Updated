@@ -1,0 +1,2 @@
+-- Create an edge function to handle auth emails using Resend
+-- This will override Supabase's default email service

@@ -1,0 +1,103 @@
+project_id = "atmwldssfrbmcluvmelm"
+
+[functions.chat]
+verify_jwt = false
+
+[functions.widget]
+verify_jwt = false
+
+[functions.google-oauth]
+verify_jwt = false
+
+[functions.send-notification]
+verify_jwt = false
+
+[functions.send-notification-v2]
+verify_jwt = false
+
+[functions.basic-email]
+verify_jwt = false
+
+[functions.detect-conversation-end]
+verify_jwt = false
+
+[functions.execute-action]
+verify_jwt = false
+
+[functions.crawl-website]
+verify_jwt = false
+
+[functions.test-notification-email]
+verify_jwt = false
+
+[functions.debug-env]
+verify_jwt = false
+
+[functions.simple-email-test]
+verify_jwt = false
+
+[functions.inline-chat]
+verify_jwt = false
+
+[functions.messenger]
+verify_jwt = false
+
+[functions.send-weekly-summary]
+verify_jwt = false
+
+[functions.send-customer-login-link]
+verify_jwt = false
+
+[functions.test-simple]
+verify_jwt = false
+
+[functions.form-submit]
+verify_jwt = false
+
+[functions.sync-voice-assistants]
+verify_jwt = true
+
+[functions.validate-voice-connection]
+verify_jwt = false
+
+[functions.update-voice-assistant]
+verify_jwt = true
+
+[functions.get-vapi-web-token]
+verify_jwt = true
+
+[functions.vapi-webhook]
+verify_jwt = false
+
+[functions.validate-elevenlabs-connection]
+verify_jwt = false
+
+[functions.sync-whatsapp-agents]
+verify_jwt = true
+
+[functions.get-whatsapp-agent]
+verify_jwt = true
+
+[functions.update-whatsapp-agent]
+verify_jwt = true
+
+[functions.get-whatsapp-conversation]
+verify_jwt = true
+
+[functions.sync-whatsapp-conversations]
+verify_jwt = false
+
+[functions.create-support-ticket]
+verify_jwt = false
+
+[functions.send-ticket-reply-notification]
+verify_jwt = false
+
+[functions.send-admin-ticket-notification]
+verify_jwt = false
+
+[functions.extract-leads]
+verify_jwt = true
+
+[functions.extract-leads-cron]
+verify_jwt = false
