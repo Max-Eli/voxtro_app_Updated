@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { UserPlus, Mail, Trash2, Settings } from 'lucide-react';
+import { createCustomerWithAuth, sendCustomerLoginLink } from '@/integrations/api/endpoints';
 
 interface Customer {
   id: string;
@@ -114,22 +115,15 @@ export function CustomerManagement() {
     }
 
     try {
-      // Use edge function to create customer with auth
-      const { data, error } = await supabase.functions.invoke('create-customer-with-auth', {
-        body: {
-          email: newCustomer.email,
-          full_name: newCustomer.full_name,
-          company_name: newCustomer.company_name || null,
-          password: newCustomer.password,
-          assigned_chatbots: newCustomer.assigned_chatbots,
-          assigned_by: user?.id
-        }
+      // Use API to create customer with auth
+      const data = await createCustomerWithAuth({
+        email: newCustomer.email,
+        full_name: newCustomer.full_name,
+        company_name: newCustomer.company_name || undefined,
+        password: newCustomer.password
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      const successMessage = data?.auth_created 
+      const successMessage = data?.auth_created
         ? 'Customer created successfully with login credentials'
         : 'Customer created successfully (login credentials may need manual setup)';
       toast.success(successMessage);
@@ -172,14 +166,10 @@ export function CustomerManagement() {
 
   const sendLoginLink = async (customer: Customer) => {
     try {
-      const { error } = await supabase.functions.invoke('send-customer-login-link', {
-        body: {
-          email: customer.email,
-          full_name: customer.full_name
-        }
+      await sendCustomerLoginLink({
+        email: customer.email,
+        full_name: customer.full_name
       });
-
-      if (error) throw error;
 
       toast.success('Login link sent successfully');
     } catch (error) {

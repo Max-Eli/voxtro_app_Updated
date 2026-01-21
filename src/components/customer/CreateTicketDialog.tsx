@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Send } from 'lucide-react';
+import { createSupportTicket } from '@/integrations/api/endpoints/customers';
 
 interface CreateTicketDialogProps {
   customerId: string;
@@ -40,21 +40,13 @@ export function CreateTicketDialog({
 
     setSubmitting(true);
     try {
-      // Call the edge function to create the ticket
-      const { data, error } = await supabase.functions.invoke('create-support-ticket', {
-        body: {
-          subject: subject.trim(),
-          description: description.trim(),
-          priority,
-          customer_id: customerId,
-          customer_name: customerName,
-          customer_email: customerEmail,
-        },
+      // Call the API to create the ticket
+      await createSupportTicket({
+        subject: subject.trim(),
+        description: description.trim(),
+        priority,
+        customer_id: customerId
       });
-
-      if (error) {
-        throw error;
-      }
 
       toast.success('Support ticket created successfully');
       setSubject('');

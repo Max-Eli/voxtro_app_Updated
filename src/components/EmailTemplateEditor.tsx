@@ -10,6 +10,7 @@ import { Switch } from './ui/switch';
 import { Plus, Trash2, TestTube, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { sendEmail } from '@/integrations/api/endpoints';
 
 interface EmailConditionRule {
   type: 'message_content' | 'custom_parameter' | 'basic' | 'parameter_exists';
@@ -350,11 +351,11 @@ export function EmailTemplateEditor({
     setIsTestingSend(true);
     try {
       const testEmailContent = generatePreview();
-      
-      const { error } = await supabase.functions.invoke('basic-email', {
-        body: {
-          email: notificationEmail,
-          testMessage: `
+
+      await sendEmail({
+        to_email: notificationEmail,
+        subject: '🧪 Test Email - End-of-Chat Template',
+        html_content: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <div style="background-color: #3b82f6; color: white; padding: 15px; border-radius: 8px 8px 0 0;">
                 <h2 style="margin: 0;">🧪 Test Email - End-of-Chat Template</h2>
@@ -367,13 +368,9 @@ export function EmailTemplateEditor({
                 </div>
               </div>
             </div>
-          `
-        }
+          `,
+        from_name: 'Voxtro Chatbots'
       });
-
-      if (error) {
-        throw error;
-      }
 
       toast({
         title: 'Test Email Sent',

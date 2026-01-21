@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Save, Loader2, Phone, PhoneOff, Mic } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import Vapi from "@vapi-ai/web";
+import { updateVoiceAssistant, getVapiWebToken } from "@/integrations/api/endpoints";
 
 interface VoiceAssistant {
   id: string;
@@ -203,11 +204,7 @@ export default function EditVoiceAssistant() {
         updates.voicemailMessage = formData.voicemailMessage;
       }
 
-      const { data, error } = await supabase.functions.invoke('update-voice-assistant', {
-        body: { assistantId, updates }
-      });
-
-      if (error) throw error;
+      await updateVoiceAssistant(assistantId, updates);
 
       // Create changelog entry if there were changes
       if (Object.keys(newValues).length > 0 && assistantId && user) {
@@ -261,11 +258,9 @@ export default function EditVoiceAssistant() {
       // Request microphone permission first
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Get Vapi public key from our edge function
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-vapi-web-token');
+      // Get Vapi public key from our backend
+      const tokenData = await getVapiWebToken();
 
-      if (tokenError) throw tokenError;
-      
       if (!tokenData?.publicKey) {
         throw new Error('No Vapi public key available. Please reconnect your Vapi account.');
       }

@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { supabase } from '@/integrations/supabase/client';
 import { Globe, AlertCircle, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
+import { crawlWebsite } from '@/integrations/api/endpoints/chat';
 
 interface WebsiteCrawlerProps {
   chatbotId?: string;
@@ -39,12 +39,12 @@ export function WebsiteCrawler({
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('crawl-website', {
-        body: { chatbotId, websiteUrl: url, discoverOnly: true },
+      const data = await crawlWebsite({
+        chatbot_id: chatbotId!,
+        url: url,
+        discover_only: true
       });
-      
-      if (error) throw error;
-      
+
       if (data?.pages) {
         setDiscoveredPages(data.pages);
         setSelectedPages(data.pages.slice(0, 5)); // Select first 5 by default
@@ -86,18 +86,14 @@ export function WebsiteCrawler({
       // Update the website URL first
       onWebsiteUpdate?.(url);
 
-      const { data, error } = await supabase.functions.invoke('crawl-website', {
-        body: {
-          chatbotId,
-          websiteUrl: url,
-          selectedPages: selectedPages.length > 0 ? selectedPages : undefined,
-        },
+      const data = await crawlWebsite({
+        chatbot_id: chatbotId,
+        url: url,
+        selected_pages: selectedPages.length > 0 ? selectedPages : undefined
       });
 
-      if (error) {
-        console.error('Crawl error:', error);
-        toast({
-          title: 'Error',
+      toast({
+        title: 'Success',
           description: error.message || 'Failed to crawl website',
           variant: 'destructive',
         });

@@ -7,9 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, MessageCircle, Mail, Phone, Clock, HelpCircle, Book, Users } from 'lucide-react';
 import voxtroLogo from '@/assets/voxtro-logo.png';
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import Footer from '@/components/Footer';
+import { sendContactForm } from '@/integrations/api/endpoints/notifications';
 
 const Support = () => {
   const [formData, setFormData] = useState({
@@ -26,16 +26,12 @@ const Support = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.functions.invoke('send-contact-form', {
-        body: {
-          name: `${formData.firstName} ${formData.lastName}`.trim(),
-          email: formData.email,
-          subject: formData.subject,
-          message: formData.message
-        }
+      await sendContactForm({
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message
       });
-
-      if (error) throw error;
 
       toast.success("Message sent successfully! We'll get back to you soon.");
       setFormData({ firstName: '', lastName: '', email: '', subject: '', message: '' });

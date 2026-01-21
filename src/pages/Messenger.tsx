@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import chimeAlert from '@/assets/chime-alert.wav';
+import { sendChatMessage, submitForm } from '@/integrations/api/endpoints/chat';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -125,21 +126,19 @@ export default function Messenger() {
       // Build messages array for the API call
       const allMessages = [...messages, newUserMessage];
 
-      const response = await supabase.functions.invoke('chat', {
-        body: {
-          chatbotId: chatbot.id,
-          messages: allMessages,
-          conversationId: conversationId,
-          visitorId: visitorId
-        }
+      const response = await sendChatMessage({
+        chatbot_id: chatbot.id,
+        message: newUserMessage.content,
+        conversation_id: conversationId || undefined,
+        visitor_id: visitorId
       });
 
-      if (response.data?.conversationId && !conversationId) {
-        setConversationId(response.data.conversationId);
+      if (response.conversation_id && !conversationId) {
+        setConversationId(response.conversation_id);
       }
 
-      const botResponse = response.data?.response || 'Sorry, I encountered an error. Please try again.';
-      const formData = response.data?.formData;
+      const botResponse = response.message || 'Sorry, I encountered an error. Please try again.';
+      const formData = response.form_data;
       
       console.log('📨 Bot response received, about to play sound');
       
@@ -178,25 +177,23 @@ export default function Messenger() {
     if (!chatbot) return;
     
     setIsSubmittingForm(true);
-    
+
     try {
-      const response = await supabase.functions.invoke('form-submit', {
-        body: {
-          formId: formId,
-          submittedData: formData,
-          conversationId: conversationId,
-          visitorId: visitorId
-        }
+      const response = await submitForm({
+        form_id: formId,
+        submitted_data: formData,
+        conversation_id: conversationId || undefined,
+        visitor_id: visitorId
       });
 
-      if (response.error || !response.data?.success) {
-        throw new Error(response.data?.error || 'Failed to submit form');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to submit form');
       }
 
       // Add success message to chat
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: response.data.message || 'Thank you for submitting the form!'
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: response.message || 'Thank you for submitting the form!'
       }]);
 
       toast.success('Form submitted successfully!');

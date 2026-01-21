@@ -34,3 +34,11 @@ export async function validateVoiceConnection(publicKey: string) {
 export async function getVapiWebToken() {
   return apiClient.get('/api/voice/token');
 }
+
+/**
+ * Validate ElevenLabs connection
+ * Replaces: supabase.functions.invoke('validate-elevenlabs-connection', ...)
+ */
+export async function validateElevenLabsConnection(apiKey: string) {
+  return apiClient.post('/api/voice/validate-elevenlabs', { api_key: apiKey });
+}

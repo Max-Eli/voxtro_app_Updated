@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { ChangelogTimeline } from "@/components/ChangelogTimeline";
 import { AddChangelogEntry } from "@/components/AddChangelogEntry";
 import { OrganizationSwitcher } from "@/components/OrganizationSwitcher";
+import { syncVoiceAssistants } from "@/integrations/api/endpoints";
 
 interface ChangelogEntry {
   id: string;
@@ -208,10 +209,7 @@ export default function Changelog() {
     // Auto-sync after switching orgs
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-voice-assistants', {
-        method: 'POST'
-      });
-      if (error) throw error;
+      const data = await syncVoiceAssistants();
       toast({ title: `Synced ${data.count} assistants` });
     } catch (error) {
       console.error('Error syncing assistants:', error);

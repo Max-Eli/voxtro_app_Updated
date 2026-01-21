@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { BrandingSettings } from "@/components/BrandingSettings";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/ThemeProvider";
+import { validateVoiceConnection, validateElevenLabsConnection } from "@/integrations/api/endpoints";
 
 interface Profile {
   id: string;
@@ -39,6 +40,15 @@ interface VoiceConnection {
 }
 
 interface ElevenLabsConnection {
+  id: string;
+  user_id: string;
+  api_key: string;
+  org_name: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface OpenAIConnection {
   id: string;
   user_id: string;
   api_key: string;
@@ -81,6 +91,13 @@ const Settings = () => {
   const [newElevenLabsOrgName, setNewElevenLabsOrgName] = useState("");
   const [validatingElevenLabs, setValidatingElevenLabs] = useState(false);
   const [showElevenLabsAddForm, setShowElevenLabsAddForm] = useState(false);
+
+  // OpenAI connection state
+  const [openAIConnections, setOpenAIConnections] = useState<OpenAIConnection[]>([]);
+  const [newOpenAIApiKey, setNewOpenAIApiKey] = useState("");
+  const [newOpenAIOrgName, setNewOpenAIOrgName] = useState("");
+  const [validatingOpenAI, setValidatingOpenAI] = useState(false);
+  const [showOpenAIAddForm, setShowOpenAIAddForm] = useState(false);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -176,9 +193,26 @@ const Settings = () => {
     }
   };
 
+  const fetchOpenAIConnections = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('openai_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setOpenAIConnections(data || []);
+    } catch (error: any) {
+      console.error('Error fetching OpenAI connections:', error);
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
-    await Promise.all([fetchProfile(), fetchNotificationPreferences(), fetchVoiceConnections(), fetchElevenLabsConnections()]);
+    await Promise.all([fetchProfile(), fetchNotificationPreferences(), fetchVoiceConnections(), fetchElevenLabsConnections(), fetchOpenAIConnections()]);
     setLoading(false);
   };
 
@@ -393,11 +427,7 @@ const Settings = () => {
 
     setValidatingVoice(true);
     try {
-      const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-voice-connection', {
-        body: { apiKey: newVoiceApiKey.trim() }
-      });
-
-      if (validationError) throw validationError;
+      const validationData = await validateVoiceConnection(newVoiceApiKey.trim());
 
       if (!validationData.valid) {
         toast({
@@ -540,11 +570,7 @@ const Settings = () => {
 
     setValidatingElevenLabs(true);
     try {
-      const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-elevenlabs-connection', {
-        body: { apiKey: newElevenLabsApiKey.trim() }
-      });
-
-      if (validationError) throw validationError;
+      const validationData = await validateElevenLabsConnection(newElevenLabsApiKey.trim());
 
       if (!validationData.valid) {
         toast({
@@ -629,6 +655,111 @@ const Settings = () => {
       await fetchElevenLabsConnections();
     } catch (error: any) {
       console.error('Error removing ElevenLabs connection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove connection",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddOpenAIConnection = async () => {
+    if (!newOpenAIApiKey.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter an API key",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newOpenAIOrgName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter an organization name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setValidatingOpenAI(true);
+    try {
+      // For now, just save the API key. Validation will be added to backend later
+      const isFirstConnection = openAIConnections.length === 0;
+
+      const { error } = await supabase
+        .from('openai_connections')
+        .insert({
+          user_id: user?.id,
+          api_key: newOpenAIApiKey.trim(),
+          org_name: newOpenAIOrgName.trim(),
+          is_active: isFirstConnection,
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          toast({
+            title: "Duplicate Connection",
+            description: "This API key is already connected",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "OpenAI connected successfully",
+      });
+
+      setNewOpenAIApiKey("");
+      setNewOpenAIOrgName("");
+      setShowOpenAIAddForm(false);
+      await fetchOpenAIConnections();
+    } catch (error: any) {
+      console.error('Error connecting OpenAI:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to connect OpenAI",
+        variant: "destructive",
+      });
+    } finally {
+      setValidatingOpenAI(false);
+    }
+  };
+
+  const handleRemoveOpenAIConnection = async (connectionId: string) => {
+    const connection = openAIConnections.find(c => c.id === connectionId);
+    if (!connection) return;
+
+    try {
+      const { error } = await supabase
+        .from('openai_connections')
+        .delete()
+        .eq('id', connectionId);
+
+      if (error) throw error;
+
+      // If we removed the active connection and there are others, make the first one active
+      if (connection.is_active && openAIConnections.length > 1) {
+        const remaining = openAIConnections.filter(c => c.id !== connectionId);
+        if (remaining.length > 0) {
+          await supabase
+            .from('openai_connections')
+            .update({ is_active: true })
+            .eq('id', remaining[0].id);
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: `"${connection.org_name}" removed`,
+      });
+
+      await fetchOpenAIConnections();
+    } catch (error: any) {
+      console.error('Error removing OpenAI connection:', error);
       toast({
         title: "Error",
         description: "Failed to remove connection",
@@ -1292,6 +1423,138 @@ const Settings = () => {
                 {elevenLabsConnections.length > 0 && !showElevenLabsAddForm && (
                   <p className="text-xs text-muted-foreground">
                     View your WhatsApp agents on the WhatsApp Agents page.
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bot className="w-5 h-5 text-primary" />
+                <CardTitle>OpenAI Connection</CardTitle>
+              </div>
+              {openAIConnections.length > 0 && !showOpenAIAddForm && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowOpenAIAddForm(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Connection
+                </Button>
+              )}
+            </div>
+            <CardDescription>
+              Connect your OpenAI API key to power chatbot conversations and AI features
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {openAIConnections.length === 0 && !showOpenAIAddForm ? (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  No OpenAI account connected. Add your API key to enable chatbot creation and AI-powered features.
+                </p>
+                <Button onClick={() => setShowOpenAIAddForm(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add OpenAI API Key
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {openAIConnections.map((connection) => (
+                  <Card key={connection.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{connection.org_name}</p>
+                            {connection.is_active && (
+                              <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded">
+                                Active
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            API Key: {connection.api_key.substring(0, 7)}...{connection.api_key.substring(connection.api_key.length - 4)}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveOpenAIConnection(connection.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {showOpenAIAddForm && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Add OpenAI Connection</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-openai-org-name">Organization Name</Label>
+                        <Input
+                          id="new-openai-org-name"
+                          type="text"
+                          placeholder="e.g., Main Account, Production, Testing"
+                          value={newOpenAIOrgName}
+                          onChange={(e) => setNewOpenAIOrgName(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          A friendly name to identify this connection
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="new-openai-api-key">API Key</Label>
+                        <Input
+                          id="new-openai-api-key"
+                          type="password"
+                          placeholder="sk-proj-..."
+                          value={newOpenAIApiKey}
+                          onChange={(e) => setNewOpenAIApiKey(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Find your API key at platform.openai.com/api-keys
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setShowOpenAIAddForm(false);
+                            setNewOpenAIApiKey("");
+                            setNewOpenAIOrgName("");
+                          }}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleAddOpenAIConnection}
+                          disabled={validatingOpenAI || !newOpenAIApiKey.trim() || !newOpenAIOrgName.trim()}
+                          className="flex-1"
+                        >
+                          {validatingOpenAI ? "Connecting..." : "Connect OpenAI"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {openAIConnections.length > 0 && !showOpenAIAddForm && (
+                  <p className="text-xs text-muted-foreground">
+                    This API key will be used for chatbot conversations, website crawling, and AI-powered features.
                   </p>
                 )}
               </div>

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import chimeAlert from '@/assets/chime-alert.wav';
+import { sendChatMessage } from '@/integrations/api/endpoints/chat';
+import { sendEmail } from '@/integrations/api/endpoints/notifications';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -171,21 +173,15 @@ export default function EmbedChat() {
     setLoading(true);
 
     try {
-      const response = await supabase.functions.invoke('chat', {
-        body: {
-          chatbotId: chatbot.id,
-          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
-          visitorId
-        }
+      const response = await sendChatMessage({
+        chatbot_id: chatbot.id,
+        message: userMessage.content,
+        visitor_id: visitorId
       });
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
 
       const aiMessage: Message = {
         role: 'assistant',
-        content: response.data.response,
+        content: response.message,
         timestamp: new Date()
       };
 
@@ -226,14 +222,11 @@ export default function EmbedChat() {
       }
 
       // Use basic email function to send test email
-      const { data, error } = await supabase.functions.invoke('basic-email', {
-        body: {
-          email: chatbot.end_chat_notification_email,
-          testMessage: `Test email for chatbot "${chatbot.name}" - End-of-chat notifications are working correctly!`
-        }
+      await sendEmail({
+        to_email: chatbot.end_chat_notification_email,
+        subject: `Test Email - ${chatbot.name}`,
+        html_content: `<p>Test email for chatbot "${chatbot.name}" - End-of-chat notifications are working correctly!</p>`
       });
-      
-      if (error) throw error;
       
       toast({
         title: 'Test Email Sent!',

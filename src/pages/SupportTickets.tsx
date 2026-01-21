@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Ticket, Search, Clock, CheckCircle2, AlertCircle, MessageSquare, User, Calendar, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
+import { sendTicketReplyNotification } from "@/integrations/api/endpoints";
 
 interface SupportTicket {
   id: string;
@@ -255,15 +256,13 @@ export default function SupportTickets() {
 
       // Send email notification to customer
       try {
-        await supabase.functions.invoke("send-ticket-reply-notification", {
-          body: {
-            ticket_id: selectedTicket.id,
-            ticket_subject: selectedTicket.subject,
-            customer_email: selectedTicket.customer_email,
-            customer_name: selectedTicket.customer_name,
-            reply_content: replyContent,
-            agent_name: "Support Team",
-          },
+        await sendTicketReplyNotification({
+          ticket_id: selectedTicket.id,
+          ticket_subject: selectedTicket.subject,
+          customer_email: selectedTicket.customer_email,
+          customer_name: selectedTicket.customer_name,
+          reply_content: replyContent,
+          agent_name: "Support Team",
         });
         console.log("Email notification sent to customer");
       } catch (emailError) {

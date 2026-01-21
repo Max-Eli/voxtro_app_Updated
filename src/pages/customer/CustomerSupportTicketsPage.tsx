@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Ticket, Clock, CheckCircle2, AlertCircle, MessageSquare, Calendar, RefreshCw, Send, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { CreateTicketDialog } from "@/components/customer/CreateTicketDialog";
+import { sendAdminTicketNotification } from "@/integrations/api/endpoints";
 
 interface SupportTicket {
   id: string;
@@ -223,15 +224,13 @@ export default function CustomerSupportTicketsPage() {
           .single();
 
         if (profileData?.email) {
-          await supabase.functions.invoke("send-admin-ticket-notification", {
-            body: {
-              ticket_id: selectedTicket.id,
-              ticket_subject: selectedTicket.subject,
-              customer_email: customer.email,
-              customer_name: customer.full_name,
-              reply_content: replyContent,
-              admin_email: profileData.email,
-            },
+          await sendAdminTicketNotification({
+            ticket_id: selectedTicket.id,
+            ticket_subject: selectedTicket.subject,
+            customer_email: customer.email,
+            customer_name: customer.full_name,
+            message_content: replyContent,
+            admin_email: profileData.email,
           });
         }
       } catch (notificationError) {

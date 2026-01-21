@@ -14,6 +14,7 @@ import { Bot, RefreshCw, UserPlus, Trash2, Mic2, MessageCircle, Users2, Sparkles
 import { OrganizationSwitcher } from '@/components/OrganizationSwitcher';
 import { Input } from '@/components/ui/input';
 import { QuickTaskForm } from '@/components/tasks/QuickTaskForm';
+import { syncVoiceAssistants } from '@/integrations/api/endpoints';
 
 interface VoiceAssistant {
   id: string;
@@ -58,13 +59,10 @@ export default function VoiceAssistants() {
   // Auto-sync on page load and periodic refresh
   const performAutoSync = async () => {
     if (syncing) return; // Prevent concurrent syncs
-    
+
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-voice-assistants', {
-        method: 'POST'
-      });
-      if (error) throw error;
+      const data = await syncVoiceAssistants();
       console.log(`Auto-synced ${data?.count || 0} voice assistants`);
     } catch (error) {
       console.error('Auto-sync error:', error);
@@ -117,10 +115,7 @@ export default function VoiceAssistants() {
     // Auto-sync after switching orgs
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-voice-assistants', {
-        method: 'POST'
-      });
-      if (error) throw error;
+      const data = await syncVoiceAssistants();
       toast.success(`Synced ${data.count} assistants`);
     } catch (error) {
       console.error('Error syncing assistants:', error);
@@ -220,11 +215,7 @@ export default function VoiceAssistants() {
   const handleSyncAssistants = async () => {
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-voice-assistants', {
-        method: 'POST'
-      });
-
-      if (error) throw error;
+      const data = await syncVoiceAssistants();
 
       toast.success(`Synced ${data.count} assistants`);
       await fetchData();

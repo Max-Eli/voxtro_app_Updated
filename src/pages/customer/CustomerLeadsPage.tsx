@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Users, Bot, Phone, MessageCircle, Search, Mail, User, Calendar, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { extractLeads as extractLeadsAPI } from '@/integrations/api/endpoints';
 
 interface Lead {
   id: string;
@@ -129,15 +130,13 @@ export default function CustomerLeadsPage() {
 
   const extractLeads = async () => {
     if (!customer) return;
-    
+
     setExtracting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('extract-leads', {
-        body: { customerId: customer.id }
+      const data = await extractLeadsAPI({
+        customerId: customer.id
       });
-      
-      if (error) throw error;
-      
+
       toast.success(data.message || 'Leads extracted successfully');
       await fetchLeads(); // Refresh the leads list
     } catch (error) {

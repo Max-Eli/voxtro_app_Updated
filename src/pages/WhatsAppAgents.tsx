@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { format } from "date-fns";
+import { syncWhatsAppAgents, updateWhatsAppAgent, getWhatsAppAgent } from "@/integrations/api/endpoints";
 
 interface WhatsAppAgent {
   id: string;
@@ -219,11 +220,7 @@ const WhatsAppAgents = () => {
   const fetchAgentConfig = useCallback(async (agentId: string) => {
     setLoadingConfig(true);
     try {
-      const { data, error } = await supabase.functions.invoke('get-whatsapp-agent', {
-        body: { agentId }
-      });
-
-      if (error) throw error;
+      const data = await getWhatsAppAgent(agentId);
 
       if (data.agent) {
         setAgentConfig(data.agent);
@@ -293,9 +290,7 @@ const WhatsAppAgents = () => {
   const syncAgents = async () => {
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-whatsapp-agents');
-
-      if (error) throw error;
+      const data = await syncWhatsAppAgents();
 
       if (data.needsConnection) {
         setHasConnection(false);
@@ -305,10 +300,6 @@ const WhatsAppAgents = () => {
           variant: "destructive",
         });
         return;
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
       }
 
       toast({
@@ -353,11 +344,7 @@ const WhatsAppAgents = () => {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke('update-whatsapp-agent', {
-        body: { agentId: selectedAgentId, updates }
-      });
-
-      if (error) throw error;
+      await updateWhatsAppAgent(selectedAgentId, updates);
 
       toast({
         title: "Success",
@@ -458,15 +445,13 @@ const WhatsAppAgents = () => {
     
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-whatsapp-agents');
-      
-      if (error) throw error;
-      
+      const data = await syncWhatsAppAgents();
+
       if (data?.needsConnection) {
         setHasConnection(false);
         return;
       }
-      
+
       console.log(`Auto-synced ${data?.count || 0} WhatsApp agents`);
     } catch (error) {
       console.error('Auto-sync error:', error);
