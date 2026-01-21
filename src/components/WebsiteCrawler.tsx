@@ -92,14 +92,6 @@ export function WebsiteCrawler({
         selected_pages: selectedPages.length > 0 ? selectedPages : undefined
       });
 
-      toast({
-        title: 'Success',
-          description: error.message || 'Failed to crawl website',
-          variant: 'destructive',
-        });
-        return;
-      }
-
       if (data?.success) {
         toast({
           title: 'Success',
