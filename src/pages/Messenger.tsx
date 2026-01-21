@@ -7,7 +7,8 @@ import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import chimeAlert from '@/assets/chime-alert.wav';
-import { sendChatMessage, submitForm } from '@/integrations/api/endpoints/chat';
+import { sendChatMessage } from '@/integrations/api/endpoints/chat';
+import { submitForm } from '@/integrations/api/endpoints/forms';
 
 interface Message {
   role: 'user' | 'assistant';
