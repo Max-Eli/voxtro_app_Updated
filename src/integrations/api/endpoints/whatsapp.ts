@@ -1,0 +1,28 @@
+/**
+ * WhatsApp Agent API Endpoints
+ */
+import { apiClient } from '../client';
+
+/**
+ * Sync WhatsApp agents from ElevenLabs
+ * Replaces: supabase.functions.invoke('sync-whatsapp-agents', ...)
+ */
+export async function syncWhatsAppAgents() {
+  return apiClient.post('/api/whatsapp/sync');
+}
+
+/**
+ * Update WhatsApp agent
+ * Replaces: supabase.functions.invoke('update-whatsapp-agent', ...)
+ */
+export async function updateWhatsAppAgent(agentId: string, updates: any) {
+  return apiClient.patch(`/api/whatsapp/${agentId}`, updates);
+}
+
+/**
+ * Get WhatsApp agent
+ * Replaces: supabase.functions.invoke('get-whatsapp-agent', ...)
+ */
+export async function getWhatsAppAgent(agentId: string) {
+  return apiClient.get(`/api/whatsapp/${agentId}`);
+}
