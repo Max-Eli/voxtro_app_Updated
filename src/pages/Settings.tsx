@@ -1449,7 +1449,7 @@ const Settings = () => {
               )}
             </div>
             <CardDescription>
-              Connect your OpenAI API key to power chatbot conversations and AI features
+              Connect your OpenAI API key to power chatbot conversations and AI-powered features
             </CardDescription>
           </CardHeader>
           <CardContent>
