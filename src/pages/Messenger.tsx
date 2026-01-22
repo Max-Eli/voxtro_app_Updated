@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Bot, Send, X } from 'lucide-react';
+import { Bot, Send, X, User } from 'lucide-react';
 import { ChatForm } from '@/components/ChatForm';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
@@ -278,6 +278,7 @@ export default function Messenger() {
   const themeColor = (config.theme && config.theme.primary_color) || config.theme_color || '#3B82F6';
   // Use widget_button_color for widget button, fallback to theme.secondary_color
   const buttonColor = config.widget_button_color || (config.theme && config.theme.secondary_color) || '#6366F1';
+  const buttonText = config.widget_button_text || '';
   const faqs = config.faqs || [];
 
   return (
@@ -295,7 +296,7 @@ export default function Messenger() {
           />
         ) : (
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-            <Bot className="w-6 h-6 text-white" />
+            <User className="w-6 h-6 text-white" />
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -391,29 +392,41 @@ export default function Messenger() {
       {faqs.length > 0 && messages.length <= 1 && !showInput && (
         <div className="flex-shrink-0 px-4 py-6 border-t bg-white/90 shadow-sm rounded-b-xl">
           <div className="max-w-xs mx-auto">
-            <p className="text-sm font-semibold text-gray-700 mb-4 text-center">How can we help?</p>
-            <div className="flex flex-col gap-2 mb-5">
+            <p className="text-xs font-semibold text-gray-700 mb-4 text-right">How can we help?</p>
+            <div className="flex flex-col gap-1 mb-5 items-end">
               {faqs.slice(0, 4).map((faq, index) => (
                 <button
                   key={index}
                   onClick={() => handleFAQClick(faq.question)}
-                  className="w-full px-4 py-3 rounded-full bg-gray-50 border border-gray-200 text-gray-900 text-sm font-medium shadow-sm hover:bg-gray-100 hover:border-gray-300 transition-all text-left"
+                  className="px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-gray-900 text-xs font-medium shadow-sm hover:bg-gray-100 hover:border-gray-300 transition-all text-right max-w-[90%]"
                   style={{
                     borderColor: `${themeColor}30`,
-                    color: themeColor
+                    color: themeColor,
+                    alignSelf: 'flex-end'
                   }}
                 >
                   {faq.question}
                 </button>
               ))}
             </div>
-            <button
-              className="w-full py-3 rounded-full text-white font-semibold text-base shadow-lg transition-all hover:opacity-90 bg-gradient-to-r from-[#6366F1] to-[#3B82F6]"
-              style={{ background: `linear-gradient(90deg, ${themeColor} 60%, #6366F1 100%)` }}
-              onClick={() => setShowInput(true)}
-            >
-              Chat with us
-            </button>
+            {buttonText.trim() ? (
+              <button
+                className="w-full py-3 rounded-full text-white font-semibold text-base shadow-lg transition-all hover:opacity-90"
+                style={{ backgroundColor: buttonColor }}
+                onClick={() => setShowInput(true)}
+              >
+                {buttonText}
+              </button>
+            ) : (
+              <button
+                className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-all hover:opacity-90"
+                style={{ backgroundColor: buttonColor }}
+                onClick={() => setShowInput(true)}
+                aria-label="Open chat"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
       )}
