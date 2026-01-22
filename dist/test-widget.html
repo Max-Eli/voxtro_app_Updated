@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        p {
+            color: #666;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Widget Test Page</h1>
+        <p>This is a test page to verify that the Voxtro chatbot widget loads correctly.</p>
+        <p>The widget should appear as a blue chat button in the bottom-right corner of this page.</p>
+        <p>If you see the button, click it to test the chat functionality.</p>
+        
+        <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 4px;">
+            <h3>Debug Information:</h3>
+            <p>Check your browser console for any error messages.</p>
+            <p>The widget should initialize with the message "Voxtro widget initializing for chatbot: test"</p>
+        </div>
+    </div>
+
+    <!-- Voxtro Widget Embed Code -->
+    <script>
+      (function() {
+        var script = document.createElement('script');
+        script.src = 'https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/widget/c8f37557-83d7-4ab2-9950-1ab9c5c540db.js';
+        script.async = true;
+        script.onerror = function() {
+          console.error('Failed to load Voxtro widget script');
+        };
+        script.onload = function() {
+          console.log('Voxtro widget script loaded successfully');
+        };
+        document.head.appendChild(script);
+      })();
+    </script>
+</body>
+</html>

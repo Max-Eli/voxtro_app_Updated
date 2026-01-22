@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; border-left: 4px solid #f44336; }
+        .success { background: #e8f5e9; border-left: 4px solid #4caf50; }
+        .info { background: #e3f2fd; border-left: 4px solid #2196f3; }
+    </style>
+</head>
+<body>
+    <h1>Widget Debug Test</h1>
+    
+    <div class="debug info">
+        <h3>Step 1: Testing widget URL directly</h3>
+        <p>Fetching: <code>https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/widget/c8f37557-83d7-4ab2-9950-1ab9c5c540db.js</code></p>
+        <div id="url-test">Testing...</div>
+    </div>
+    
+    <div class="debug info">
+        <h3>Step 2: Console output</h3>
+        <div id="console-output">Monitoring console...</div>
+    </div>
+    
+    <div class="debug info">
+        <h3>Step 3: Widget presence check</h3>
+        <div id="widget-check">Checking for widget...</div>
+    </div>
+
+    <script>
+        // Capture console logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const logs = [];
+        
+        console.log = function(...args) {
+            logs.push({type: 'log', message: args.join(' ')});
+            originalLog.apply(console, arguments);
+            updateConsoleOutput();
+        };
+        
+        console.error = function(...args) {
+            logs.push({type: 'error', message: args.join(' ')});
+            originalError.apply(console, arguments);
+            updateConsoleOutput();
+        };
+        
+        function updateConsoleOutput() {
+            const output = document.getElementById('console-output');
+            output.innerHTML = logs.map(log => 
+                `<div class="${log.type === 'error' ? 'error' : 'success'}">${log.type.toUpperCase()}: ${log.message}</div>`
+            ).join('');
+        }
+        
+        // Test the widget URL
+        fetch('https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/widget/c8f37557-83d7-4ab2-9950-1ab9c5c540db.js?t=' + Date.now())
+            .then(response => response.text())
+            .then(text => {
+                const urlTest = document.getElementById('url-test');
+                if (text.includes('console.error')) {
+                    urlTest.innerHTML = '<div class="error">❌ Widget URL returns error: ' + text + '</div>';
+                } else if (text.includes('CHATBOT_ID')) {
+                    urlTest.innerHTML = '<div class="success">✅ Widget URL returns valid JavaScript</div>';
+                } else {
+                    urlTest.innerHTML = '<div class="error">❌ Widget URL returns unexpected content: ' + text.substring(0, 200) + '...</div>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('url-test').innerHTML = '<div class="error">❌ Failed to fetch widget: ' + error.message + '</div>';
+            });
+        
+        // Check for widget after 3 seconds
+        setTimeout(() => {
+            const widgetCheck = document.getElementById('widget-check');
+            const widget = document.getElementById('voxtro-widget');
+            if (widget) {
+                widgetCheck.innerHTML = '<div class="success">✅ Widget element found in DOM</div>';
+            } else {
+                widgetCheck.innerHTML = '<div class="error">❌ Widget element NOT found in DOM</div>';
+            }
+        }, 3000);
+    </script>
+
+    <!-- Load widget with cache busting -->
+    <script>
+        const script = document.createElement('script');
+        script.src = 'https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/widget/c8f37557-83d7-4ab2-9950-1ab9c5c540db.js?t=' + Date.now();
+        script.async = true;
+        script.onerror = function() {
+            console.error('❌ Failed to load widget script');
+        };
+        script.onload = function() {
+            console.log('✅ Widget script loaded successfully');
+        };
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>
