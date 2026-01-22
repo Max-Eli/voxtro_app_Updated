@@ -351,11 +351,13 @@ const VoiceAssistantTasks = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Organizations</SelectItem>
-                {connections.map((conn) => (
-                  <SelectItem key={conn.id} value={conn.org_id || ""}>
-                    {conn.org_name || conn.org_id || "Unknown"}
-                  </SelectItem>
-                ))}
+                {connections
+                  .filter((conn) => conn.org_id)
+                  .map((conn) => (
+                    <SelectItem key={conn.id} value={conn.org_id!}>
+                      {conn.org_name || conn.org_id || "Unknown"}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
