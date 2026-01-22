@@ -108,20 +108,43 @@ export function CustomerManagement() {
       return;
     }
 
+    if (newCustomer.assigned_chatbots.length === 0) {
+      toast.error('Please assign at least one chatbot to the customer');
+      return;
+    }
+
     try {
-      // Use API to create customer with auth
+      // Use API to create customer with auth (pass first chatbot if assigned)
       const data = await createCustomerWithAuth({
         email: newCustomer.email,
         full_name: newCustomer.full_name,
         company_name: newCustomer.company_name || undefined,
-        password: newCustomer.password
+        password: newCustomer.password,
+        chatbot_id: newCustomer.assigned_chatbots[0] || undefined // Pass first chatbot
       });
+
+      const customerId = data?.customer_id;
+
+      // Create additional chatbot assignments if more than one selected
+      if (customerId && newCustomer.assigned_chatbots.length > 0) {
+        for (const chatbotId of newCustomer.assigned_chatbots) {
+          await supabase
+            .from('customer_chatbot_assignments')
+            .insert({
+              customer_id: customerId,
+              chatbot_id: chatbotId,
+              assigned_by: user?.id
+            })
+            .onConflict('customer_id,chatbot_id')
+            .ignore();
+        }
+      }
 
       const successMessage = data?.auth_created
         ? 'Customer created successfully with login credentials'
         : 'Customer created successfully (login credentials may need manual setup)';
       toast.success(successMessage);
-      
+
       setShowCreateDialog(false);
       setNewCustomer({
         email: '',
