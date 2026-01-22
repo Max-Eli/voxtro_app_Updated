@@ -42,9 +42,9 @@ class ApiClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          // Token expired or invalid - log but don't redirect (debugging)
-          console.error('Authentication error - 401 received:', error.response?.data);
-          // window.location.href = '/auth';  // Temporarily disabled for debugging
+          // Token expired or invalid - redirect to login
+          console.error('Authentication error - redirecting to login');
+          window.location.href = '/auth';
         }
 
         // Extract error message
