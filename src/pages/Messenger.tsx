@@ -389,31 +389,32 @@ export default function Messenger() {
 
       {/* FAQ Suggestions */}
       {faqs.length > 0 && messages.length <= 1 && !showInput && (
-        <div className="flex-shrink-0 px-4 py-3 border-t bg-gray-50">
-          <p className="text-xs font-medium text-gray-500 mb-2">Quick Questions:</p>
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {faqs.slice(0, 4).map((faq, index) => (
-              <button
-                key={index}
-                onClick={() => handleFAQClick(faq.question)}
-                className="px-3 py-1.5 text-xs rounded-full border transition-colors hover:opacity-80"
-                style={{
-                  borderColor: `${themeColor}40`,
-                  backgroundColor: `${themeColor}10`,
-                  color: themeColor
-                }}
-              >
-                {faq.question}
-              </button>
-            ))}
+        <div className="flex-shrink-0 px-4 py-6 border-t bg-white/90 shadow-sm rounded-b-xl">
+          <div className="max-w-xs mx-auto">
+            <p className="text-sm font-semibold text-gray-700 mb-4 text-center">How can we help?</p>
+            <div className="flex flex-col gap-2 mb-5">
+              {faqs.slice(0, 4).map((faq, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleFAQClick(faq.question)}
+                  className="w-full px-4 py-3 rounded-full bg-gray-50 border border-gray-200 text-gray-900 text-sm font-medium shadow-sm hover:bg-gray-100 hover:border-gray-300 transition-all text-left"
+                  style={{
+                    borderColor: `${themeColor}30`,
+                    color: themeColor
+                  }}
+                >
+                  {faq.question}
+                </button>
+              ))}
+            </div>
+            <button
+              className="w-full py-3 rounded-full text-white font-semibold text-base shadow-lg transition-all hover:opacity-90 bg-gradient-to-r from-[#6366F1] to-[#3B82F6]"
+              style={{ background: `linear-gradient(90deg, ${themeColor} 60%, #6366F1 100%)` }}
+              onClick={() => setShowInput(true)}
+            >
+              Chat with us
+            </button>
           </div>
-          <button
-            className="w-full py-2 rounded-full text-white font-semibold text-sm shadow-md transition-all hover:opacity-90"
-            style={{ backgroundColor: themeColor }}
-            onClick={() => setShowInput(true)}
-          >
-            Chat with us
-          </button>
         </div>
       )}
 
