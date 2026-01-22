@@ -66,35 +66,29 @@ export function CustomerManagement() {
       if (chatbotsError) throw chatbotsError;
       setChatbots(chatbotsData || []);
 
-      // Fetch customers with their assignments
+      // Fetch customers created by this user
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
         .select(`
           *,
           customer_chatbot_assignments (
-            chatbot_id,
-            chatbots (
-              user_id
-            )
+            chatbot_id
           )
-        `);
+        `)
+        .eq('created_by_user_id', user?.id);
 
       if (customersError) throw customersError;
 
-      // Filter customers who have assignments to this user's chatbots
+      // Map customers with their assigned chatbot IDs
       const userChatbotIds = chatbotsData?.map(c => c.id) || [];
-      const filteredCustomers = customersData?.filter(customer =>
-        customer.customer_chatbot_assignments.some(assignment =>
-          userChatbotIds.includes(assignment.chatbot_id)
-        )
-      ).map(customer => ({
+      const customersWithAssignments = customersData?.map(customer => ({
         ...customer,
         assigned_chatbots: customer.customer_chatbot_assignments
           .filter(assignment => userChatbotIds.includes(assignment.chatbot_id))
           .map(assignment => assignment.chatbot_id)
       })) || [];
 
-      setCustomers(filteredCustomers);
+      setCustomers(customersWithAssignments);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load customer data');
@@ -104,8 +98,8 @@ export function CustomerManagement() {
   };
 
   const handleCreateCustomer = async () => {
-    if (!newCustomer.email || !newCustomer.full_name || !newCustomer.password || newCustomer.assigned_chatbots.length === 0) {
-      toast.error('Please fill in all required fields including password and assign at least one chatbot');
+    if (!newCustomer.email || !newCustomer.full_name || !newCustomer.password) {
+      toast.error('Please fill in all required fields including password');
       return;
     }
 
