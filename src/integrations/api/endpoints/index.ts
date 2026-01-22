@@ -9,3 +9,5 @@ export * from './whatsapp';
 export * from './notifications';
 export * from './customers';
 export * from './forms';
+export * from './openai';
+export * from './leads';

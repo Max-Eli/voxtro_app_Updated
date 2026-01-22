@@ -74,7 +74,7 @@ export default function CreateChatbot() {
       const embedCode = `<script>
   (function() {
     var script = document.createElement('script');
-    script.src = '${apiBaseUrl}/api/widget/${tempId}.js?v=' + Date.now();
+    script.src = '${apiBaseUrl}/api/widget/${tempId}/script.js?v=' + Date.now();
     script.async = true;
     document.head.appendChild(script);
   })();
@@ -83,7 +83,7 @@ export default function CreateChatbot() {
       const inlineEmbedCode = `<script>
   (function() {
     var script = document.createElement('script');
-    script.src = '${apiBaseUrl}/api/inline-chat/${tempId}.js';
+    script.src = '${apiBaseUrl}/api/widget/${tempId}/inline.js';
     script.async = true;
     document.head.appendChild(script);
   })();

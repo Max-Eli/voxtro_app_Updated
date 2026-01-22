@@ -475,7 +475,7 @@ export default function Chatbots() {
       embedCode = `<script>
   (function() {
     var script = document.createElement('script');
-    script.src = '${apiBaseUrl}/api/inline-chat/${botId}.js';
+    script.src = '${apiBaseUrl}/api/widget/${botId}/inline.js';
     script.async = true;
     document.head.appendChild(script);
   })();
@@ -485,7 +485,7 @@ export default function Chatbots() {
       embedCode = `<script>
   (function() {
     var script = document.createElement('script');
-    script.src = '${apiBaseUrl}/api/messenger/${botId}.js';
+    script.src = '${apiBaseUrl}/api/widget/${botId}/messenger.js';
     script.async = true;
     script.onload = function() {
       window.openVoxtroMessenger();
@@ -498,7 +498,7 @@ export default function Chatbots() {
       embedCode = `<script>
   (function() {
     var script = document.createElement('script');
-    script.src = '${apiBaseUrl}/api/widget/${botId}.js?v=' + Date.now();
+    script.src = '${apiBaseUrl}/api/widget/${botId}/script.js?v=' + Date.now();
     script.async = true;
     document.head.appendChild(script);
   })();

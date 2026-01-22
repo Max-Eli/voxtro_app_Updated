@@ -4,6 +4,13 @@
 import { apiClient } from '../client';
 
 /**
+ * Validate ElevenLabs API key
+ */
+export async function validateElevenLabsApiKey(apiKey: string) {
+  return apiClient.post(`/api/whatsapp/validate-elevenlabs?api_key=${encodeURIComponent(apiKey)}`);
+}
+
+/**
  * Sync WhatsApp agents from ElevenLabs
  * Replaces: supabase.functions.invoke('sync-whatsapp-agents', ...)
  */

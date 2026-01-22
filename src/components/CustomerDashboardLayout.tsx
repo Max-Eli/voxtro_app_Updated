@@ -13,7 +13,7 @@ function CustomerDashboardContent() {
   useEffect(() => {
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://voxtro-backend.onrender.com';
     const script = document.createElement('script');
-    script.src = `${apiBaseUrl}/api/widget/90e3f339-4025-4f62-bb91-03366abcfa40.js?v=` + Date.now();
+    script.src = `${apiBaseUrl}/api/widget/90e3f339-4025-4f62-bb91-03366abcfa40/script.js?v=` + Date.now();
     script.async = true;
     document.head.appendChild(script);
 
