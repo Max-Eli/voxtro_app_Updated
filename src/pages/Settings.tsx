@@ -427,12 +427,15 @@ const Settings = () => {
 
     setValidatingVoice(true);
     try {
-      const validationData = await validateVoiceConnection(newVoiceApiKey.trim());
-
+      const validationResp = await validateVoiceConnection(
+        newVoiceApiKey.trim(),
+        newVoicePublicKey.trim()
+      );
+      const validationData = validationResp?.data || validationResp;
       if (!validationData.valid) {
         toast({
-          title: "Invalid API Key",
-          description: "The API key you provided is not valid",
+          title: "Invalid Credentials",
+          description: validationData.message || "The credentials you provided are not valid.",
           variant: "destructive",
         });
         return;

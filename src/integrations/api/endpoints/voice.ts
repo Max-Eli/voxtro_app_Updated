@@ -23,8 +23,11 @@ export async function updateVoiceAssistant(assistantId: string, updates: any) {
  * Validate voice connection
  * Replaces: supabase.functions.invoke('validate-voice-connection', ...)
  */
-export async function validateVoiceConnection(publicKey: string) {
-  return apiClient.post('/api/voice/validate', { public_key: publicKey });
+export async function validateVoiceConnection(apiKey: string, publicKey: string) {
+  return apiClient.post('/api/voice/validate', {
+    api_key: apiKey,
+    public_key: publicKey || null
+  });
 }
 
 /**
