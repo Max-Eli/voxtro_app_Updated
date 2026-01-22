@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const supabaseUrl = 'https://atmwldssfrbmcluvmelm.supabase.co';
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 
 serve(async (req) => {
   console.log('Form submit function called');

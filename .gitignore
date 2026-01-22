@@ -1,0 +1,10 @@
+
+# Migration data (one-time use)
+migration_data/
+*.backup
+extract_tables.py
+node_modules/
+migration_data/
+*.backup
+extract_tables.py
+supabase/.temp/

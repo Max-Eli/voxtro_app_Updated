@@ -153,7 +153,7 @@ console.error('Chatbot ${chatbotId} not found or inactive');`, {
       messages.appendChild(loadingMsg);
       messages.scrollTop = messages.scrollHeight;
 
-      fetch('https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/chat', {
+      fetch('https://nzqzmvsrsfynatxojuil.supabase.co/functions/v1/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

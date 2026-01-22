@@ -351,17 +351,18 @@ export function ChatbotEditor({ chatbotId, onSave }: ChatbotEditorProps) {
         { role: 'user', content: userMessage.content }
       ];
 
-      const response = await fetch('https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/chat', {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://voxtro-backend.onrender.com';
+      const response = await fetch(`${apiBaseUrl}/api/chat/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chatbotId: chatbotId,
+          chatbot_id: chatbotId,
           messages: messages.slice(1),
-          visitorId: 'preview_' + Date.now(),
-          preview: true,
-          previewConfig: {
+          visitor_id: 'preview_' + Date.now(),
+          preview_mode: true,
+          preview_config: {
             system_prompt: formData.system_prompt,
             model: formData.model,
             temperature: formData.temperature[0],

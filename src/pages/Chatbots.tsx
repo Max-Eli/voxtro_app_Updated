@@ -469,12 +469,13 @@ export default function Chatbots() {
   const copyEmbedCode = (botId: string, type: 'widget' | 'inline' | 'messenger' = 'widget') => {
     let embedCode;
     let description;
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://voxtro-backend.onrender.com';
     
     if (type === 'inline') {
       embedCode = `<script>
   (function() {
     var script = document.createElement('script');
-    script.src = 'https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/inline-chat/${botId}.js';
+    script.src = '${apiBaseUrl}/api/inline-chat/${botId}.js';
     script.async = true;
     document.head.appendChild(script);
   })();
@@ -484,7 +485,7 @@ export default function Chatbots() {
       embedCode = `<script>
   (function() {
     var script = document.createElement('script');
-    script.src = 'https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/messenger/${botId}.js';
+    script.src = '${apiBaseUrl}/api/messenger/${botId}.js';
     script.async = true;
     script.onload = function() {
       window.openVoxtroMessenger();
@@ -497,7 +498,7 @@ export default function Chatbots() {
       embedCode = `<script>
   (function() {
     var script = document.createElement('script');
-    script.src = 'https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/widget/${botId}.js?v=' + Date.now();
+    script.src = '${apiBaseUrl}/api/widget/${botId}.js?v=' + Date.now();
     script.async = true;
     document.head.appendChild(script);
   })();

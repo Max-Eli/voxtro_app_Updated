@@ -397,7 +397,7 @@ serve(async (req) => {
       submitButton.textContent = 'Submitting...';
       submitButton.disabled = true;
       
-      fetch('https://atmwldssfrbmcluvmelm.supabase.co/functions/v1/form-submit', {
+      fetch('https://nzqzmvsrsfynatxojuil.supabase.co/functions/v1/form-submit', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
@@ -467,7 +467,7 @@ serve(async (req) => {
 
       console.log('Request payload:', requestPayload);
 
-      fetch('https://atmwldssfrbmcluvmelm.supabase.co/functions/v1/chat', {
+      fetch('https://nzqzmvsrsfynatxojuil.supabase.co/functions/v1/chat', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'

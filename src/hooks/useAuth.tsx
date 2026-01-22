@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       
       // Clear localStorage manually
-      localStorage.removeItem('sb-atmwldssfrbmcluvmelm-auth-token');
+      localStorage.removeItem('sb-nzqzmvsrsfynatxojuil-auth-token');
       
       const { error } = await supabase.auth.signOut();
       console.log('Sign out response:', { error });

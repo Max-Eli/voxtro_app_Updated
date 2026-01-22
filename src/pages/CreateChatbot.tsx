@@ -68,12 +68,13 @@ export default function CreateChatbot() {
     setLoading(true);
 
     try {
-      // Generate embed codes
+      // Generate embed codes - using FastAPI backend
       const tempId = crypto.randomUUID();
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://voxtro-backend.onrender.com';
       const embedCode = `<script>
   (function() {
     var script = document.createElement('script');
-    script.src = 'https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/widget/${tempId}.js?v=' + Date.now();
+    script.src = '${apiBaseUrl}/api/widget/${tempId}.js?v=' + Date.now();
     script.async = true;
     document.head.appendChild(script);
   })();
@@ -82,7 +83,7 @@ export default function CreateChatbot() {
       const inlineEmbedCode = `<script>
   (function() {
     var script = document.createElement('script');
-    script.src = 'https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1/inline-chat/${tempId}.js';
+    script.src = '${apiBaseUrl}/api/inline-chat/${tempId}.js';
     script.async = true;
     document.head.appendChild(script);
   })();

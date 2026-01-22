@@ -42,7 +42,7 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient('https://atmwldssfrbmcluvmelm.supabase.co', supabaseServiceKey, {
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
@@ -108,7 +108,7 @@ serve(async (req) => {
   const THEME_GRADIENT_ANGLE = ` + JSON.stringify((chatbot as any).theme_gradient_angle || 135) + `;
   const WELCOME_MESSAGE = ` + JSON.stringify((chatbot.welcome_message || "Hi! I'm here to help you. How can I assist you today?").trim()) + `;
   const FAQS = ` + JSON.stringify(faqs || []) + `;
-  const API_BASE = 'https://atmwldssfrbmcluvmelm.functions.supabase.co/functions/v1';
+  const API_BASE = 'https://nzqzmvsrsfynatxojuil.supabase.co/functions/v1';
   const WIDGET_FORM_BUTTONS = ` + JSON.stringify(formButtons) + `;
   const AVAILABLE_FORMS = ` + JSON.stringify(availableForms) + `;
   
