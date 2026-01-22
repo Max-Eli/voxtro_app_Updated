@@ -427,6 +427,17 @@ const Settings = () => {
 
     setValidatingVoice(true);
     try {
+      // Check for user and token before validating
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!user || !session?.access_token) {
+        toast({
+          title: "Not Logged In",
+          description: "You must be logged in to validate VAPI credentials. Please sign in and try again.",
+          variant: "destructive",
+        });
+        setValidatingVoice(false);
+        return;
+      }
       const validationResp = await validateVoiceConnection(
         newVoiceApiKey.trim(),
         newVoicePublicKey.trim()
