@@ -73,7 +73,7 @@ serve(async (req) => {
         subject = 'Reset your password - Voxtro';
         
         // Force production URL for password reset
-        const productionUrl = 'https://app.voxtro.io';
+        const productionUrl = 'https://dev.voxtro.io';
         const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
         
         html = await renderAsync(
@@ -108,7 +108,7 @@ serve(async (req) => {
     console.log('Sending email via Resend...');
     
     const { error } = await resend.emails.send({
-      from: 'Voxtro <noreply@voxtro.com>',
+      from: 'Voxtro <noreply@dev.voxtro.io>',
       to: [user.email],
       subject,
       html,

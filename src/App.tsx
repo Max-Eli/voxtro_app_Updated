@@ -10,6 +10,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import AuthConfirm from "./pages/AuthConfirm";
 import Dashboard from "./pages/Dashboard";
 import Chatbots from "./pages/Chatbots";
 import CreateChatbot from "./pages/CreateChatbot";
@@ -68,6 +69,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/confirm" element={<AuthConfirm />} />
                 <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
                 <Route path="/chatbots" element={<DashboardLayout><Chatbots /></DashboardLayout>} />
                 <Route path="/conversations" element={<DashboardLayout><Conversations /></DashboardLayout>} />

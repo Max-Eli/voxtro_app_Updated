@@ -1,4 +1,4 @@
-project_id = "atmwldssfrbmcluvmelm"
+project_id = "nzqzmvsrsfynatxojuil"
 
 [functions.chat]
 verify_jwt = false
@@ -100,4 +100,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.extract-leads-cron]
+verify_jwt = false
+
+[functions.auth-emails]
 verify_jwt = false
