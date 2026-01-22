@@ -34,6 +34,7 @@ export default function Messenger() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showInput, setShowInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Get or create visitor_id from localStorage for session persistence
@@ -182,6 +183,7 @@ export default function Messenger() {
 
   const handleFAQClick = (question: string) => {
     sendMessage(question);
+    setShowInput(true);
   };
 
   // Handle form submission through widget API
@@ -240,6 +242,7 @@ export default function Messenger() {
       role: 'assistant',
       content: config?.welcome_message || 'Hi! How can I help you today?'
     }]);
+    setShowInput(false);
   };
 
   // Loading state
@@ -385,10 +388,10 @@ export default function Messenger() {
       </div>
 
       {/* FAQ Suggestions */}
-      {faqs.length > 0 && messages.length <= 1 && (
+      {faqs.length > 0 && messages.length <= 1 && !showInput && (
         <div className="flex-shrink-0 px-4 py-3 border-t bg-gray-50">
           <p className="text-xs font-medium text-gray-500 mb-2">Quick Questions:</p>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {faqs.slice(0, 4).map((faq, index) => (
               <button
                 key={index}
@@ -404,37 +407,46 @@ export default function Messenger() {
               </button>
             ))}
           </div>
+          <button
+            className="w-full py-2 rounded-full text-white font-semibold text-sm shadow-md transition-all hover:opacity-90"
+            style={{ backgroundColor: themeColor }}
+            onClick={() => setShowInput(true)}
+          >
+            Chat with us
+          </button>
         </div>
       )}
 
       {/* Input Area */}
-      <div className="flex-shrink-0 p-3 border-t bg-white">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Type a message..."
-            className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-0 text-gray-900 placeholder-gray-400"
-            style={{ 
-              focusRing: themeColor,
-            }}
-            disabled={isTyping}
-          />
-          <button
-            onClick={() => sendMessage(inputMessage)}
-            disabled={!inputMessage.trim() || isTyping}
-            className="flex-shrink-0 w-10 h-10 rounded-full text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90"
-            style={{ backgroundColor: buttonColor }}
-          >
-            <Send className="w-4 h-4" />
-          </button>
+      {showInput && (
+        <div className="flex-shrink-0 p-3 border-t bg-white">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Type a message..."
+              className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-0 text-gray-900 placeholder-gray-400"
+              style={{ 
+                focusRing: themeColor,
+              }}
+              disabled={isTyping}
+            />
+            <button
+              onClick={() => sendMessage(inputMessage)}
+              disabled={!inputMessage.trim() || isTyping}
+              className="flex-shrink-0 w-10 h-10 rounded-full text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90"
+              style={{ backgroundColor: buttonColor }}
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-center text-[10px] text-gray-400 mt-2">
+            Powered by Voxtro
+          </p>
         </div>
-        <p className="text-center text-[10px] text-gray-400 mt-2">
-          Powered by Voxtro
-        </p>
-      </div>
+      )}
     </div>
   );
 }
