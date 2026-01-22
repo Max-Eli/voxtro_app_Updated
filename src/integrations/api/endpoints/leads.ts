@@ -16,6 +16,14 @@ export interface Lead {
 }
 
 /**
+ * Extract leads for a customer
+ * Used by CustomerLeadsPage
+ */
+export async function extractLeads(data: { customerId: string }) {
+  return apiClient.post('/api/leads/extract', { customer_id: data.customerId });
+}
+
+/**
  * Extract leads from a conversation
  */
 export async function extractLeadsFromConversation(conversationId: string) {
