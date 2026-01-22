@@ -271,7 +271,10 @@ export default function Messenger() {
     );
   }
 
-  const themeColor = config.theme_color || '#3B82F6';
+  // Use theme.primary_color for chat interface, fallback to theme_color
+  const themeColor = (config.theme && config.theme.primary_color) || config.theme_color || '#3B82F6';
+  // Use widget_button_color for widget button, fallback to theme.secondary_color
+  const buttonColor = config.widget_button_color || (config.theme && config.theme.secondary_color) || '#6366F1';
   const faqs = config.faqs || [];
 
   return (
@@ -423,7 +426,7 @@ export default function Messenger() {
             onClick={() => sendMessage(inputMessage)}
             disabled={!inputMessage.trim() || isTyping}
             className="flex-shrink-0 w-10 h-10 rounded-full text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90"
-            style={{ backgroundColor: themeColor }}
+            style={{ backgroundColor: buttonColor }}
           >
             <Send className="w-4 h-4" />
           </button>
