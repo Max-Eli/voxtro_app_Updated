@@ -49,11 +49,11 @@ export default function CustomerSupportTicketsPage() {
     try {
       setLoading(true);
 
-      // Fetch tickets for this customer (by email)
+      // Fetch tickets for this customer (by customer_id)
       const { data: ticketsData, error: ticketsError } = await supabase
         .from("support_tickets")
         .select("*")
-        .eq("customer_email", customer.email)
+        .eq("customer_id", customer.id)
         .order("created_at", { ascending: false });
 
       if (ticketsError) {
