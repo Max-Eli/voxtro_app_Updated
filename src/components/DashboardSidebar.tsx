@@ -1,4 +1,4 @@
-import { Home, Settings, BarChart3, Users, FileText, Workflow, Bot, Phone, ClipboardList, CheckSquare, MessageCircle, Ticket, LogOut } from "lucide-react";
+import { Home, Settings, BarChart3, Users, FileText, Workflow, Bot, Phone, ClipboardList, CheckSquare, MessageCircle, Ticket, LogOut, Mic, ExternalLink } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -143,6 +143,32 @@ export function DashboardSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <a
+                    href="https://build.voxtro.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sidebar-foreground hover:bg-sidebar-accent/50 flex items-center"
+                  >
+                    <Mic className="mr-2 h-4 w-4" />
+                    {!isCollapsed && (
+                      <>
+                        <span>Voice Agent Studio</span>
+                        <ExternalLink className="ml-auto h-3 w-3 opacity-50" />
+                      </>
+                    )}
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
