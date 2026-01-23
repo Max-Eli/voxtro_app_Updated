@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,23 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Users, Bot, Phone, MessageCircle, Search, Mail, User, Calendar, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { extractLeads as extractLeadsAPI } from '@/integrations/api/endpoints';
-
-interface Lead {
-  id: string;
-  source_type: string;
-  source_name: string | null;
-  conversation_id: string;
-  phone_number: string | null;
-  email: string | null;
-  name: string | null;
-  additional_data: Record<string, string>;
-  extracted_at: string;
-}
+import { extractLeads as extractLeadsAPI, getCustomerPortalLeads, CustomerLead } from '@/integrations/api/endpoints';
 
 export default function CustomerLeadsPage() {
   const { customer } = useCustomerAuth();
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<CustomerLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [extracting, setExtracting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,83 +30,10 @@ export default function CustomerLeadsPage() {
 
     try {
       setLoading(true);
-      const allLeads: Lead[] = [];
 
-      // Fetch leads for chatbots assigned to this customer
-      const { data: chatbotAssignments } = await supabase
-        .from('customer_chatbot_assignments')
-        .select('chatbot_id')
-        .eq('customer_id', customer.id);
-
-      if (chatbotAssignments && chatbotAssignments.length > 0) {
-        const chatbotIds = chatbotAssignments.map(a => a.chatbot_id);
-        
-        const { data: chatbotLeads } = await supabase
-          .from('leads')
-          .select('*')
-          .eq('source_type', 'chatbot')
-          .in('source_id', chatbotIds)
-          .order('extracted_at', { ascending: false });
-
-        if (chatbotLeads) {
-          allLeads.push(...chatbotLeads.map(l => ({
-            ...l,
-            additional_data: (l.additional_data as Record<string, string>) || {}
-          })));
-        }
-      }
-
-      // Fetch leads for voice assistants assigned to this customer
-      const { data: voiceAssignments } = await supabase
-        .from('customer_assistant_assignments')
-        .select('assistant_id')
-        .eq('customer_id', customer.id);
-
-      if (voiceAssignments && voiceAssignments.length > 0) {
-        const assistantIds = voiceAssignments.map(a => a.assistant_id);
-        
-        const { data: voiceLeads } = await supabase
-          .from('leads')
-          .select('*')
-          .eq('source_type', 'voice')
-          .in('source_id', assistantIds)
-          .order('extracted_at', { ascending: false });
-
-        if (voiceLeads) {
-          allLeads.push(...voiceLeads.map(l => ({
-            ...l,
-            additional_data: (l.additional_data as Record<string, string>) || {}
-          })));
-        }
-      }
-
-      // Fetch leads for WhatsApp agents assigned to this customer
-      const { data: whatsappAssignments } = await supabase
-        .from('customer_whatsapp_agent_assignments')
-        .select('agent_id')
-        .eq('customer_id', customer.id);
-
-      if (whatsappAssignments && whatsappAssignments.length > 0) {
-        const agentIds = whatsappAssignments.map(a => a.agent_id);
-        
-        const { data: whatsappLeads } = await supabase
-          .from('leads')
-          .select('*')
-          .eq('source_type', 'whatsapp')
-          .in('source_id', agentIds)
-          .order('extracted_at', { ascending: false });
-
-        if (whatsappLeads) {
-          allLeads.push(...whatsappLeads.map(l => ({
-            ...l,
-            additional_data: (l.additional_data as Record<string, string>) || {}
-          })));
-        }
-      }
-
-      // Sort by date descending
-      allLeads.sort((a, b) => new Date(b.extracted_at).getTime() - new Date(a.extracted_at).getTime());
-      setLeads(allLeads);
+      // Use API endpoint to fetch leads (handles RLS permissions server-side)
+      const response = await getCustomerPortalLeads();
+      setLeads(response.leads || []);
     } catch (error) {
       console.error('Error fetching leads:', error);
       toast.error('Failed to load leads');

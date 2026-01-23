@@ -86,3 +86,23 @@ export async function createCustomerPortalTicket(data: {
   return apiClient.post('/api/customers/portal/tickets', data);
 }
 
+/**
+ * Get customer's leads from assigned agents
+ */
+export async function getCustomerPortalLeads(): Promise<{ leads: CustomerLead[] }> {
+  return apiClient.get('/api/customers/portal/leads');
+}
+
+export interface CustomerLead {
+  id: string;
+  source_type: 'chatbot' | 'voice' | 'whatsapp';
+  source_id: string;
+  source_name: string | null;
+  conversation_id: string;
+  phone_number: string | null;
+  email: string | null;
+  name: string | null;
+  additional_data: Record<string, string>;
+  extracted_at: string;
+}
+
