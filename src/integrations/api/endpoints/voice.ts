@@ -43,5 +43,6 @@ export async function getVapiWebToken() {
  * Replaces: supabase.functions.invoke('validate-elevenlabs-connection', ...)
  */
 export async function validateElevenLabsConnection(apiKey: string) {
-  return apiClient.post(`/api/whatsapp/validate-elevenlabs?api_key=${encodeURIComponent(apiKey)}`);
+  // Send API key in request body for better handling of special characters
+  return apiClient.post('/api/whatsapp/validate-elevenlabs', { api_key: apiKey });
 }
