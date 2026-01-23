@@ -106,3 +106,81 @@ export interface CustomerLead {
   extracted_at: string;
 }
 
+/**
+ * Get customer portal analytics/overview data
+ */
+export async function getCustomerPortalAnalytics(): Promise<CustomerAnalyticsResponse> {
+  return apiClient.get('/api/customers/portal/analytics');
+}
+
+export interface CustomerAnalyticsResponse {
+  chatbots: {
+    assigned: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      theme_color?: string;
+      conversation_count: number;
+      message_count: number;
+    }>;
+    total_conversations: number;
+    total_messages: number;
+    avg_messages_per_conversation: number;
+  };
+  voice_assistants: {
+    assigned: Array<{
+      id: string;
+      name: string;
+      first_message?: string;
+      voice_provider?: string;
+      phone_number?: string;
+      call_count: number;
+      total_duration: number;
+    }>;
+    total_calls: number;
+    total_duration: number;
+    avg_duration: number;
+    success_rate: number;
+  };
+  whatsapp_agents: {
+    assigned: Array<{
+      id: string;
+      name: string;
+      phone_number?: string;
+      status?: string;
+      conversation_count: number;
+    }>;
+    total_conversations: number;
+    total_messages: number;
+  };
+  leads: {
+    recent: Array<{
+      id: string;
+      name: string | null;
+      email: string | null;
+      phone_number: string | null;
+      source_type: string;
+      source_name: string | null;
+      extracted_at: string;
+    }>;
+    total_count: number;
+    conversion_rates: {
+      chatbot: number;
+      voice: number;
+      whatsapp: number;
+      overall: number;
+    };
+  };
+  support_tickets: {
+    recent: Array<{
+      id: string;
+      subject: string;
+      status: string;
+      priority: string;
+      created_at: string;
+      updated_at: string;
+    }>;
+    open_count: number;
+  };
+}
+
