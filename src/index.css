@@ -106,6 +106,29 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Force light theme on specific containers (e.g., auth pages) */
+  .force-light {
+    --background: 0 0% 100%;
+    --foreground: 320 8% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 320 8% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 320 8% 10%;
+    --primary: 12 76% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 25 60% 95%;
+    --secondary-foreground: 320 8% 10%;
+    --muted: 25 40% 94%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 12 80% 92%;
+    --accent-foreground: 12 76% 35%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 25 30% 88%;
+    --input: 25 30% 88%;
+    --ring: 12 76% 55%;
+  }
 }
 
 @keyframes flowLine {

@@ -153,7 +153,7 @@ export default function AuthConfirm() {
   // Loading state
   if (loading || verifying) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="min-h-screen flex items-center justify-center bg-white p-4 force-light">
         <div className="text-center">
           <Bot className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-muted-foreground">Verifying your request...</p>
@@ -165,7 +165,7 @@ export default function AuthConfirm() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="min-h-screen flex items-center justify-center bg-white p-4 force-light">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
             <div className="flex justify-center mb-8">
@@ -207,7 +207,7 @@ export default function AuthConfirm() {
   // Password updated success state
   if (passwordUpdated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="min-h-screen flex items-center justify-center bg-white p-4 force-light">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
             <div className="flex justify-center mb-8">
@@ -249,7 +249,7 @@ export default function AuthConfirm() {
   // Password reset form (verified state)
   if (verified && type === 'recovery') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="min-h-screen flex items-center justify-center bg-white p-4 force-light">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
             <div className="flex justify-center mb-8">
@@ -346,7 +346,7 @@ export default function AuthConfirm() {
 
   // Fallback
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-white p-4 force-light">
       <div className="text-center">
         <p className="text-muted-foreground">Something went wrong. Please try again.</p>
         <Button onClick={() => navigate('/auth')} className="mt-4">
