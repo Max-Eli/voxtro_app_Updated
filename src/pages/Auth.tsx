@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Sparkles, Shield, Zap } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import voxtroLogo from '@/assets/voxtro-logo.png';
 import voxtroLogoDark from '@/assets/voxtro-logo-dark.png';
 
@@ -147,14 +147,7 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-white rounded-full blur-3xl" />
-        </div>
-
+      <div className="hidden lg:flex lg:w-1/2 bg-black relative overflow-hidden">
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center justify-center w-full px-12">
           {/* Logo */}
@@ -167,45 +160,9 @@ export default function Auth() {
           </div>
 
           {/* Tagline */}
-          <h1 className="text-4xl font-bold text-white text-center mb-4">
+          <h1 className="text-4xl font-bold text-white text-center" style={{ fontFamily: 'Montserrat, sans-serif' }}>
             AI-Powered Customer Engagement
           </h1>
-          <p className="text-xl text-white/80 text-center mb-12 max-w-md">
-            Build intelligent chatbots that convert visitors into customers
-          </p>
-
-          {/* Features */}
-          <div className="space-y-6 max-w-sm">
-            <div className="flex items-center gap-4 text-white/90">
-              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-                <Sparkles className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-semibold">AI-Powered Responses</h3>
-                <p className="text-sm text-white/70">Smart conversations that understand context</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 text-white/90">
-              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-                <Zap className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Instant Setup</h3>
-                <p className="text-sm text-white/70">Deploy your chatbot in minutes</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 text-white/90">
-              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-                <Shield className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Enterprise Security</h3>
-                <p className="text-sm text-white/70">Your data is always protected</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
