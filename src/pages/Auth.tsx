@@ -26,7 +26,7 @@ export default function Auth() {
   if (loading) {
     console.log('Auth page showing loading...');
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-600 to-purple-700">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="text-center text-white">
           <Bot className="h-8 w-8 animate-spin mx-auto mb-2" />
           <p>Loading...</p>
@@ -160,7 +160,7 @@ export default function Auth() {
           </div>
 
           {/* Tagline */}
-          <h1 className="text-4xl font-bold text-white text-center" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <h1 className="text-4xl font-normal text-white text-center" style={{ fontFamily: 'Montserrat, sans-serif' }}>
             AI-Powered Customer Engagement
           </h1>
         </div>
@@ -203,7 +203,7 @@ export default function Auth() {
                       type="email"
                       placeholder="name@company.com"
                       required
-                      className="h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                      className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
                     />
                   </div>
                   <div className="space-y-2">
@@ -214,7 +214,7 @@ export default function Auth() {
                       type="password"
                       placeholder="Enter your password"
                       required
-                      className="h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                      className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
                     />
                   </div>
 
@@ -222,7 +222,7 @@ export default function Auth() {
                     <button
                       type="button"
                       onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-violet-600 hover:text-violet-700 font-medium"
+                      className="text-sm text-[#e45133] hover:text-[#cc472e] font-medium"
                     >
                       Forgot password?
                     </button>
@@ -230,7 +230,7 @@ export default function Auth() {
 
                   <Button
                     type="submit"
-                    className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-medium"
+                    className="w-full h-12 bg-[#e45133] hover:bg-[#cc472e] text-white font-medium"
                     disabled={submitLoading}
                   >
                     {submitLoading ? 'Signing in...' : 'Sign in'}
@@ -282,12 +282,12 @@ export default function Auth() {
                       type="email"
                       placeholder="name@company.com"
                       required
-                      className="h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                      className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
                     />
                   </div>
                   <Button
                     type="submit"
-                    className="w-full h-12 bg-violet-600 hover:bg-violet-700"
+                    className="w-full h-12 bg-[#e45133] hover:bg-[#cc472e]"
                     disabled={submitLoading}
                   >
                     {submitLoading ? 'Sending...' : 'Send reset link'}
@@ -306,7 +306,7 @@ export default function Auth() {
                 <button
                   type="button"
                   onClick={() => setIsSignUp(true)}
-                  className="font-semibold text-violet-600 hover:text-violet-700"
+                  className="font-semibold text-[#e45133] hover:text-[#cc472e]"
                 >
                   Sign up for free
                 </button>
@@ -324,7 +324,7 @@ export default function Auth() {
                     type="text"
                     placeholder="John Doe"
                     required
-                    className="h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -335,7 +335,7 @@ export default function Auth() {
                     type="email"
                     placeholder="name@company.com"
                     required
-                    className="h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -347,7 +347,7 @@ export default function Auth() {
                     placeholder="Create a password"
                     required
                     minLength={6}
-                    className="h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -359,12 +359,12 @@ export default function Auth() {
                     placeholder="Confirm your password"
                     required
                     minLength={6}
-                    className="h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
                   />
                 </div>
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-medium mt-2"
+                  className="w-full h-12 bg-[#e45133] hover:bg-[#cc472e] text-white font-medium mt-2"
                   disabled={submitLoading}
                 >
                   {submitLoading ? 'Creating account...' : 'Create account'}
@@ -411,7 +411,7 @@ export default function Auth() {
                 <button
                   type="button"
                   onClick={() => setIsSignUp(false)}
-                  className="font-semibold text-violet-600 hover:text-violet-700"
+                  className="font-semibold text-[#e45133] hover:text-[#cc472e]"
                 >
                   Sign in
                 </button>
@@ -422,9 +422,9 @@ export default function Auth() {
           {/* Footer */}
           <p className="mt-8 text-center text-xs text-gray-500">
             By continuing, you agree to our{' '}
-            <a href="#" className="text-violet-600 hover:underline">Terms of Service</a>
+            <a href="#" className="text-[#e45133] hover:underline">Terms of Service</a>
             {' '}and{' '}
-            <a href="#" className="text-violet-600 hover:underline">Privacy Policy</a>
+            <a href="#" className="text-[#e45133] hover:underline">Privacy Policy</a>
           </p>
         </div>
       </div>
