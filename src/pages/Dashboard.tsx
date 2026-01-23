@@ -596,116 +596,70 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Bottom Row: Tasks and Quick Actions */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Upcoming Tasks */}
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-chart-3" />
-                    <CardTitle className="text-base">Upcoming Tasks</CardTitle>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => navigate('/voice-tasks')}>
-                    View All
-                    <ChevronRight className="h-4 w-4 ml-1" />
+          {/* Upcoming Tasks */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-chart-3" />
+                  <CardTitle className="text-base">Upcoming Tasks</CardTitle>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/voice-tasks')}>
+                  View All
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {upcomingTasks.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No pending tasks</p>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => navigate('/voice-tasks')}
+                    className="mt-1"
+                  >
+                    Create a task
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {upcomingTasks.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No pending tasks</p>
-                    <Button 
-                      variant="link" 
-                      size="sm"
-                      onClick={() => navigate('/voice-tasks')}
-                      className="mt-1"
-                    >
-                      Create a task
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {upcomingTasks.map(task => {
-                      const dueDateInfo = getDueDateLabel(task.due_date);
-                      return (
-                        <div 
-                          key={task.id}
-                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                          onClick={() => navigate('/voice-tasks')}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            {getStatusIcon(task.status)}
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">{task.title}</p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {getAssistantName(task.assistant_id)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <Badge variant={getPriorityColor(task.priority)} className="capitalize text-xs">
-                              {task.priority}
-                            </Badge>
-                            {dueDateInfo && (
-                              <span className={`text-xs font-medium ${dueDateInfo.className}`}>
-                                {dueDateInfo.label}
-                              </span>
-                            )}
+              ) : (
+                <div className="space-y-2">
+                  {upcomingTasks.map(task => {
+                    const dueDateInfo = getDueDateLabel(task.due_date);
+                    return (
+                      <div
+                        key={task.id}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={() => navigate('/voice-tasks')}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {getStatusIcon(task.status)}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{task.title}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {getAssistantName(task.assistant_id)}
+                            </p>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="h-auto py-4 flex flex-col items-center gap-2"
-                    onClick={() => navigate('/chatbots/new')}
-                  >
-                    <Bot className="h-5 w-5 text-primary" />
-                    <span className="text-xs">New Chatbot</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-auto py-4 flex flex-col items-center gap-2"
-                    onClick={() => navigate('/conversations')}
-                  >
-                    <MessageSquare className="h-5 w-5 text-chart-2" />
-                    <span className="text-xs">Conversations</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-auto py-4 flex flex-col items-center gap-2"
-                    onClick={() => navigate('/customers')}
-                  >
-                    <Users className="h-5 w-5 text-chart-3" />
-                    <span className="text-xs">Customers</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-auto py-4 flex flex-col items-center gap-2"
-                    onClick={() => navigate('/support-tickets')}
-                  >
-                    <Ticket className="h-5 w-5 text-yellow-500" />
-                    <span className="text-xs">Support</span>
-                  </Button>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge variant={getPriorityColor(task.priority)} className="capitalize text-xs">
+                            {task.priority}
+                          </Badge>
+                          {dueDateInfo && (
+                            <span className={`text-xs font-medium ${dueDateInfo.className}`}>
+                              {dueDateInfo.label}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </>
       )}
     </div>
