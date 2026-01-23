@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.png" type="image/png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cal.com https://app.cal.com https://cdn.jsdelivr.net https://*.supabase.co https://js.stripe.com https://*.daily.co https://*.vapi.ai https://*.onrender.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: blob: https:;
+      connect-src 'self' https://*.supabase.co https://*.onrender.com wss://*.supabase.co wss://*.daily.co wss://*.vapi.ai https://js.stripe.com https://api.stripe.com;
+      frame-src 'self' https://js.stripe.com https://cal.com https://app.cal.com https://*.daily.co;
+      media-src 'self' blob: https:;
+    ">
     <title>Voxtro</title>
     <meta name="description" content="AI-powered customer engagement platform with chatbots, voice assistants, and WhatsApp agents." />
     <meta name="author" content="Voxtro" />
@@ -15,8 +25,8 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@voxtro" />
-    <script type="module" crossorigin src="/assets/index-ZhSrv1NK.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-Du9ONQqU.css">
+    <script type="module" crossorigin src="/assets/index-BsQwB1V4.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Obuk4oh9.css">
   </head>
 
   <body>

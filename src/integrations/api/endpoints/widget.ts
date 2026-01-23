@@ -34,3 +34,10 @@ export async function getWidgetConfig(chatbotId: string): Promise<WidgetConfig> 
 export async function sendWidgetMessage(chatbotId: string, request: WidgetMessageRequest) {
   return apiClient.post(`/api/widget/${chatbotId}/message`, request);
 }
+
+/**
+ * End conversation and generate AI summary (PUBLIC - no auth)
+ */
+export async function endWidgetConversation(conversationId: string) {
+  return apiClient.post(`/api/chat/conversations/${conversationId}/end`, {});
+}
