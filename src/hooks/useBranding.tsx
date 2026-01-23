@@ -49,37 +49,66 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (customer) {
-        // Customer - find their assigned admin's branding
-        const { data: assignment } = await supabase
+        // Customer - find their assigned admin's branding through any assignment
+        // All assignment tables have assigned_by which is the admin's user_id
+        let adminUserId: string | null = null;
+
+        // Try chatbot assignments first
+        const { data: chatbotAssignment } = await supabase
           .from('customer_chatbot_assignments')
-          .select('chatbot_id')
+          .select('assigned_by')
           .eq('customer_id', customer.id)
           .limit(1)
           .maybeSingle();
 
-        if (assignment) {
-          const { data: chatbot } = await supabase
-            .from('chatbots')
-            .select('user_id')
-            .eq('id', assignment.chatbot_id)
-            .single();
+        if (chatbotAssignment?.assigned_by) {
+          adminUserId = chatbotAssignment.assigned_by;
+        }
 
-          if (chatbot) {
-            const { data: brandingData } = await supabase
-              .from('branding_settings')
-              .select('logo_url, primary_color, secondary_color')
-              .eq('user_id', chatbot.user_id)
-              .maybeSingle();
+        // Try voice assistant assignments if no chatbot found
+        if (!adminUserId) {
+          const { data: voiceAssignment } = await supabase
+            .from('customer_assistant_assignments')
+            .select('assigned_by')
+            .eq('customer_id', customer.id)
+            .limit(1)
+            .maybeSingle();
 
-            if (brandingData) {
-              setBranding({
-                logo_url: brandingData.logo_url,
-                primary_color: brandingData.primary_color || defaultBranding.primary_color,
-                secondary_color: brandingData.secondary_color || defaultBranding.secondary_color,
-              });
-              setLoading(false);
-              return;
-            }
+          if (voiceAssignment?.assigned_by) {
+            adminUserId = voiceAssignment.assigned_by;
+          }
+        }
+
+        // Try whatsapp agent assignments if still no admin found
+        if (!adminUserId) {
+          const { data: waAssignment } = await supabase
+            .from('customer_whatsapp_agent_assignments')
+            .select('assigned_by')
+            .eq('customer_id', customer.id)
+            .limit(1)
+            .maybeSingle();
+
+          if (waAssignment?.assigned_by) {
+            adminUserId = waAssignment.assigned_by;
+          }
+        }
+
+        // Get branding for the admin
+        if (adminUserId) {
+          const { data: brandingData } = await supabase
+            .from('branding_settings')
+            .select('logo_url, primary_color, secondary_color')
+            .eq('user_id', adminUserId)
+            .maybeSingle();
+
+          if (brandingData) {
+            setBranding({
+              logo_url: brandingData.logo_url,
+              primary_color: brandingData.primary_color || defaultBranding.primary_color,
+              secondary_color: brandingData.secondary_color || defaultBranding.secondary_color,
+            });
+            setLoading(false);
+            return;
           }
         }
       }
