@@ -9,13 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Users, Bot, Phone, MessageCircle, Search, Mail, User, Calendar, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { extractLeads as extractLeadsAPI, getCustomerPortalLeads, CustomerLead } from '@/integrations/api/endpoints';
+import { getCustomerPortalLeads, CustomerLead } from '@/integrations/api/endpoints';
 
 export default function CustomerLeadsPage() {
   const { customer } = useCustomerAuth();
   const [leads, setLeads] = useState<CustomerLead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [extracting, setExtracting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
 
@@ -42,22 +42,19 @@ export default function CustomerLeadsPage() {
     }
   };
 
-  const extractLeads = async () => {
+  const refreshLeads = async () => {
     if (!customer) return;
 
-    setExtracting(true);
+    setRefreshing(true);
     try {
-      const data = await extractLeadsAPI({
-        customerId: customer.id
-      });
-
-      toast.success(data.message || 'Leads extracted successfully');
-      await fetchLeads(); // Refresh the leads list
+      const response = await getCustomerPortalLeads();
+      setLeads(response.leads || []);
+      toast.success('Leads refreshed');
     } catch (error) {
-      console.error('Error extracting leads:', error);
-      toast.error('Failed to extract leads');
+      console.error('Error refreshing leads:', error);
+      toast.error('Failed to refresh leads');
     } finally {
-      setExtracting(false);
+      setRefreshing(false);
     }
   };
 
@@ -106,9 +103,9 @@ export default function CustomerLeadsPage() {
             View extracted lead data from your agents
           </p>
         </div>
-        <Button onClick={extractLeads} disabled={extracting}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${extracting ? 'animate-spin' : ''}`} />
-          {extracting ? 'Extracting...' : 'Extract Leads'}
+        <Button onClick={refreshLeads} disabled={refreshing} variant="outline">
+          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
 
