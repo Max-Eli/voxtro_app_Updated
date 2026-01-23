@@ -128,15 +128,17 @@ export function CustomerManagement() {
       // Create additional chatbot assignments if more than one selected
       if (customerId && newCustomer.assigned_chatbots.length > 0) {
         for (const chatbotId of newCustomer.assigned_chatbots) {
+          // Use upsert to handle potential duplicates gracefully
           await supabase
             .from('customer_chatbot_assignments')
-            .insert({
+            .upsert({
               customer_id: customerId,
               chatbot_id: chatbotId,
               assigned_by: user?.id
-            })
-            .onConflict('customer_id,chatbot_id')
-            .ignore();
+            }, {
+              onConflict: 'customer_id,chatbot_id',
+              ignoreDuplicates: true
+            });
         }
       }
 
@@ -183,10 +185,7 @@ export function CustomerManagement() {
 
   const sendLoginLink = async (customer: Customer) => {
     try {
-      await sendCustomerLoginLink({
-        email: customer.email,
-        full_name: customer.full_name
-      });
+      await sendCustomerLoginLink(customer.email);
 
       toast.success('Login link sent successfully');
     } catch (error) {
