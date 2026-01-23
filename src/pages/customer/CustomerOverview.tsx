@@ -359,7 +359,7 @@ export function CustomerOverview() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base font-medium">Chatbot Analytics</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/customer/conversations')} className="text-xs">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/customer-dashboard/conversations')} className="text-xs">
               View All <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </CardHeader>
@@ -403,7 +403,7 @@ export function CustomerOverview() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base font-medium">Recent Leads</CardTitle>
             {leads.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={() => navigate('/customer/leads')} className="text-xs">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/customer-dashboard/leads')} className="text-xs">
                 View All <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
             )}
