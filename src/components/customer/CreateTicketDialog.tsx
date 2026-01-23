@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, Send } from 'lucide-react';
-import { createSupportTicket } from '@/integrations/api/endpoints/customers';
+import { createCustomerPortalTicket } from '@/integrations/api/endpoints/customers';
 
 interface CreateTicketDialogProps {
   customerId: string;
@@ -40,12 +40,11 @@ export function CreateTicketDialog({
 
     setSubmitting(true);
     try {
-      // Call the API to create the ticket
-      await createSupportTicket({
+      // Call the customer portal API to create the ticket
+      await createCustomerPortalTicket({
         subject: subject.trim(),
         description: description.trim(),
-        priority,
-        customer_id: customerId
+        priority
       });
 
       toast.success('Support ticket created successfully');
