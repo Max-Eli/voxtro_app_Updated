@@ -154,32 +154,62 @@ const WhatsAppAgents = () => {
     if (!user) return;
 
     try {
+      const allCustomers: Customer[] = [];
+
+      // Get chatbot IDs for this user
       const { data: chatbotsData } = await supabase
         .from('chatbots')
         .select('id')
         .eq('user_id', user.id);
-
       const chatbotIds = chatbotsData?.map(c => c.id) || [];
 
-      if (chatbotIds.length > 0) {
-        const { data: customersData, error } = await supabase
-          .from('customers')
-          .select(`
-            *,
-            customer_chatbot_assignments!inner (
-              chatbot_id
-            )
-          `)
-          .in('customer_chatbot_assignments.chatbot_id', chatbotIds);
+      // Get voice assistant IDs for this user
+      const { data: assistantsData } = await supabase
+        .from('voice_assistants')
+        .select('id')
+        .eq('user_id', user.id);
+      const assistantIds = assistantsData?.map(a => a.id) || [];
 
-        if (error) throw error;
-        
-        const uniqueCustomers = Array.from(
-          new Map(customersData?.map(c => [c.id, c])).values()
-        ) as Customer[];
-        
-        setCustomers(uniqueCustomers);
+      // Get WhatsApp agent IDs for this user
+      const { data: agentsData } = await supabase
+        .from('whatsapp_agents')
+        .select('id')
+        .eq('user_id', user.id);
+      const agentIds = agentsData?.map(a => a.id) || [];
+
+      // Fetch customers from chatbot assignments
+      if (chatbotIds.length > 0) {
+        const { data: chatbotCustomers } = await supabase
+          .from('customers')
+          .select(`*, customer_chatbot_assignments!inner(chatbot_id)`)
+          .in('customer_chatbot_assignments.chatbot_id', chatbotIds);
+        if (chatbotCustomers) allCustomers.push(...chatbotCustomers);
       }
+
+      // Fetch customers from voice assistant assignments
+      if (assistantIds.length > 0) {
+        const { data: assistantCustomers } = await supabase
+          .from('customers')
+          .select(`*, customer_assistant_assignments!inner(assistant_id)`)
+          .in('customer_assistant_assignments.assistant_id', assistantIds);
+        if (assistantCustomers) allCustomers.push(...assistantCustomers);
+      }
+
+      // Fetch customers from WhatsApp agent assignments
+      if (agentIds.length > 0) {
+        const { data: whatsappCustomers } = await supabase
+          .from('customers')
+          .select(`*, customer_whatsapp_agent_assignments!inner(agent_id)`)
+          .in('customer_whatsapp_agent_assignments.agent_id', agentIds);
+        if (whatsappCustomers) allCustomers.push(...whatsappCustomers);
+      }
+
+      // Deduplicate customers by ID
+      const uniqueCustomers = Array.from(
+        new Map(allCustomers.map(c => [c.id, c])).values()
+      ) as Customer[];
+
+      setCustomers(uniqueCustomers);
     } catch (error) {
       console.error('Error fetching customers:', error);
     }
