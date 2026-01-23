@@ -17,11 +17,22 @@ interface Message {
 interface WidgetConfig {
   chatbot_id: string;
   name: string;
-  theme_color: string;
-  welcome_message: string;
+  theme_color?: string;
+  welcome_message?: string;
+  first_message?: string;
   avatar_url?: string;
   position?: string;
   faqs?: Array<{ question: string; answer: string }>;
+  // Extended config from backend
+  theme?: {
+    primary_color?: string;
+    color_type?: string;
+    gradient_end?: string;
+    gradient_angle?: number;
+  };
+  primary_color?: string;
+  widget_button_color?: string;
+  widget_button_text?: string;
 }
 
 export default function Messenger() {
