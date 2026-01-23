@@ -15,7 +15,7 @@ export function PortalThemeProvider({ children }: { children: React.ReactNode })
   const storageKey = isCustomerPortal ? "voxtro-customer-theme" : "voxtro-admin-theme";
 
   return (
-    <ThemeProvider defaultTheme="light" storageKey={storageKey}>
+    <ThemeProvider defaultTheme="dark" storageKey={storageKey}>
       {children}
     </ThemeProvider>
   );
