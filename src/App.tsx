@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CustomerAuthProvider } from "@/hooks/useCustomerAuth";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { PortalThemeProvider } from "@/components/PortalThemeProvider";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthConfirm from "./pages/AuthConfirm";
@@ -59,13 +59,13 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="voxtro-ui-theme">
-      <AuthProvider>
-        <CustomerAuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+    <AuthProvider>
+      <CustomerAuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <PortalThemeProvider>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
@@ -116,11 +116,11 @@ const App = () => (
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </CustomerAuthProvider>
-      </AuthProvider>
-    </ThemeProvider>
+            </PortalThemeProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </CustomerAuthProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

@@ -399,6 +399,18 @@ export default function CustomerSupportTicketsPage() {
                 {/* Messages */}
                 <ScrollArea className="h-[300px] pr-4">
                   <div className="space-y-4">
+                    {/* Show initial ticket description as first message */}
+                    <div className="p-3 rounded-lg bg-primary/10 ml-8">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-sm">You</span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(selectedTicket.created_at), "MMM d, h:mm a")}
+                        </span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap">{selectedTicket.description}</p>
+                    </div>
+
+                    {/* Show subsequent messages */}
                     {selectedTicket.messages.map((message) => (
                       <div
                         key={message.id}

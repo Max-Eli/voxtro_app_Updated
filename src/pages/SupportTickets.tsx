@@ -90,6 +90,7 @@ export default function SupportTickets() {
       );
 
       setTickets(ticketsWithMessages);
+      console.log("Fetched tickets:", ticketsWithMessages);
     } catch (error) {
       console.error("Error:", error);
       toast.error("Failed to load support tickets");
@@ -489,6 +490,18 @@ export default function SupportTickets() {
 
                 <ScrollArea className="h-64">
                   <div className="space-y-4 pr-4">
+                    {/* Show initial ticket description as first message */}
+                    <div className="p-3 rounded-lg bg-muted">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium">{selectedTicket.customer_name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(selectedTicket.created_at), "MMM d, h:mm a")}
+                        </span>
+                      </div>
+                      <p className="text-sm">{selectedTicket.description}</p>
+                    </div>
+
+                    {/* Show subsequent messages */}
                     {selectedTicket.messages.map((message) => (
                       <div
                         key={message.id}
