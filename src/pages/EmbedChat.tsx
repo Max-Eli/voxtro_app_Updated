@@ -348,11 +348,23 @@ export default function EmbedChat() {
           {/* Suggested Questions - Show FAQs if configured */}
           {showSuggestions && faqs.length > 0 && (
             <div className="px-4 pb-4">
-              <div className="flex flex-col items-end space-y-2">
+              <p className="text-xs font-medium text-gray-500 mb-3">Suggested questions</p>
+              <div className="flex flex-wrap gap-2">
                 {faqs.map((faq) => (
-                  <button 
+                  <button
                     key={faq.id}
-                    className="text-left p-3 bg-gray-50 hover:bg-gray-100 transition-colors duration-200 rounded-full text-sm text-gray-700 border border-gray-200 max-w-xs"
+                    className="text-left px-4 py-2 bg-white hover:bg-gray-50 transition-all duration-200 rounded-xl text-sm text-gray-700 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow"
+                    style={{
+                      borderColor: `${chatbot.theme_color}20`,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = chatbot.theme_color;
+                      e.currentTarget.style.color = chatbot.theme_color;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = `${chatbot.theme_color}20`;
+                      e.currentTarget.style.color = '#374151';
+                    }}
                     onClick={() => {
                       setInput(faq.question);
                       setShowSuggestions(false);
