@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckSquare, Clock, AlertCircle, CheckCircle, Loader2, ChevronsUpDown, Check } from "lucide-react";
+import { CheckSquare, Clock, AlertCircle, CheckCircle, Loader2, ChevronsUpDown, Check, LayoutGrid, List } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import { AssistantSearchPreview } from "@/components/tasks/AssistantSearchPreview";
 import { QuickTaskForm } from "@/components/tasks/QuickTaskForm";
+import { TaskKanbanBoard } from "@/components/tasks/TaskKanbanBoard";
 interface VoiceAssistant {
   id: string;
   name: string | null;
@@ -52,6 +53,7 @@ const VoiceAssistantTasks = () => {
   const [sortBy, setSortBy] = useState<string>("created_at");
   const [selectedAssistantId, setSelectedAssistantId] = useState<string>("");
   const [assistantDropdownOpen, setAssistantDropdownOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("kanban");
 
   useEffect(() => {
     if (user) {
@@ -180,11 +182,33 @@ const VoiceAssistantTasks = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Task Manager</h1>
-        <p className="text-muted-foreground">
-          Manage tasks for your voice assistants across all organizations
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Task Manager</h1>
+          <p className="text-muted-foreground">
+            Manage tasks for your voice assistants across all organizations
+          </p>
+        </div>
+        <div className="flex items-center gap-2 border rounded-lg p-1">
+          <Button
+            variant={viewMode === "kanban" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("kanban")}
+            className="gap-2"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            Board
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            className="gap-2"
+          >
+            <List className="h-4 w-4" />
+            List
+          </Button>
+        </div>
       </div>
 
       {/* Quick Add Task */}
@@ -312,27 +336,28 @@ const VoiceAssistantTasks = () => {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <AssistantSearchPreview
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              assistants={assistants}
-              connections={connections}
-            />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
+      {viewMode === "list" && (
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <AssistantSearchPreview
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                assistants={assistants}
+                connections={connections}
+              />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-[150px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
               <SelectTrigger className="w-full md:w-[150px]">
                 <SelectValue placeholder="Priority" />
@@ -372,35 +397,46 @@ const VoiceAssistantTasks = () => {
             </Select>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      )}
 
-      {/* Tasks List */}
-      <div className="space-y-4">
-        {filteredTasks.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <CheckSquare className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No tasks found</h3>
-              <p className="text-muted-foreground text-center">
-                {tasks.length === 0
-                  ? "Use the quick add above to create your first task"
-                  : "No tasks match your current filters"}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredTasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              assistantName={getAssistantName(task.assistant_id)}
-              orgName={getOrgName(task.org_id)}
-              onUpdate={handleTaskUpdated}
-              onDelete={handleTaskDeleted}
-            />
-          ))
-        )}
-      </div>
+      {/* Tasks Display */}
+      {viewMode === "kanban" ? (
+        <TaskKanbanBoard
+          tasks={filteredTasks}
+          getAssistantName={getAssistantName}
+          getOrgName={getOrgName}
+          onTaskUpdated={handleTaskUpdated}
+          onTaskDeleted={handleTaskDeleted}
+        />
+      ) : (
+        <div className="space-y-4">
+          {filteredTasks.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <CheckSquare className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No tasks found</h3>
+                <p className="text-muted-foreground text-center">
+                  {tasks.length === 0
+                    ? "Use the quick add above to create your first task"
+                    : "No tasks match your current filters"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                assistantName={getAssistantName(task.assistant_id)}
+                orgName={getOrgName(task.org_id)}
+                onUpdate={handleTaskUpdated}
+                onDelete={handleTaskDeleted}
+              />
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };
