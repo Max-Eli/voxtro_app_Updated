@@ -22,6 +22,7 @@ interface Chatbot {
   theme_color: string;
   is_active: boolean;
   end_chat_notification_email?: string;
+  welcome_message?: string;
 }
 
 interface FAQ {
@@ -112,7 +113,7 @@ export default function EmbedChat() {
     try {
       const { data, error } = await supabase
         .from('chatbots')
-        .select('id, name, theme_color, is_active, end_chat_notification_email')
+        .select('id, name, theme_color, is_active, end_chat_notification_email, welcome_message')
         .eq('id', chatbotId)
         .single();
 
@@ -121,11 +122,12 @@ export default function EmbedChat() {
       }
 
       setChatbot(data);
-      
-      // Add welcome message
+
+      // Add welcome message - use custom message if set, otherwise default
+      const welcomeMessage = data.welcome_message || `Hi! I'm ${data.name}. How can I help you today?`;
       setMessages([{
         role: 'assistant',
-        content: `Hi! I'm ${data.name}. How can I help you today?${!data.is_active ? ' (Preview Mode)' : ''}`,
+        content: `${welcomeMessage}${!data.is_active ? ' (Preview Mode)' : ''}`,
         timestamp: new Date()
       }]);
     } catch (error: any) {
