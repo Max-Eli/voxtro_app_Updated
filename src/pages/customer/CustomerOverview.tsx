@@ -370,84 +370,111 @@ export function CustomerOverview() {
 
       setSupportTickets(ticketsWithReplies);
 
-      // Fetch leads for this customer's assigned agents
+      // Fetch leads from conversations.lead_info (same as leads page)
       let allLeads: Lead[] = [];
       let chatbotLeadsTotal = 0;
       let voiceLeadsTotal = 0;
       let waLeadsTotal = 0;
-      
-      // Fetch chatbot leads (with correct source_type 'chatbot')
+
+      // Build chatbot names map for display
+      const chatbotNames: Record<string, string> = {};
+      chatbotData.forEach(cb => {
+        chatbotNames[cb.id] = cb.name;
+      });
+
+      // Fetch chatbot leads from conversations.lead_info
       if (chatbotIds.length > 0) {
-        // Get total count for conversion rate
-        const { count: chatbotCount } = await supabase
-          .from('leads')
-          .select('*', { count: 'exact', head: true })
-          .eq('source_type', 'chatbot')
-          .in('source_id', chatbotIds);
-        
-        chatbotLeadsTotal = chatbotCount || 0;
+        const { data: chatbotConvos, error: chatbotLeadsError } = await supabase
+          .from('conversations')
+          .select('id, chatbot_id, lead_info, created_at')
+          .in('chatbot_id', chatbotIds)
+          .not('lead_info', 'is', null)
+          .order('created_at', { ascending: false });
 
-        // Get recent leads for display
-        const { data: chatbotLeads, error: chatbotLeadsError } = await supabase
-          .from('leads')
-          .select('id, name, email, phone_number, source_type, source_name, extracted_at')
-          .eq('source_type', 'chatbot')
-          .in('source_id', chatbotIds)
-          .order('extracted_at', { ascending: false })
-          .limit(10);
-
-        if (!chatbotLeadsError && chatbotLeads) {
-          allLeads = [...allLeads, ...chatbotLeads];
+        if (!chatbotLeadsError && chatbotConvos) {
+          for (const conv of chatbotConvos) {
+            const leadInfo = conv.lead_info as Record<string, any> | null;
+            if (leadInfo && (leadInfo.name || leadInfo.email || leadInfo.phone)) {
+              chatbotLeadsTotal++;
+              allLeads.push({
+                id: conv.id,
+                name: leadInfo.name || null,
+                email: leadInfo.email || null,
+                phone_number: leadInfo.phone || null,
+                source_type: 'chatbot',
+                source_name: chatbotNames[conv.chatbot_id] || 'Unknown',
+                extracted_at: conv.created_at
+              });
+            }
+          }
         }
       }
 
-      // Fetch voice assistant leads (with correct source_type 'voice')
+      // Build assistant names map
+      const assistantNames: Record<string, string> = {};
+      assistantData.forEach(a => {
+        assistantNames[a.assistant_id] = a.voice_assistants?.name || 'Unknown';
+      });
+
+      // Fetch voice leads from voice_assistant_calls.lead_info
       if (assistantIdsForCalls.length > 0) {
-        // Get total count for conversion rate
-        const { count: voiceCount } = await supabase
-          .from('leads')
-          .select('*', { count: 'exact', head: true })
-          .eq('source_type', 'voice')
-          .in('source_id', assistantIdsForCalls);
-        
-        voiceLeadsTotal = voiceCount || 0;
+        const { data: voiceCalls, error: voiceLeadsError } = await supabase
+          .from('voice_assistant_calls')
+          .select('id, assistant_id, lead_info, created_at')
+          .in('assistant_id', assistantIdsForCalls)
+          .not('lead_info', 'is', null)
+          .order('created_at', { ascending: false });
 
-        // Get recent leads for display
-        const { data: voiceLeads, error: voiceLeadsError } = await supabase
-          .from('leads')
-          .select('id, name, email, phone_number, source_type, source_name, extracted_at')
-          .eq('source_type', 'voice')
-          .in('source_id', assistantIdsForCalls)
-          .order('extracted_at', { ascending: false })
-          .limit(10);
-
-        if (!voiceLeadsError && voiceLeads) {
-          allLeads = [...allLeads, ...voiceLeads];
+        if (!voiceLeadsError && voiceCalls) {
+          for (const call of voiceCalls) {
+            const leadInfo = call.lead_info as Record<string, any> | null;
+            if (leadInfo && (leadInfo.name || leadInfo.email || leadInfo.phone)) {
+              voiceLeadsTotal++;
+              allLeads.push({
+                id: call.id,
+                name: leadInfo.name || null,
+                email: leadInfo.email || null,
+                phone_number: leadInfo.phone || null,
+                source_type: 'voice',
+                source_name: assistantNames[call.assistant_id] || 'Unknown',
+                extracted_at: call.created_at
+              });
+            }
+          }
         }
       }
 
-      // Fetch WhatsApp agent leads (with correct source_type 'whatsapp')
+      // Build WhatsApp agent names map
+      const waAgentNames: Record<string, string> = {};
+      waAgentData.forEach(a => {
+        waAgentNames[a.agent_id] = a.whatsapp_agents?.name || 'Unknown';
+      });
+
+      // Fetch WhatsApp leads from whatsapp_conversations.lead_info
       if (waAgentIds.length > 0) {
-        // Get total count for conversion rate
-        const { count: waCount } = await supabase
-          .from('leads')
-          .select('*', { count: 'exact', head: true })
-          .eq('source_type', 'whatsapp')
-          .in('source_id', waAgentIds);
-        
-        waLeadsTotal = waCount || 0;
+        const { data: waConvos, error: waLeadsError } = await supabase
+          .from('whatsapp_conversations')
+          .select('id, agent_id, lead_info, created_at')
+          .in('agent_id', waAgentIds)
+          .not('lead_info', 'is', null)
+          .order('created_at', { ascending: false });
 
-        // Get recent leads for display
-        const { data: waLeads, error: waLeadsError } = await supabase
-          .from('leads')
-          .select('id, name, email, phone_number, source_type, source_name, extracted_at')
-          .eq('source_type', 'whatsapp')
-          .in('source_id', waAgentIds)
-          .order('extracted_at', { ascending: false })
-          .limit(10);
-
-        if (!waLeadsError && waLeads) {
-          allLeads = [...allLeads, ...waLeads];
+        if (!waLeadsError && waConvos) {
+          for (const conv of waConvos) {
+            const leadInfo = conv.lead_info as Record<string, any> | null;
+            if (leadInfo && (leadInfo.name || leadInfo.email || leadInfo.phone)) {
+              waLeadsTotal++;
+              allLeads.push({
+                id: conv.id,
+                name: leadInfo.name || null,
+                email: leadInfo.email || null,
+                phone_number: leadInfo.phone || null,
+                source_type: 'whatsapp',
+                source_name: waAgentNames[conv.agent_id] || 'Unknown',
+                extracted_at: conv.created_at
+              });
+            }
+          }
         }
       }
 
@@ -455,21 +482,21 @@ export function CustomerOverview() {
       allLeads.sort((a, b) => new Date(b.extracted_at).getTime() - new Date(a.extracted_at).getTime());
       setLeads(allLeads.slice(0, 5));
 
-      // Calculate conversion rates using TOTAL leads count (not limited)
-      const chatbotConvRate = totalConversations > 0 
-        ? Math.round((chatbotLeadsTotal / totalConversations) * 100) 
+      // Calculate conversion rates using TOTAL leads count
+      const chatbotConvRate = totalConversations > 0
+        ? Math.round((chatbotLeadsTotal / totalConversations) * 100)
         : 0;
-      const voiceConvRate = (calls?.length || 0) > 0 
-        ? Math.round((voiceLeadsTotal / calls.length) * 100) 
+      const voiceConvRate = (calls?.length || 0) > 0
+        ? Math.round((voiceLeadsTotal / calls.length) * 100)
         : 0;
-      const waConvRate = totalWaConversations > 0 
-        ? Math.round((waLeadsTotal / totalWaConversations) * 100) 
+      const waConvRate = totalWaConversations > 0
+        ? Math.round((waLeadsTotal / totalWaConversations) * 100)
         : 0;
 
       const totalInteractions = totalConversations + (calls?.length || 0) + totalWaConversations;
       const totalLeadsCount = chatbotLeadsTotal + voiceLeadsTotal + waLeadsTotal;
-      const overallConvRate = totalInteractions > 0 
-        ? Math.round((totalLeadsCount / totalInteractions) * 100) 
+      const overallConvRate = totalInteractions > 0
+        ? Math.round((totalLeadsCount / totalInteractions) * 100)
         : 0;
 
       setConversionRates({
@@ -515,14 +542,14 @@ export function CustomerOverview() {
   if (loadingData) {
     return (
       <div className="space-y-6 p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-20 bg-muted rounded-lg animate-pulse"></div>
+            <div key={i} className="h-24 bg-muted/50 rounded-xl animate-pulse"></div>
           ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-48 bg-muted rounded-lg animate-pulse"></div>
+            <div key={i} className="h-56 bg-muted/50 rounded-xl animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -530,61 +557,87 @@ export function CustomerOverview() {
   }
 
   const openTickets = supportTickets.filter(t => t.status === 'open' || t.status === 'in_progress');
+  const totalLeadsCount = leads.length > 0 ? (conversionRates?.overall || 0) > 0 ? Math.round(((analytics?.total_conversations || 0) + (voiceAnalytics?.total_calls || 0) + (whatsappAnalytics?.total_conversations || 0)) * (conversionRates?.overall || 0) / 100) : leads.length : 0;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 bg-gradient-to-br from-background via-background to-muted/20 min-h-screen">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Overview of your AI agents and support activity
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Welcome back! Here's an overview of your AI agents and activity.
+          </p>
+        </div>
+        <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+          <Activity className="h-3 w-3 text-green-500 animate-pulse" />
+          <span>Live</span>
+        </div>
       </div>
 
-      {/* Quick Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Bot className="h-4 w-4 text-primary" />
+      {/* Quick Stats Row - Modern Cards with Gradients */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 shadow-sm hover:shadow-md transition-all duration-300 group">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform" />
+          <div className="p-5 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Chatbots</p>
+                <p className="text-3xl font-bold mt-1">{chatbots.length}</p>
+              </div>
+              <div className="p-3 bg-primary/10 rounded-xl">
+                <Bot className="h-5 w-5 text-primary" />
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Chatbots</p>
-              <p className="text-xl font-bold">{chatbots.length}</p>
-            </div>
+            <p className="text-xs text-muted-foreground mt-2">{analytics?.total_conversations || 0} conversations</p>
           </div>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-chart-5/10 rounded-lg">
-              <Phone className="h-4 w-4 text-chart-5" />
+
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-chart-5/5 via-chart-5/10 to-chart-5/5 shadow-sm hover:shadow-md transition-all duration-300 group">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-chart-5/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform" />
+          <div className="p-5 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Voice</p>
+                <p className="text-3xl font-bold mt-1">{assistants.length}</p>
+              </div>
+              <div className="p-3 bg-chart-5/10 rounded-xl">
+                <Phone className="h-5 w-5 text-chart-5" />
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Voice Assistants</p>
-              <p className="text-xl font-bold">{assistants.length}</p>
-            </div>
+            <p className="text-xs text-muted-foreground mt-2">{voiceAnalytics?.total_calls || 0} calls</p>
           </div>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-500/10 rounded-lg">
-              <MessageCircle className="h-4 w-4 text-green-500" />
+
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-green-500/5 via-green-500/10 to-green-500/5 shadow-sm hover:shadow-md transition-all duration-300 group">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-green-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform" />
+          <div className="p-5 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">WhatsApp</p>
+                <p className="text-3xl font-bold mt-1">{whatsappAgents.length}</p>
+              </div>
+              <div className="p-3 bg-green-500/10 rounded-xl">
+                <MessageCircle className="h-5 w-5 text-green-500" />
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">WhatsApp Agents</p>
-              <p className="text-xl font-bold">{whatsappAgents.length}</p>
-            </div>
+            <p className="text-xs text-muted-foreground mt-2">{whatsappAnalytics?.total_conversations || 0} chats</p>
           </div>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-500/10 rounded-lg">
-              <Ticket className="h-4 w-4 text-yellow-500" />
+
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-yellow-500/5 via-yellow-500/10 to-yellow-500/5 shadow-sm hover:shadow-md transition-all duration-300 group">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform" />
+          <div className="p-5 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tickets</p>
+                <p className="text-3xl font-bold mt-1">{openTickets.length}</p>
+              </div>
+              <div className="p-3 bg-yellow-500/10 rounded-xl">
+                <Ticket className="h-5 w-5 text-yellow-500" />
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Open Tickets</p>
-              <p className="text-xl font-bold">{openTickets.length}</p>
-            </div>
+            <p className="text-xs text-muted-foreground mt-2">{supportTickets.length} total</p>
           </div>
         </Card>
       </div>
@@ -592,59 +645,74 @@ export function CustomerOverview() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chatbot Analytics Section */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Bot className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Chatbot Analytics</CardTitle>
+        <Card className="lg:col-span-2 border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-4 border-b border-border/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Bot className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold">Chatbot Analytics</CardTitle>
+                  <CardDescription className="text-xs">Performance overview of your chatbots</CardDescription>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/customer/conversations')}
+                className="text-xs hover:bg-primary/10"
+              >
+                View All
+              </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {chatbots.length === 0 ? (
               <EmptyAgentState type="chatbot" compact />
             ) : (
               <div className="space-y-4">
                 {/* Chatbot Stats Summary */}
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-2xl font-bold">{analytics?.total_conversations || 0}</p>
-                    <p className="text-xs text-muted-foreground">Conversations</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border border-primary/10">
+                    <p className="text-2xl font-bold text-primary">{analytics?.total_conversations || 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Conversations</p>
                   </div>
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-center p-4 bg-gradient-to-br from-muted/30 to-muted/50 rounded-xl border border-border/50">
                     <p className="text-2xl font-bold">{analytics?.total_messages || 0}</p>
-                    <p className="text-xs text-muted-foreground">Messages</p>
+                    <p className="text-xs text-muted-foreground mt-1">Messages</p>
                   </div>
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-center p-4 bg-gradient-to-br from-muted/30 to-muted/50 rounded-xl border border-border/50">
                     <p className="text-2xl font-bold">{analytics?.avg_conversation_length || 0}</p>
-                    <p className="text-xs text-muted-foreground">Avg/Conv</p>
+                    <p className="text-xs text-muted-foreground mt-1">Avg/Conv</p>
                   </div>
                 </div>
                 {/* Chatbot List */}
                 <div className="space-y-2">
                   {chatbots.map((chatbot) => (
-                    <div 
-                      key={chatbot.id} 
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    <div
+                      key={chatbot.id}
+                      className="flex items-center justify-between p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-all duration-200 group cursor-pointer"
                     >
                       <div className="flex items-center gap-3">
-                        <div 
-                          className="w-2 h-2 rounded-full" 
-                          style={{ backgroundColor: chatbot.theme_color || 'hsl(var(--primary))' }}
+                        <div
+                          className="w-3 h-3 rounded-full ring-2 ring-offset-2 ring-offset-background"
+                          style={{ backgroundColor: chatbot.theme_color || 'hsl(var(--primary))', ringColor: chatbot.theme_color || 'hsl(var(--primary))' }}
                         />
                         <div>
-                          <p className="text-sm font-medium">{chatbot.name}</p>
+                          <p className="text-sm font-medium group-hover:text-primary transition-colors">{chatbot.name}</p>
                           <p className="text-xs text-muted-foreground line-clamp-1">
                             {chatbot.description || 'No description'}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-6 text-sm">
                         <div className="text-right">
-                          <p className="font-medium">{chatbot.conversation_count}</p>
+                          <p className="font-semibold">{chatbot.conversation_count}</p>
                           <p className="text-xs text-muted-foreground">convos</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">{chatbot.message_count}</p>
+                          <p className="font-semibold">{chatbot.message_count}</p>
                           <p className="text-xs text-muted-foreground">msgs</p>
                         </div>
                       </div>
@@ -657,34 +725,42 @@ export function CustomerOverview() {
         </Card>
 
         {/* Support Tickets Section */}
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-4 border-b border-border/50">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Ticket className="h-4 w-4 text-yellow-500" />
-                <CardTitle className="text-base">Support Tickets</CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-500/10 rounded-lg">
+                  <Ticket className="h-4 w-4 text-yellow-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold">Support</CardTitle>
+                  <CardDescription className="text-xs">Your recent tickets</CardDescription>
+                </div>
               </div>
               {openTickets.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 text-xs font-medium">
                   {openTickets.length} open
                 </Badge>
               )}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {supportTickets.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <Ticket className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm mb-3">No support tickets yet</p>
+              <div className="text-center py-8 text-muted-foreground">
+                <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Ticket className="h-6 w-6 opacity-50" />
+                </div>
+                <p className="text-sm font-medium mb-1">No tickets yet</p>
+                <p className="text-xs text-muted-foreground mb-4">Create a ticket if you need help</p>
                 <CreateTicketDialog
                   customerId={customer?.id || ''}
                   customerName={customer?.full_name || ''}
                   customerEmail={customer?.email || ''}
                   onTicketCreated={fetchCustomerData}
                   trigger={
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white">
                       <Ticket className="h-4 w-4 mr-2" />
-                      Create Your First Ticket
+                      Create Ticket
                     </Button>
                   }
                 />
@@ -692,24 +768,24 @@ export function CustomerOverview() {
             ) : (
               <div className="space-y-2">
                 {supportTickets.map((ticket) => (
-                  <div 
+                  <div
                     key={ticket.id}
-                    className="p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className="p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-all duration-200 cursor-pointer group"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           {ticket.has_unread_replies && (
-                            <CircleDot className="h-3 w-3 text-primary flex-shrink-0" />
+                            <span className="w-2 h-2 bg-primary rounded-full animate-pulse flex-shrink-0" />
                           )}
-                          <p className="text-sm font-medium truncate">{ticket.subject}</p>
+                          <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{ticket.subject}</p>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true })}
                         </p>
                       </div>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className={`text-xs flex-shrink-0 ${getStatusColor(ticket.status)}`}
                       >
                         {ticket.status.replace('_', ' ')}
@@ -726,65 +802,74 @@ export function CustomerOverview() {
       {/* Leads & Conversion Rates Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Leads Section */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3">
+        <Card className="lg:col-span-2 border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-4 border-b border-border/50">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-chart-2" />
-                <CardTitle className="text-base">Recent Leads</CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-chart-2/10 rounded-lg">
+                  <Users className="h-4 w-4 text-chart-2" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold">Recent Leads</CardTitle>
+                  <CardDescription className="text-xs">Automatically captured from conversations</CardDescription>
+                </div>
               </div>
               {leads.length > 0 && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => navigate('/customer/leads')}
-                  className="text-xs"
+                  className="text-xs hover:bg-chart-2/10"
                 >
                   View All
                 </Button>
               )}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {leads.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No leads captured yet</p>
-                <p className="text-xs mt-1">Leads are automatically extracted from your conversations</p>
+              <div className="text-center py-8 text-muted-foreground">
+                <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Users className="h-6 w-6 opacity-50" />
+                </div>
+                <p className="text-sm font-medium mb-1">No leads yet</p>
+                <p className="text-xs text-muted-foreground">Leads are automatically extracted from your conversations</p>
               </div>
             ) : (
               <div className="space-y-2">
-                {leads.map((lead) => (
-                  <div 
+                {leads.map((lead, index) => (
+                  <div
                     key={lead.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-all duration-200 group"
+                    style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2 bg-chart-2/10 rounded-full flex-shrink-0">
-                        <Users className="h-3 w-3 text-chart-2" />
+                      <div className="w-10 h-10 bg-gradient-to-br from-chart-2/20 to-chart-2/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-semibold text-chart-2">
+                          {(lead.name || 'U').charAt(0).toUpperCase()}
+                        </span>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{lead.name || 'Unknown'}</p>
+                        <p className="text-sm font-medium truncate group-hover:text-chart-2 transition-colors">{lead.name || 'Unknown'}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {lead.phone_number || lead.email || 'No contact info'}
+                          {lead.email || lead.phone_number || 'No contact info'}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${
-                          lead.source_type === 'chatbot' 
-                            ? 'bg-primary/10 text-primary border-primary/20' 
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <Badge
+                        className={`text-xs font-medium border-0 ${
+                          lead.source_type === 'chatbot'
+                            ? 'bg-primary/10 text-primary'
                             : lead.source_type === 'voice'
-                            ? 'bg-chart-5/10 text-chart-5 border-chart-5/20'
-                            : 'bg-green-500/10 text-green-600 border-green-500/20'
+                            ? 'bg-chart-5/10 text-chart-5'
+                            : 'bg-green-500/10 text-green-600'
                         }`}
                       >
-                        {lead.source_type === 'chatbot' ? 'Chat' : 
+                        {lead.source_type === 'chatbot' ? 'Chat' :
                          lead.source_type === 'voice' ? 'Voice' : 'WhatsApp'}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground hidden sm:inline">
                         {formatDistanceToNow(new Date(lead.extracted_at), { addSuffix: true })}
                       </span>
                     </div>
@@ -796,74 +881,86 @@ export function CustomerOverview() {
         </Card>
 
         {/* Conversion Rates Section */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-chart-1" />
-              <CardTitle className="text-base">Conversion Rates</CardTitle>
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-4 border-b border-border/50">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-chart-1/10 rounded-lg">
+                <Target className="h-4 w-4 text-chart-1" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-semibold">Conversion</CardTitle>
+                <CardDescription className="text-xs">Lead capture performance</CardDescription>
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <div className="space-y-4">
-              {/* Overall Conversion Rate */}
-              <div className="text-center p-4 bg-chart-1/10 rounded-lg">
-                <p className="text-3xl font-bold text-chart-1">{conversionRates?.overall || 0}%</p>
-                <p className="text-xs text-muted-foreground mt-1">Overall Conversion Rate</p>
+              {/* Overall Conversion Rate - Hero Stat */}
+              <div className="relative overflow-hidden text-center p-6 bg-gradient-to-br from-chart-1/10 via-chart-1/5 to-transparent rounded-2xl border border-chart-1/20">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-chart-1/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                <p className="text-5xl font-bold text-chart-1 relative">{conversionRates?.overall || 0}%</p>
+                <p className="text-xs text-muted-foreground mt-2 relative">Overall Conversion Rate</p>
               </div>
 
               {/* Per-Channel Rates */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-2">
-                    <Bot className="h-4 w-4 text-primary" />
-                    <span className="text-sm">Chatbot</span>
+                    <div className="p-1.5 bg-primary/10 rounded-lg">
+                      <Bot className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium">Chatbot</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-primary rounded-full transition-all" 
+                  <div className="flex items-center gap-3">
+                    <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-500"
                         style={{ width: `${Math.min(conversionRates?.chatbot || 0, 100)}%` }}
                       />
                     </div>
-                    <span className="text-sm font-medium w-10 text-right">{conversionRates?.chatbot || 0}%</span>
+                    <span className="text-sm font-bold w-12 text-right">{conversionRates?.chatbot || 0}%</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-chart-5" />
-                    <span className="text-sm">Voice</span>
+                    <div className="p-1.5 bg-chart-5/10 rounded-lg">
+                      <Phone className="h-3.5 w-3.5 text-chart-5" />
+                    </div>
+                    <span className="text-sm font-medium">Voice</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-chart-5 rounded-full transition-all" 
+                  <div className="flex items-center gap-3">
+                    <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-chart-5 rounded-full transition-all duration-500"
                         style={{ width: `${Math.min(conversionRates?.voice || 0, 100)}%` }}
                       />
                     </div>
-                    <span className="text-sm font-medium w-10 text-right">{conversionRates?.voice || 0}%</span>
+                    <span className="text-sm font-bold w-12 text-right">{conversionRates?.voice || 0}%</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-2">
-                    <MessageCircle className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">WhatsApp</span>
+                    <div className="p-1.5 bg-green-500/10 rounded-lg">
+                      <MessageCircle className="h-3.5 w-3.5 text-green-500" />
+                    </div>
+                    <span className="text-sm font-medium">WhatsApp</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-green-500 rounded-full transition-all" 
+                  <div className="flex items-center gap-3">
+                    <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-green-500 rounded-full transition-all duration-500"
                         style={{ width: `${Math.min(conversionRates?.whatsapp || 0, 100)}%` }}
                       />
                     </div>
-                    <span className="text-sm font-medium w-10 text-right">{conversionRates?.whatsapp || 0}%</span>
+                    <span className="text-sm font-bold w-12 text-right">{conversionRates?.whatsapp || 0}%</span>
                   </div>
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground text-center">
-                Based on leads captured vs total interactions
+              <p className="text-xs text-muted-foreground text-center pt-2">
+                Leads captured vs total interactions
               </p>
             </div>
           </CardContent>
@@ -873,44 +970,56 @@ export function CustomerOverview() {
       {/* Voice & WhatsApp Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Voice Assistants Section */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-chart-5" />
-              <CardTitle className="text-base">Voice Assistants</CardTitle>
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-4 border-b border-border/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-chart-5/10 rounded-lg">
+                  <Phone className="h-4 w-4 text-chart-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold">Voice Assistants</CardTitle>
+                  <CardDescription className="text-xs">Phone call performance</CardDescription>
+                </div>
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {assistants.length === 0 ? (
               <EmptyAgentState type="voice" compact />
             ) : (
               <div className="space-y-4">
                 {/* Voice Stats Summary */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-bold">{voiceAnalytics?.total_calls || 0}</p>
-                    <p className="text-xs text-muted-foreground">Total Calls</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-chart-5/5 to-chart-5/10 rounded-xl border border-chart-5/10">
+                    <p className="text-2xl font-bold text-chart-5">{voiceAnalytics?.total_calls || 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Total Calls</p>
                   </div>
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-bold">{formatDuration(voiceAnalytics?.avg_duration || 0)}</p>
-                    <p className="text-xs text-muted-foreground">Avg Duration</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-muted/30 to-muted/50 rounded-xl border border-border/50">
+                    <p className="text-2xl font-bold">{formatDuration(voiceAnalytics?.avg_duration || 0)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Avg Duration</p>
                   </div>
                 </div>
                 {/* Assistant List */}
                 <div className="space-y-2">
                   {assistants.map((assistant) => (
-                    <div 
+                    <div
                       key={assistant.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-all duration-200 group"
                     >
-                      <div>
-                        <p className="text-sm font-medium">{assistant.voice_assistants.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {assistant.call_count || 0} calls • {formatDuration(assistant.total_duration || 0)}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-chart-5/10 rounded-lg flex items-center justify-center">
+                          <Phone className="h-4 w-4 text-chart-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium group-hover:text-chart-5 transition-colors">{assistant.voice_assistants.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {assistant.call_count || 0} calls • {formatDuration(assistant.total_duration || 0)}
+                          </p>
+                        </div>
                       </div>
-                      <Badge variant="secondary" className="text-xs">
-                        Voice Assistant
+                      <Badge className="text-xs bg-chart-5/10 text-chart-5 border-0">
+                        Active
                       </Badge>
                     </div>
                   ))}
@@ -921,48 +1030,59 @@ export function CustomerOverview() {
         </Card>
 
         {/* WhatsApp Agents Section */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4 text-green-500" />
-              <CardTitle className="text-base">WhatsApp Agents</CardTitle>
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-4 border-b border-border/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/10 rounded-lg">
+                  <MessageCircle className="h-4 w-4 text-green-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold">WhatsApp Agents</CardTitle>
+                  <CardDescription className="text-xs">Messaging performance</CardDescription>
+                </div>
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {whatsappAgents.length === 0 ? (
               <EmptyAgentState type="whatsapp" compact />
             ) : (
               <div className="space-y-4">
                 {/* WhatsApp Stats Summary */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-bold">{whatsappAnalytics?.total_conversations || 0}</p>
-                    <p className="text-xs text-muted-foreground">Conversations</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-green-500/5 to-green-500/10 rounded-xl border border-green-500/10">
+                    <p className="text-2xl font-bold text-green-600">{whatsappAnalytics?.total_conversations || 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Conversations</p>
                   </div>
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-bold">{whatsappAnalytics?.total_messages || 0}</p>
-                    <p className="text-xs text-muted-foreground">Messages</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-muted/30 to-muted/50 rounded-xl border border-border/50">
+                    <p className="text-2xl font-bold">{whatsappAnalytics?.total_messages || 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Messages</p>
                   </div>
                 </div>
                 {/* Agent List */}
                 <div className="space-y-2">
                   {whatsappAgents.map((agent) => (
-                    <div 
+                    <div
                       key={agent.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-all duration-200 group"
                     >
-                      <div>
-                        <p className="text-sm font-medium">{agent.whatsapp_agents.name || 'Unnamed Agent'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {agent.whatsapp_agents.phone_number || 'No phone'} • {agent.conversation_count || 0} convos
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
+                          <MessageCircle className="h-4 w-4 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium group-hover:text-green-600 transition-colors">{agent.whatsapp_agents.name || 'Unnamed Agent'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {agent.whatsapp_agents.phone_number || 'No phone'} • {agent.conversation_count || 0} convos
+                          </p>
+                        </div>
                       </div>
-                      <Badge 
-                        variant="secondary" 
-                        className={`text-xs capitalize ${
-                          agent.whatsapp_agents.status === 'active' 
-                            ? 'bg-green-500/10 text-green-600' 
-                            : ''
+                      <Badge
+                        className={`text-xs capitalize border-0 ${
+                          agent.whatsapp_agents.status === 'active'
+                            ? 'bg-green-500/10 text-green-600'
+                            : 'bg-muted text-muted-foreground'
                         }`}
                       >
                         {agent.whatsapp_agents.status || 'Unknown'}
