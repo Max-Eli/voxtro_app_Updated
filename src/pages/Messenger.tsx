@@ -233,8 +233,28 @@ export default function Messenger() {
     }
   };
 
+  // End conversation and generate AI summary
+  const endConversation = async (convId: string) => {
+    try {
+      await fetch(`${WIDGET_API_BASE}/api/chat/conversations/${convId}/end`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+    } catch (err) {
+      console.error('Error ending conversation:', err);
+    }
+  };
+
   // Start a new conversation
-  const handleNewConversation = () => {
+  const handleNewConversation = async () => {
+    // End current conversation to trigger AI summary generation
+    if (conversationId) {
+      await endConversation(conversationId);
+    }
+
     const storageKey = `voxtro_conversation_${chatbotId}`;
     localStorage.removeItem(storageKey);
     setConversationId(null);
@@ -244,6 +264,28 @@ export default function Messenger() {
     }]);
     setShowInput(false);
   };
+
+  // End conversation when component unmounts or page closes
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (conversationId) {
+        // Use sendBeacon for reliable delivery on page close
+        navigator.sendBeacon(
+          `${WIDGET_API_BASE}/api/chat/conversations/${conversationId}/end`,
+          JSON.stringify({})
+        );
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Also end conversation on unmount
+      if (conversationId) {
+        endConversation(conversationId);
+      }
+    };
+  }, [conversationId]);
 
   // Loading state
   if (isLoading) {
