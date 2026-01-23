@@ -47,7 +47,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { EmbedCodeDialog } from '@/components/chatbot/EmbedCodeDialog';
 
 interface Chatbot {
   id: string;
@@ -87,7 +86,6 @@ export default function Chatbots() {
   const [selectedChatbotId, setSelectedChatbotId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAssignDialog, setShowAssignDialog] = useState(false);
-  const [showEmbedDialog, setShowEmbedDialog] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('conversations');
@@ -716,9 +714,13 @@ export default function Chatbots() {
                 <ExternalLink className="h-4 w-4" />
                 Preview Messenger
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowEmbedDialog(true)} className="justify-start gap-2">
+              <Button variant="outline" size="sm" onClick={() => copyEmbedCode(selectedChatbot.id, 'widget')} className="justify-start gap-2">
                 <Copy className="h-4 w-4" />
-                Get Embed Code
+                Copy Widget Code
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => copyEmbedCode(selectedChatbot.id, 'messenger')} className="justify-start gap-2">
+                <Copy className="h-4 w-4" />
+                Copy Messenger Code
               </Button>
             </div>
 
@@ -961,16 +963,6 @@ export default function Chatbots() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Embed Code Dialog */}
-      {selectedChatbot && (
-        <EmbedCodeDialog
-          chatbotId={selectedChatbot.id}
-          chatbotName={selectedChatbot.name}
-          open={showEmbedDialog}
-          onOpenChange={setShowEmbedDialog}
-        />
-      )}
     </div>
   );
 }
