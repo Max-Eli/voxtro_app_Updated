@@ -22,6 +22,9 @@ export function TaskKanbanColumn({
     id,
   });
 
+  // Completed column can hold more tasks with larger max-height
+  const isCompletedColumn = id === "completed";
+
   return (
     <div
       ref={setNodeRef}
@@ -32,7 +35,7 @@ export function TaskKanbanColumn({
         isDragging && "bg-muted/50"
       )}
     >
-      <div className="p-4 border-b">
+      <div className="p-4 border-b sticky top-0 bg-inherit z-10 rounded-t-lg">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-sm">{title}</h3>
           <span className="text-xs font-medium text-muted-foreground bg-background px-2 py-1 rounded-full">
@@ -40,7 +43,14 @@ export function TaskKanbanColumn({
           </span>
         </div>
       </div>
-      <div className="flex-1 p-2 space-y-2 min-h-[400px] overflow-y-auto">
+      <div
+        className={cn(
+          "flex-1 p-2 space-y-2 overflow-y-auto",
+          // Completed column has no max-height limit - can scroll infinitely
+          isCompletedColumn ? "min-h-[200px]" : "min-h-[300px] max-h-[calc(100vh-300px)]"
+        )}
+        style={isCompletedColumn ? { maxHeight: 'none' } : undefined}
+      >
         {children}
         {count === 0 && (
           <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">

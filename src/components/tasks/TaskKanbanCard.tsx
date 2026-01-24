@@ -3,12 +3,11 @@ import { CSS } from "@dnd-kit/utilities";
 import { Task } from "@/pages/VoiceAssistantTasks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, GripVertical, Trash2, Edit } from "lucide-react";
+import { Calendar, GripVertical, Trash2, Edit, ChevronDown, ChevronUp, Save, X, User, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,6 +31,13 @@ const PRIORITY_COLORS = {
   low: "bg-green-500",
 };
 
+const PRIORITY_BADGES = {
+  urgent: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  high: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  medium: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  low: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+};
+
 export function TaskKanbanCard({
   task,
   assistantName,
@@ -40,7 +46,8 @@ export function TaskKanbanCard({
   onDelete,
   isDragging = false,
 }: TaskKanbanCardProps) {
-  const [editOpen, setEditOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || "");
   const [priority, setPriority] = useState(task.priority);
@@ -85,13 +92,21 @@ export function TaskKanbanCard({
       });
 
       toast.success("Task updated");
-      setEditOpen(false);
+      setIsEditing(false);
     } catch (error) {
       console.error("Error updating task:", error);
       toast.error("Failed to update task");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCancelEdit = () => {
+    setTitle(task.title);
+    setDescription(task.description || "");
+    setPriority(task.priority);
+    setDueDate(task.due_date || "");
+    setIsEditing(false);
   };
 
   const handleDelete = async () => {
@@ -113,63 +128,67 @@ export function TaskKanbanCard({
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't expand if clicking on buttons or drag handle
+    if ((e.target as HTMLElement).closest('button') ||
+        (e.target as HTMLElement).closest('[data-drag-handle]') ||
+        (e.target as HTMLElement).closest('input') ||
+        (e.target as HTMLElement).closest('textarea') ||
+        (e.target as HTMLElement).closest('[data-radix-select-trigger]')) {
+      return;
+    }
+    if (!isEditing) {
+      setIsExpanded(!isExpanded);
+    }
+  };
+
   return (
-    <>
-      <Card
-        ref={setNodeRef}
-        style={style}
-        className={cn(
-          "cursor-grab active:cursor-grabbing transition-all hover:shadow-md",
-          (isDragging || isSortableDragging) && "opacity-50 shadow-lg"
-        )}
-      >
-        <CardContent className="p-3 space-y-2">
-          <div className="flex items-start gap-2">
-            <div
-              {...attributes}
-              {...listeners}
-              className="mt-1 cursor-grab active:cursor-grabbing"
-            >
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
-              {task.description && (
-                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                  {task.description}
-                </p>
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "transition-all hover:shadow-md",
+        (isDragging || isSortableDragging) && "opacity-50 shadow-lg",
+        isExpanded && "ring-1 ring-primary/20"
+      )}
+    >
+      <CardContent className="p-3 space-y-2">
+        {/* Header - Always visible */}
+        <div className="flex items-start gap-2">
+          <div
+            {...attributes}
+            {...listeners}
+            data-drag-handle
+            className="mt-1 cursor-grab active:cursor-grabbing"
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div
+            className="flex-1 min-w-0 cursor-pointer"
+            onClick={handleCardClick}
+          >
+            <div className="flex items-center gap-2">
+              <h4 className="font-medium text-sm line-clamp-2 flex-1">{task.title}</h4>
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
               )}
             </div>
-            <div className="flex items-center gap-1">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={() => setEditOpen(true)}
-              >
-                <Edit className="h-3 w-3" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 text-destructive"
-                onClick={handleDelete}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
+            {!isExpanded && task.description && (
+              <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
+                {task.description}
+              </p>
+            )}
           </div>
+        </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1">
-              <div
-                className={cn(
-                  "w-2 h-2 rounded-full",
-                  PRIORITY_COLORS[task.priority as keyof typeof PRIORITY_COLORS]
-                )}
-              />
-              <span className="text-xs capitalize">{task.priority}</span>
-            </div>
+        {/* Collapsed view - Priority and due date */}
+        {!isExpanded && (
+          <div className="flex items-center gap-2 flex-wrap pl-6">
+            <Badge variant="secondary" className={cn("text-xs", PRIORITY_BADGES[task.priority as keyof typeof PRIORITY_BADGES])}>
+              {task.priority}
+            </Badge>
 
             {task.due_date && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -178,80 +197,168 @@ export function TaskKanbanCard({
               </div>
             )}
           </div>
+        )}
 
-          <div className="space-y-1">
-            <div className="text-xs text-muted-foreground truncate">
-              {assistantName}
-            </div>
-            <div className="text-xs text-muted-foreground truncate">
-              {orgName}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Expanded view - Full details */}
+        {isExpanded && (
+          <div className="pl-6 space-y-4 pt-2 border-t mt-2">
+            {isEditing ? (
+              // Editing mode
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Title</Label>
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Task title"
+                    className="h-8 text-sm"
+                  />
+                </div>
 
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Task</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Task title"
-              />
-            </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Description</Label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Task description"
+                    rows={3}
+                    className="text-sm resize-none"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Task description"
-                rows={3}
-              />
-            </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Priority</Label>
+                    <Select value={priority} onValueChange={setPriority}>
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Priority</Label>
-                <Select value={priority} onValueChange={setPriority}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Due Date</Label>
+                    <Input
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelEdit}
+                    className="h-7 text-xs"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="h-7 text-xs"
+                  >
+                    <Save className="h-3 w-3 mr-1" />
+                    {saving ? "Saving..." : "Save"}
+                  </Button>
+                </div>
               </div>
+            ) : (
+              // View mode
+              <div className="space-y-3">
+                {/* Description */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Description</Label>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {task.description || <span className="text-muted-foreground italic">No description</span>}
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label>Due Date</Label>
-                <Input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
+                {/* Details grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Priority</Label>
+                    <Badge variant="secondary" className={cn("text-xs", PRIORITY_BADGES[task.priority as keyof typeof PRIORITY_BADGES])}>
+                      {task.priority}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Due Date</Label>
+                    <p className="text-sm">
+                      {task.due_date ? (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {format(new Date(task.due_date), "MMM d, yyyy")}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground italic">No due date</span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Assistant</Label>
+                    <p className="text-sm flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      {assistantName}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Organization</Label>
+                    <p className="text-sm flex items-center gap-1">
+                      <Building2 className="h-3 w-3" />
+                      {orgName}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Created/Updated dates */}
+                <div className="text-xs text-muted-foreground pt-2 border-t">
+                  <p>Created: {format(new Date(task.created_at), "MMM d, yyyy 'at' h:mm a")}</p>
+                  {task.updated_at !== task.created_at && (
+                    <p>Updated: {format(new Date(task.updated_at), "MMM d, yyyy 'at' h:mm a")}</p>
+                  )}
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                    className="h-7 text-xs"
+                  >
+                    <Edit className="h-3 w-3 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDelete}
+                    className="h-7 text-xs text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Delete
+                  </Button>
+                </div>
               </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
