@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.auth-emails]
 verify_jwt = false
+
+[functions.get-customer-branding]
+verify_jwt = false

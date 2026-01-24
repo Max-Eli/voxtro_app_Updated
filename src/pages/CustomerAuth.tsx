@@ -1,23 +1,60 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
+import { fetchBrandingByEmail, defaultBranding } from '@/integrations/api/endpoints/branding';
+import { hexToHsl } from '@/hooks/useBranding';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
-import voxtroLogo from '@/assets/voxtro-logo.png';
 import voxtroLogoDark from '@/assets/voxtro-logo-dark.png';
+
+interface BrandingState {
+  logo_url: string | null;
+  primary_color: string;
+  secondary_color: string;
+}
 
 export function CustomerAuth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [branding, setBranding] = useState<BrandingState>(defaultBranding);
+  const [brandingLoaded, setBrandingLoaded] = useState(false);
   const { signIn, signInWithGoogle } = useCustomerAuth();
   const navigate = useNavigate();
-  const { resolvedTheme } = useTheme();
+
+  // Apply branding colors to CSS when branding changes
+  useEffect(() => {
+    if (branding.primary_color !== defaultBranding.primary_color) {
+      const root = document.documentElement;
+      const primaryHsl = hexToHsl(branding.primary_color);
+      root.style.setProperty('--primary', primaryHsl);
+
+      return () => {
+        root.style.removeProperty('--primary');
+      };
+    }
+  }, [branding]);
+
+  // Fetch branding when email changes (debounced)
+  useEffect(() => {
+    if (!email || !email.includes('@')) {
+      setBranding(defaultBranding);
+      setBrandingLoaded(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const fetchedBranding = await fetchBrandingByEmail(email);
+      setBranding(fetchedBranding);
+      setBrandingLoaded(true);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +62,7 @@ export function CustomerAuth() {
 
     try {
       const { error } = await signIn(email, password);
-      
+
       if (error) {
         toast.error(error.message || 'Failed to sign in');
       } else {
@@ -46,16 +83,23 @@ export function CustomerAuth() {
     }
   };
 
+  // Use custom logo if available, otherwise default
+  const logoSrc = branding.logo_url || voxtroLogoDark;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4 force-light">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <div className="flex justify-center mb-8">
-            <img src={resolvedTheme === 'dark' ? voxtroLogo : voxtroLogoDark} alt="Voxtro" className="h-32" />
+            <img
+              src={logoSrc}
+              alt="Logo"
+              className="h-16 max-w-[200px] object-contain transition-all duration-300"
+            />
           </div>
         </div>
 
-        <Card className="border-0 shadow-lg">
+        <Card className="border shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2 text-2xl">
               <Sparkles className="h-5 w-5 text-primary" />
@@ -89,14 +133,14 @@ export function CustomerAuth() {
                   required
                 />
               </div>
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={loading}
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
-              
+
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
@@ -105,7 +149,7 @@ export function CustomerAuth() {
                   <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
                 </div>
               </div>
-              
+
               <Button
                 type="button"
                 variant="outline"
