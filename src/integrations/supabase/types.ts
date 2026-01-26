@@ -412,6 +412,7 @@ export type Database = {
           widget_position: string | null
           widget_size: string | null
           widget_text_color: string | null
+          team_org_id: string | null
         }
         Insert: {
           cache_duration_hours?: number | null
@@ -460,6 +461,7 @@ export type Database = {
           widget_position?: string | null
           widget_size?: string | null
           widget_text_color?: string | null
+          team_org_id?: string | null
         }
         Update: {
           cache_duration_hours?: number | null
@@ -508,8 +510,17 @@ export type Database = {
           widget_position?: string | null
           widget_size?: string | null
           widget_text_color?: string | null
+          team_org_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chatbots_team_org_id_fkey"
+            columns: ["team_org_id"]
+            isOneToOne: false
+            referencedRelation: "team_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_parameters: {
         Row: {
@@ -700,6 +711,7 @@ export type Database = {
           last_login: string | null
           updated_at: string
           weekly_summary_enabled: boolean
+          team_org_id: string | null
         }
         Insert: {
           company_name?: string | null
@@ -710,6 +722,7 @@ export type Database = {
           last_login?: string | null
           updated_at?: string
           weekly_summary_enabled?: boolean
+          team_org_id?: string | null
         }
         Update: {
           company_name?: string | null
@@ -720,8 +733,17 @@ export type Database = {
           last_login?: string | null
           updated_at?: string
           weekly_summary_enabled?: boolean
+          team_org_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_team_org_id_fkey"
+            columns: ["team_org_id"]
+            isOneToOne: false
+            referencedRelation: "team_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       elevenlabs_connections: {
         Row: {
@@ -1062,6 +1084,7 @@ export type Database = {
           subject: string
           updated_at: string
           user_id: string
+          team_org_id: string | null
         }
         Insert: {
           chatbot_id?: string | null
@@ -1077,6 +1100,7 @@ export type Database = {
           subject: string
           updated_at?: string
           user_id: string
+          team_org_id?: string | null
         }
         Update: {
           chatbot_id?: string | null
@@ -1092,6 +1116,7 @@ export type Database = {
           subject?: string
           updated_at?: string
           user_id?: string
+          team_org_id?: string | null
         }
         Relationships: [
           {
@@ -1248,7 +1273,7 @@ export type Database = {
       }
       voice_assistant_tasks: {
         Row: {
-          assistant_id: string
+          assistant_id: string | null
           created_at: string
           description: string | null
           due_date: string | null
@@ -1259,9 +1284,11 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          team_org_id: string | null
+          is_team_shared: boolean
         }
         Insert: {
-          assistant_id: string
+          assistant_id?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
@@ -1272,9 +1299,11 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          team_org_id?: string | null
+          is_team_shared?: boolean
         }
         Update: {
-          assistant_id?: string
+          assistant_id?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
@@ -1285,8 +1314,18 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          team_org_id?: string | null
+          is_team_shared?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "voice_assistant_tasks_team_org_id_fkey"
+            columns: ["team_org_id"]
+            isOneToOne: false
+            referencedRelation: "team_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       voice_assistant_transcripts: {
         Row: {
@@ -1338,6 +1377,7 @@ export type Database = {
           user_id: string
           voice_id: string | null
           voice_provider: string | null
+          team_org_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1353,6 +1393,7 @@ export type Database = {
           user_id: string
           voice_id?: string | null
           voice_provider?: string | null
+          team_org_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1368,8 +1409,17 @@ export type Database = {
           user_id?: string
           voice_id?: string | null
           voice_provider?: string | null
+          team_org_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "voice_assistants_team_org_id_fkey"
+            columns: ["team_org_id"]
+            isOneToOne: false
+            referencedRelation: "team_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       voice_connections: {
         Row: {
@@ -1416,6 +1466,7 @@ export type Database = {
           status: string | null
           updated_at: string
           user_id: string
+          team_org_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1425,6 +1476,7 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_id: string
+          team_org_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1434,8 +1486,17 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_id?: string
+          team_org_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_agents_team_org_id_fkey"
+            columns: ["team_org_id"]
+            isOneToOne: false
+            referencedRelation: "team_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_conversations: {
         Row: {
@@ -1532,6 +1593,112 @@ export type Database = {
           },
         ]
       }
+      team_organizations: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          description: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          description?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          description?: string | null
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          id: string
+          team_org_id: string
+          user_id: string
+          role: "owner" | "teammate"
+          invited_by: string | null
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          team_org_id: string
+          user_id: string
+          role?: "owner" | "teammate"
+          invited_by?: string | null
+          joined_at?: string
+        }
+        Update: {
+          id?: string
+          team_org_id?: string
+          user_id?: string
+          role?: "owner" | "teammate"
+          invited_by?: string | null
+          joined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_org_id_fkey"
+            columns: ["team_org_id"]
+            isOneToOne: false
+            referencedRelation: "team_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_invitations: {
+        Row: {
+          id: string
+          team_org_id: string
+          email: string
+          invited_by: string
+          token: string
+          status: "pending" | "accepted" | "expired" | "cancelled"
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          team_org_id: string
+          email: string
+          invited_by: string
+          token?: string
+          status?: "pending" | "accepted" | "expired" | "cancelled"
+          expires_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          team_org_id?: string
+          email?: string
+          invited_by?: string
+          token?: string
+          status?: "pending" | "accepted" | "expired" | "cancelled"
+          expires_at?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_team_org_id_fkey"
+            columns: ["team_org_id"]
+            isOneToOne: false
+            referencedRelation: "team_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1548,6 +1715,10 @@ export type Database = {
       get_current_customer_id: { Args: never; Returns: string }
       get_current_customer_id_secure: { Args: never; Returns: string }
       user_owns_chatbot: { Args: { chatbot_id: string }; Returns: boolean }
+      is_team_member: { Args: { org_id: string }; Returns: boolean }
+      is_team_owner: { Args: { org_id: string }; Returns: boolean }
+      get_user_team_org_ids: { Args: Record<PropertyKey, never>; Returns: string[] }
+      accept_team_invitation: { Args: { invitation_token: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never

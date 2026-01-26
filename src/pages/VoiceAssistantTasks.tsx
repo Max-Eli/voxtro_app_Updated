@@ -35,6 +35,8 @@ export interface Task {
   due_date: string | null;
   created_at: string;
   updated_at: string;
+  team_org_id: string | null;
+  is_team_shared: boolean;
 }
 
 const VoiceAssistantTasks = () => {
