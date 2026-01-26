@@ -69,19 +69,18 @@ FOR SELECT USING (
 );
 
 -- Create secure policies for tasks
--- Users can see/update tasks if: they created it, it's assigned to them, or creator is a direct teammate
+-- Users can ONLY see/update tasks they created OR tasks assigned to them
+-- (NO automatic team visibility - tasks are private unless explicitly assigned)
 CREATE POLICY "tasks_select_policy" ON voice_assistant_tasks
 FOR SELECT USING (
   user_id = auth.uid()
   OR assigned_to = auth.uid()
-  OR user_id IN (SELECT get_direct_teammates(auth.uid()))
 );
 
 CREATE POLICY "tasks_update_policy" ON voice_assistant_tasks
 FOR UPDATE USING (
   user_id = auth.uid()
   OR assigned_to = auth.uid()
-  OR user_id IN (SELECT get_direct_teammates(auth.uid()))
 );
 
 -- Create secure policies for support_tickets
