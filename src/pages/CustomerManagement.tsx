@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserPlus, Mail, Trash2, Settings } from 'lucide-react';
+import { UserPlus, Mail, Trash2, Settings, Users } from 'lucide-react';
 import { createCustomerWithAuth, sendCustomerLoginLink } from '@/integrations/api/endpoints';
 
 interface Customer {
@@ -23,12 +23,30 @@ interface Customer {
   weekly_summary_enabled: boolean;
   last_login?: string;
   created_at: string;
+  created_by_user_id?: string;
 }
 
 interface Chatbot {
   id: string;
   name: string;
   description?: string;
+}
+
+interface TeamMember {
+  team_org_id: string;
+  user_id: string;
+  role: string;
+}
+
+interface TeamOrganization {
+  id: string;
+  name: string;
+}
+
+interface Profile {
+  id: string;
+  full_name: string | null;
+  email: string | null;
 }
 
 interface CustomerWithAssignments extends Customer {
@@ -41,6 +59,9 @@ export function CustomerManagement() {
   const [chatbots, setChatbots] = useState<Chatbot[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teamOrganizations, setTeamOrganizations] = useState<TeamOrganization[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [newCustomer, setNewCustomer] = useState({
     email: '',
     full_name: '',
@@ -52,6 +73,7 @@ export function CustomerManagement() {
   useEffect(() => {
     if (user) {
       fetchData();
+      fetchTeamData();
     }
   }, [user]);
 
@@ -93,6 +115,80 @@ export function CustomerManagement() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchTeamData = async () => {
+    if (!user?.id) return;
+
+    try {
+      // Fetch team members (all teams the current user is part of)
+      const { data: membersData, error: membersError } = await supabase
+        .from('team_members')
+        .select('team_org_id, user_id, role')
+        .eq('user_id', user.id);
+
+      if (membersError) throw membersError;
+
+      if (membersData && membersData.length > 0) {
+        // Get all team IDs
+        const teamIds = membersData.map(m => m.team_org_id);
+
+        // Fetch all members of those teams (to get teammate IDs)
+        const { data: allTeamMembers, error: allMembersError } = await supabase
+          .from('team_members')
+          .select('team_org_id, user_id, role')
+          .in('team_org_id', teamIds);
+
+        if (allMembersError) throw allMembersError;
+        setTeamMembers(allTeamMembers || []);
+
+        // Fetch team organizations
+        const { data: orgsData, error: orgsError } = await supabase
+          .from('team_organizations')
+          .select('id, name')
+          .in('id', teamIds);
+
+        if (orgsError) throw orgsError;
+        setTeamOrganizations(orgsData || []);
+
+        // Fetch profiles for all teammates
+        const teammateIds = [...new Set((allTeamMembers || []).map(m => m.user_id))];
+        if (teammateIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', teammateIds);
+
+          if (profilesError) throw profilesError;
+          setProfiles(profilesData || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching team data:', error);
+    }
+  };
+
+  // Get owner info for a customer
+  const getCustomerOwnerInfo = (customer: CustomerWithAssignments) => {
+    if (!customer.created_by_user_id) return { ownerName: 'Unknown', teamName: null, isOwn: false };
+    if (customer.created_by_user_id === user?.id) return { ownerName: 'You', teamName: null, isOwn: true };
+
+    const profile = profiles.find(p => p.id === customer.created_by_user_id);
+    const ownerName = profile?.full_name || profile?.email?.split('@')[0] || 'Unknown';
+
+    // Find which team this customer creator belongs to (that the current user is also in)
+    const ownerTeamMembership = teamMembers.find(
+      tm => tm.user_id === customer.created_by_user_id && teamMembers.some(
+        myTm => myTm.team_org_id === tm.team_org_id && myTm.user_id === user?.id
+      )
+    );
+
+    if (ownerTeamMembership) {
+      const team = teamOrganizations.find(t => t.id === ownerTeamMembership.team_org_id);
+      return { ownerName, teamName: team?.name || null, isOwn: false };
+    }
+
+    return { ownerName, teamName: null, isOwn: false };
   };
 
   const handleCreateCustomer = async () => {
@@ -331,61 +427,84 @@ export function CustomerManagement() {
                 <TableRow>
                   <TableHead>Customer</TableHead>
                   <TableHead>Company</TableHead>
+                  <TableHead>Created By</TableHead>
                   <TableHead>Assigned Chatbots</TableHead>
                   <TableHead>Last Login</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{customer.full_name}</p>
-                        <p className="text-sm text-muted-foreground">{customer.email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {customer.company_name || '-'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {customer.assigned_chatbots.map(chatbotId => {
-                          const chatbot = chatbots.find(c => c.id === chatbotId);
-                          return (
-                            <Badge key={chatbotId} variant="secondary" className="text-xs">
-                              {chatbot?.name || 'Unknown'}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {customer.last_login 
-                        ? new Date(customer.last_login).toLocaleDateString()
-                        : 'Never'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => sendLoginLink(customer)}
-                        >
-                          <Mail className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteCustomer(customer.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {customers.map((customer) => {
+                  const ownerInfo = getCustomerOwnerInfo(customer);
+                  return (
+                    <TableRow key={customer.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{customer.full_name}</p>
+                          <p className="text-sm text-muted-foreground">{customer.email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {customer.company_name || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {ownerInfo.isOwn ? (
+                            <Badge variant="outline" className="text-xs">You</Badge>
+                          ) : (
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">{ownerInfo.ownerName}</span>
+                              {ownerInfo.teamName && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Users className="w-3 h-3" />
+                                  {ownerInfo.teamName}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {customer.assigned_chatbots.map(chatbotId => {
+                            const chatbot = chatbots.find(c => c.id === chatbotId);
+                            return (
+                              <Badge key={chatbotId} variant="secondary" className="text-xs">
+                                {chatbot?.name || 'Unknown'}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {customer.last_login
+                          ? new Date(customer.last_login).toLocaleDateString()
+                          : 'Never'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => sendLoginLink(customer)}
+                          >
+                            <Mail className="w-4 h-4" />
+                          </Button>
+                          {ownerInfo.isOwn && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteCustomer(customer.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

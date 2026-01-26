@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Ticket, Search, Clock, CheckCircle2, AlertCircle, MessageSquare, User, Calendar, RefreshCw } from "lucide-react";
+import { Ticket, Search, Clock, CheckCircle2, AlertCircle, MessageSquare, User, Calendar, RefreshCw, Users } from "lucide-react";
 import { format } from "date-fns";
 import { sendTicketReplyNotification } from "@/integrations/api/endpoints";
 
@@ -26,6 +26,7 @@ interface SupportTicket {
   customer_email: string;
   created_at: string;
   updated_at: string;
+  user_id?: string;
   messages: TicketMessage[];
 }
 
@@ -35,6 +36,23 @@ interface TicketMessage {
   sender_type: "customer" | "agent";
   sender_name: string;
   created_at: string;
+}
+
+interface TeamMember {
+  team_org_id: string;
+  user_id: string;
+  role: string;
+}
+
+interface TeamOrganization {
+  id: string;
+  name: string;
+}
+
+interface Profile {
+  id: string;
+  full_name: string | null;
+  email: string | null;
 }
 
 export default function SupportTickets() {

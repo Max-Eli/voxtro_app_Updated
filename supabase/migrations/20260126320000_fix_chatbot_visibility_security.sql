@@ -96,7 +96,19 @@ $$;
 
 GRANT EXECUTE ON FUNCTION get_user_team_ids() TO authenticated;
 
--- CUSTOMERS: Team-based visibility
+-- CUSTOMERS: Drop overly permissive policies first
+-- CRITICAL: The old "Allow customer sign-in verification" policy had condition "true"
+-- which allowed EVERYONE to see ALL customers - a major security vulnerability
+DROP POLICY IF EXISTS "Allow customer sign-in verification" ON customers;
+
+-- CUSTOMERS: Self-access for customer sign-in
+-- Customers can view their own record (for authentication purposes)
+CREATE POLICY "customers_self_access" ON customers
+FOR SELECT USING (
+  user_id = auth.uid()
+);
+
+-- CUSTOMERS: Team-based visibility for admins
 -- Users can see customers if:
 -- 1. They created the customer
 -- 2. The creator is a direct teammate
