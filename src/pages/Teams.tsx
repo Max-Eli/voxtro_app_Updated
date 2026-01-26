@@ -197,14 +197,42 @@ const Teams = () => {
         throw error;
       }
 
-      // Copy invite link to clipboard automatically
+      // Generate invite URL
       const inviteUrl = `${window.location.origin}/invite/${data.token}`;
-      await navigator.clipboard.writeText(inviteUrl);
 
-      toast.success(`Invitation created for ${inviteEmail}. Link copied to clipboard!`, {
-        description: "Share this link with your teammate to join the team.",
-        duration: 5000,
-      });
+      // Send invitation email via Edge Function
+      try {
+        const emailResponse = await supabase.functions.invoke('send-team-invite', {
+          body: {
+            email: inviteEmail.trim().toLowerCase(),
+            teamName: selectedTeam.name,
+            inviterName: user?.user_metadata?.full_name || user?.email,
+            inviteUrl,
+          },
+        });
+
+        if (emailResponse.error) {
+          console.error('Failed to send invitation email:', emailResponse.error);
+          // Still copy link as fallback
+          await navigator.clipboard.writeText(inviteUrl);
+          toast.success(`Invitation created for ${inviteEmail}`, {
+            description: "Email failed to send, but link copied to clipboard.",
+            duration: 5000,
+          });
+        } else {
+          toast.success(`Invitation sent to ${inviteEmail}!`, {
+            description: "They'll receive an email with instructions to join.",
+            duration: 5000,
+          });
+        }
+      } catch (emailError) {
+        console.error('Email sending error:', emailError);
+        await navigator.clipboard.writeText(inviteUrl);
+        toast.success(`Invitation created for ${inviteEmail}`, {
+          description: "Email failed to send, but link copied to clipboard.",
+          duration: 5000,
+        });
+      }
       setInviteEmail("");
       await fetchTeamInvitations(selectedTeam.id);
     } catch (error: any) {
