@@ -105,6 +105,7 @@ const VoiceAssistantTasks = () => {
         .from("team_members")
         .select("user_id, email");
 
+      let membersWithNames: TeamMember[] = [];
       if (membersData) {
         const uniqueUserIds = [...new Set(membersData.map(m => m.user_id))];
         const { data: profilesData } = await supabase
@@ -112,7 +113,7 @@ const VoiceAssistantTasks = () => {
           .select("user_id, full_name, email")
           .in("user_id", uniqueUserIds);
 
-        const membersWithNames = uniqueUserIds.map(userId => {
+        membersWithNames = uniqueUserIds.map(userId => {
           const member = membersData.find(m => m.user_id === userId);
           const profile = profilesData?.find(p => p.user_id === userId);
           return {
@@ -121,24 +122,20 @@ const VoiceAssistantTasks = () => {
             user_name: profile?.full_name,
           };
         });
-
-        setTeamMembers(membersWithNames);
       }
 
-      // Fetch chatbots
+      // Fetch chatbots (RLS policies handle team visibility)
       const { data: chatbotsData } = await supabase
         .from("chatbots")
         .select("id, name")
-        .eq("user_id", user?.id)
         .order("name");
 
       setChatbots(chatbotsData || []);
 
-      // Fetch WhatsApp agents
+      // Fetch WhatsApp agents (RLS policies handle team visibility)
       const { data: whatsappData } = await supabase
         .from("whatsapp_agents")
         .select("id, name, phone_number")
-        .eq("user_id", user?.id)
         .order("name");
 
       setWhatsappAgents(whatsappData || []);
@@ -151,6 +148,39 @@ const VoiceAssistantTasks = () => {
 
       if (error) throw error;
       setTasks(tasksData || []);
+
+      // Fetch profiles for all users involved in tasks (creators and assignees)
+      if (tasksData && tasksData.length > 0) {
+        const allUserIds = new Set<string>();
+        tasksData.forEach((task: Task) => {
+          if (task.user_id) allUserIds.add(task.user_id);
+          if (task.assigned_to) allUserIds.add(task.assigned_to);
+        });
+
+        const userIdsArray = Array.from(allUserIds);
+        if (userIdsArray.length > 0) {
+          const { data: allProfiles } = await supabase
+            .from("profiles")
+            .select("user_id, full_name, email")
+            .in("user_id", userIdsArray);
+
+          if (allProfiles) {
+            // Merge with existing team members
+            const existingUserIds = new Set(membersWithNames.map(m => m.user_id));
+            allProfiles.forEach(profile => {
+              if (!existingUserIds.has(profile.user_id)) {
+                membersWithNames.push({
+                  user_id: profile.user_id,
+                  email: profile.email || undefined,
+                  user_name: profile.full_name || undefined,
+                });
+              }
+            });
+          }
+        }
+      }
+
+      setTeamMembers(membersWithNames);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Failed to load tasks");
@@ -188,7 +218,10 @@ const VoiceAssistantTasks = () => {
   const getAssignedToName = (userId: string | null) => {
     if (!userId) return "";
     const member = teamMembers.find((m) => m.user_id === userId);
-    return member?.user_name || member?.email || userId;
+    if (member?.user_name) return member.user_name;
+    if (member?.email) return member.email;
+    // Return a shortened user ID if no profile info found
+    return `User ${userId.slice(0, 8)}...`;
   };
 
   const getChatbotName = (chatbotId: string | null) => {

@@ -92,12 +92,12 @@ export default function Chatbots() {
 
   const fetchChatbots = async () => {
     if (!user?.id) return;
-    
+
     try {
+      // RLS policies handle visibility - teammates can see each other's chatbots
       const { data, error } = await supabase
         .from('chatbots')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
