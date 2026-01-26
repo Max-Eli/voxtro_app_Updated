@@ -22,39 +22,35 @@ export function TaskKanbanColumn({
     id,
   });
 
-  // Completed column can hold more tasks with larger max-height
-  const isCompletedColumn = id === "completed";
-
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "flex flex-col rounded-lg border-2 border-dashed transition-all",
+        "flex flex-col rounded-lg border-2 border-dashed transition-all h-full",
         color,
-        isOver && "ring-2 ring-primary ring-offset-2",
+        isOver && "ring-2 ring-primary ring-offset-2 scale-[1.02]",
         isDragging && "bg-muted/50"
       )}
     >
-      <div className="p-4 border-b sticky top-0 bg-inherit z-10 rounded-t-lg">
+      {/* Sticky header */}
+      <div className={cn(
+        "p-3 border-b rounded-t-lg flex-shrink-0",
+        color.replace('border-', 'bg-').replace('/20', '/30')
+      )}>
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-sm">{title}</h3>
-          <span className="text-xs font-medium text-muted-foreground bg-background px-2 py-1 rounded-full">
+          <span className="text-xs font-medium text-muted-foreground bg-background px-2 py-0.5 rounded-full">
             {count}
           </span>
         </div>
       </div>
-      <div
-        className={cn(
-          "flex-1 p-2 space-y-2 overflow-y-auto",
-          // Completed column has no max-height limit - can scroll infinitely
-          isCompletedColumn ? "min-h-[200px]" : "min-h-[300px] max-h-[calc(100vh-300px)]"
-        )}
-        style={isCompletedColumn ? { maxHeight: 'none' } : undefined}
-      >
+
+      {/* Scrollable content area */}
+      <div className="flex-1 p-2 space-y-2 overflow-y-auto overflow-x-hidden min-h-0">
         {children}
         {count === 0 && (
-          <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-            No tasks
+          <div className="flex items-center justify-center h-24 text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+            Drop tasks here
           </div>
         )}
       </div>

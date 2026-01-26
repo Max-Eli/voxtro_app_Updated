@@ -5,8 +5,11 @@ import {
   DragOverlay,
   DragStartEvent,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
+  closestCenter,
+  MeasuringStrategy,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Task } from "@/pages/VoiceAssistantTasks";
@@ -40,10 +43,17 @@ export function TaskKanbanBoard({
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Configure sensors for better drag experience
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5, // Reduced distance for quicker activation
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200, // Short delay for touch devices
+        tolerance: 5,
       },
     })
   );
@@ -58,6 +68,10 @@ export function TaskKanbanBoard({
     if (task) {
       setActiveTask(task);
       setIsDragging(true);
+      // Add haptic feedback on supported devices
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
     }
   };
 
@@ -69,7 +83,13 @@ export function TaskKanbanBoard({
     if (!over) return;
 
     const taskId = active.id as string;
-    const newStatus = over.id as string;
+    let newStatus = over.id as string;
+
+    // Check if dropped on a task card - get its column
+    const droppedOnTask = tasks.find((t) => t.id === over.id);
+    if (droppedOnTask) {
+      newStatus = droppedOnTask.status;
+    }
 
     // Check if it's a valid column
     if (!COLUMNS.find((col) => col.id === newStatus)) return;
@@ -93,7 +113,7 @@ export function TaskKanbanBoard({
         // Revert on error
         onTaskUpdated(task);
       } else {
-        toast.success("Task status updated");
+        toast.success(`Moved to ${COLUMNS.find(c => c.id === newStatus)?.title}`);
       }
     } catch (error) {
       console.error("Error updating task:", error);
@@ -105,10 +125,20 @@ export function TaskKanbanBoard({
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      measuring={{
+        droppable: {
+          strategy: MeasuringStrategy.Always,
+        },
+      }}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Fixed height container - columns scroll independently */}
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+        style={{ height: 'calc(100vh - 380px)', minHeight: '400px' }}
+      >
         {COLUMNS.map((column) => (
           <TaskKanbanColumn
             key={column.id}
@@ -137,9 +167,13 @@ export function TaskKanbanBoard({
         ))}
       </div>
 
-      <DragOverlay>
+      {/* Drag overlay - shows the card being dragged */}
+      <DragOverlay dropAnimation={{
+        duration: 200,
+        easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+      }}>
         {activeTask ? (
-          <div className="opacity-50">
+          <div className="rotate-3 scale-105 shadow-2xl">
             <TaskKanbanCard
               task={activeTask}
               assistantName={getAssistantName(activeTask.assistant_id)}
