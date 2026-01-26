@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
-import { CheckSquare, Clock, AlertCircle, CheckCircle, Loader2, ChevronsUpDown, Check, LayoutGrid, List } from "lucide-react";
+import { CheckSquare, Clock, AlertCircle, CheckCircle, Loader2, LayoutGrid, List } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import { AssistantSearchPreview } from "@/components/tasks/AssistantSearchPreview";
@@ -51,8 +48,6 @@ const VoiceAssistantTasks = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("created_at");
-  const [selectedAssistantId, setSelectedAssistantId] = useState<string>("");
-  const [assistantDropdownOpen, setAssistantDropdownOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "kanban">("kanban");
 
   useEffect(() => {
@@ -122,8 +117,6 @@ const VoiceAssistantTasks = () => {
     const connection = connections.find((c) => c.org_id === orgId);
     return connection?.org_name || orgId;
   };
-
-  const selectedAssistant = assistants.find((a) => a.id === selectedAssistantId);
 
   // Filter and sort tasks
   const filteredTasks = tasks
@@ -208,83 +201,15 @@ const VoiceAssistantTasks = () => {
       </div>
 
       {/* Quick Add Task */}
-      <Card className="flex-shrink-0 mb-4">
+      <Card className="flex-shrink-0 mb-4 border-dashed">
         <CardContent className="pt-4">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Popover open={assistantDropdownOpen} onOpenChange={setAssistantDropdownOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={assistantDropdownOpen}
-                    className="w-[250px] justify-between"
-                  >
-                    <span className="truncate">
-                      {selectedAssistantId
-                        ? assistants.find((a) => a.id === selectedAssistantId)?.name || "Unnamed Assistant"
-                        : "Unassigned (optional)"}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[250px] p-0 bg-popover z-50" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search assistant..." />
-                    <CommandList>
-                      <CommandEmpty>No assistant found.</CommandEmpty>
-                      <CommandGroup>
-                        <CommandItem
-                          value="unassigned"
-                          onSelect={() => {
-                            setSelectedAssistantId("");
-                            setAssistantDropdownOpen(false);
-                          }}
-                          className="flex items-center gap-2"
-                        >
-                          <Check
-                            className={cn(
-                              "h-4 w-4 shrink-0",
-                              !selectedAssistantId ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <span className="truncate text-muted-foreground">Unassigned (assign later)</span>
-                        </CommandItem>
-                        {assistants.map((assistant) => (
-                          <CommandItem
-                            key={assistant.id}
-                            value={assistant.name || "Unnamed Assistant"}
-                            onSelect={() => {
-                              setSelectedAssistantId(assistant.id);
-                              setAssistantDropdownOpen(false);
-                            }}
-                            className="flex items-center gap-2"
-                          >
-                            <Check
-                              className={cn(
-                                "h-4 w-4 shrink-0",
-                                selectedAssistantId === assistant.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <span className="truncate">{assistant.name || "Unnamed Assistant"}</span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <div className="flex-1">
-                <QuickTaskForm
-                  assistantId={selectedAssistantId || null}
-                  assistantName={selectedAssistant?.name || "Unassigned"}
-                  orgId={selectedAssistant?.org_id}
-                  onTaskCreated={handleTaskCreated}
-                  placeholder="Type a task and press Enter (assistant optional)..."
-                />
-              </div>
-            </div>
-          </div>
+          <QuickTaskForm
+            onTaskCreated={handleTaskCreated}
+            placeholder="What needs to be done? Press Enter to add..."
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            Click on a task to assign it to an assistant
+          </p>
         </CardContent>
       </Card>
 
