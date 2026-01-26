@@ -202,9 +202,20 @@ const Teams = () => {
 
       // Send invitation email via backend API
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://voxtro-backend.onrender.com';
+      console.log("[Teams] Sending invitation email to:", inviteEmail.trim().toLowerCase());
+      console.log("[Teams] API URL:", `${apiBaseUrl}/api/notifications/team-invite`);
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token;
+        console.log("[Teams] Auth token present:", !!token);
+
+        const requestBody = {
+          email: inviteEmail.trim().toLowerCase(),
+          team_name: selectedTeam.name,
+          inviter_name: user?.user_metadata?.full_name || user?.email,
+          invite_url: inviteUrl,
+        };
+        console.log("[Teams] Request body:", requestBody);
 
         const emailResponse = await fetch(`${apiBaseUrl}/api/notifications/team-invite`, {
           method: 'POST',
@@ -212,17 +223,15 @@ const Teams = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            email: inviteEmail.trim().toLowerCase(),
-            team_name: selectedTeam.name,
-            inviter_name: user?.user_metadata?.full_name || user?.email,
-            invite_url: inviteUrl,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
+        console.log("[Teams] Email response status:", emailResponse.status);
+        const responseData = await emailResponse.json().catch(() => ({}));
+        console.log("[Teams] Email response data:", responseData);
+
         if (!emailResponse.ok) {
-          const errorData = await emailResponse.json().catch(() => ({}));
-          console.error('Failed to send invitation email:', errorData);
+          console.error('[Teams] Failed to send invitation email:', responseData);
           // Still copy link as fallback
           await navigator.clipboard.writeText(inviteUrl);
           toast.success(`Invitation created for ${inviteEmail}`, {
@@ -236,7 +245,7 @@ const Teams = () => {
           });
         }
       } catch (emailError) {
-        console.error('Email sending error:', emailError);
+        console.error('[Teams] Email sending error:', emailError);
         await navigator.clipboard.writeText(inviteUrl);
         toast.success(`Invitation created for ${inviteEmail}`, {
           description: "Email failed to send, but link copied to clipboard.",

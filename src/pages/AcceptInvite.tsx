@@ -28,22 +28,33 @@ export default function AcceptInvite() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
+    console.log("[AcceptInvite] Component mounted, token:", token);
     if (token) {
       fetchInviteDetails();
     }
   }, [token]);
 
   useEffect(() => {
+    console.log("[AcceptInvite] Auth state check:", {
+      authLoading,
+      user: user?.email,
+      invite: invite?.email,
+      error,
+      success
+    });
     // If user is logged in and invite is valid, check if we can auto-accept
     if (!authLoading && user && invite && !error && !success) {
+      console.log("[AcceptInvite] Checking email match:", user.email?.toLowerCase(), "vs", invite.email.toLowerCase());
       if (user.email?.toLowerCase() === invite.email.toLowerCase()) {
         // Auto-accept the invitation
+        console.log("[AcceptInvite] Email matches, auto-accepting...");
         handleAcceptInvite();
       }
     }
   }, [user, authLoading, invite]);
 
   const fetchInviteDetails = async () => {
+    console.log("[AcceptInvite] Fetching invite details for token:", token);
     try {
       // Fetch invitation with team name
       const { data, error: fetchError } = await supabase
@@ -59,7 +70,10 @@ export default function AcceptInvite() {
         .eq("token", token)
         .single();
 
+      console.log("[AcceptInvite] Fetch result:", { data, fetchError });
+
       if (fetchError || !data) {
+        console.error("[AcceptInvite] Invalid or missing invitation:", fetchError);
         setError("This invitation link is invalid or has already been used.");
         setLoading(false);
         return;
@@ -92,18 +106,29 @@ export default function AcceptInvite() {
   };
 
   const handleAcceptInvite = async () => {
-    if (!invite || !user) return;
+    console.log("[AcceptInvite] handleAcceptInvite called", { invite, user: user?.email });
+    if (!invite || !user) {
+      console.log("[AcceptInvite] Missing invite or user, aborting");
+      return;
+    }
 
     setAccepting(true);
     try {
+      console.log("[AcceptInvite] Calling accept_team_invitation RPC with token:", token);
       // Call the accept_team_invitation function
       const { data, error: acceptError } = await supabase.rpc("accept_team_invitation", {
         invitation_token: token,
       });
 
-      if (acceptError) throw acceptError;
+      console.log("[AcceptInvite] RPC result:", { data, acceptError });
+
+      if (acceptError) {
+        console.error("[AcceptInvite] RPC error:", acceptError);
+        throw acceptError;
+      }
 
       const result = data as { success: boolean; error?: string };
+      console.log("[AcceptInvite] Parsed result:", result);
 
       if (!result.success) {
         throw new Error(result.error || "Failed to accept invitation");
@@ -117,7 +142,7 @@ export default function AcceptInvite() {
         navigate("/teams");
       }, 2000);
     } catch (err: any) {
-      console.error("Error accepting invite:", err);
+      console.error("[AcceptInvite] Error accepting invite:", err);
       setError(err.message || "Failed to accept invitation");
     } finally {
       setAccepting(false);
