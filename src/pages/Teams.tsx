@@ -200,19 +200,29 @@ const Teams = () => {
       // Generate invite URL
       const inviteUrl = `${window.location.origin}/invite/${data.token}`;
 
-      // Send invitation email via Edge Function
+      // Send invitation email via backend API
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://voxtro-backend.onrender.com';
       try {
-        const emailResponse = await supabase.functions.invoke('send-team-invite', {
-          body: {
-            email: inviteEmail.trim().toLowerCase(),
-            teamName: selectedTeam.name,
-            inviterName: user?.user_metadata?.full_name || user?.email,
-            inviteUrl,
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
+        const emailResponse = await fetch(`${apiBaseUrl}/api/notifications/team-invite`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
           },
+          body: JSON.stringify({
+            email: inviteEmail.trim().toLowerCase(),
+            team_name: selectedTeam.name,
+            inviter_name: user?.user_metadata?.full_name || user?.email,
+            invite_url: inviteUrl,
+          }),
         });
 
-        if (emailResponse.error) {
-          console.error('Failed to send invitation email:', emailResponse.error);
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.json().catch(() => ({}));
+          console.error('Failed to send invitation email:', errorData);
           // Still copy link as fallback
           await navigator.clipboard.writeText(inviteUrl);
           toast.success(`Invitation created for ${inviteEmail}`, {
