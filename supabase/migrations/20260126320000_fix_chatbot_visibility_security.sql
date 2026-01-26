@@ -109,37 +109,41 @@ FOR SELECT USING (
 );
 
 -- SUPPORT TICKETS: Team-based visibility (customer -> admin communication)
--- Users can see tickets they own OR tickets for their team
+-- Users can see tickets if:
+-- 1. They own the ticket
+-- 2. The ticket owner is a direct teammate
+-- 3. The ticket belongs to their team (via team_org_id)
 CREATE POLICY "support_tickets_team_select_policy" ON support_tickets
 FOR SELECT USING (
   user_id = auth.uid()
+  OR user_id IN (SELECT get_direct_teammates(auth.uid()))
   OR team_org_id IN (SELECT get_user_team_ids())
 );
 
--- Users can update tickets they own OR tickets for their team
 CREATE POLICY "support_tickets_team_update_policy" ON support_tickets
 FOR UPDATE USING (
   user_id = auth.uid()
+  OR user_id IN (SELECT get_direct_teammates(auth.uid()))
   OR team_org_id IN (SELECT get_user_team_ids())
 );
 
 -- SUPPORT TICKET MESSAGES: Team-based visibility
--- Users can view messages if the ticket belongs to their team
 CREATE POLICY "team_messages_select_policy" ON support_ticket_messages
 FOR SELECT USING (
   ticket_id IN (
     SELECT id FROM support_tickets
     WHERE user_id = auth.uid()
+    OR user_id IN (SELECT get_direct_teammates(auth.uid()))
     OR team_org_id IN (SELECT get_user_team_ids())
   )
 );
 
--- Users can respond to tickets that belong to their team
 CREATE POLICY "team_messages_insert_policy" ON support_ticket_messages
 FOR INSERT WITH CHECK (
   ticket_id IN (
     SELECT id FROM support_tickets
     WHERE user_id = auth.uid()
+    OR user_id IN (SELECT get_direct_teammates(auth.uid()))
     OR team_org_id IN (SELECT get_user_team_ids())
   )
 );
