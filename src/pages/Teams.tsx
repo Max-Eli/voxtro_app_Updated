@@ -26,6 +26,7 @@ interface TeamMember {
   role: "owner" | "teammate";
   joined_at: string;
   user_email?: string;
+  user_name?: string;
 }
 
 interface TeamInvitation {
@@ -93,14 +94,45 @@ const Teams = () => {
 
   const fetchTeamMembers = async (teamOrgId: string) => {
     try {
-      const { data, error } = await supabase
+      // First get team members
+      const { data: membersData, error: membersError } = await supabase
         .from("team_members")
         .select("*")
         .eq("team_org_id", teamOrgId)
         .order("joined_at", { ascending: true });
 
-      if (error) throw error;
-      setMembers(data || []);
+      if (membersError) throw membersError;
+
+      if (!membersData || membersData.length === 0) {
+        setMembers([]);
+        return;
+      }
+
+      // Get user IDs to fetch profiles
+      const userIds = membersData.map(m => m.user_id);
+
+      // Fetch profiles for these users
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", userIds);
+
+      // Create a map of user_id to profile info
+      const profileMap = new Map<string, { full_name?: string; email?: string }>();
+      if (profilesData) {
+        profilesData.forEach(p => {
+          profileMap.set(p.user_id, { full_name: p.full_name || undefined, email: p.email || undefined });
+        });
+      }
+
+      // Merge member data with profile info
+      const membersWithProfiles = membersData.map(member => ({
+        ...member,
+        user_name: profileMap.get(member.user_id)?.full_name,
+        user_email: profileMap.get(member.user_id)?.email,
+      }));
+
+      setMembers(membersWithProfiles);
     } catch (error) {
       console.error("Error fetching team members:", error);
     }
@@ -644,9 +676,14 @@ const Teams = () => {
                           </div>
                           <div>
                             <p className="font-medium">
-                              {member.user_id === user?.id ? "You" : `User ${member.user_id.slice(0, 8)}...`}
+                              {member.user_id === user?.id
+                                ? "You"
+                                : member.user_name || member.user_email || `User ${member.user_id.slice(0, 8)}...`}
                             </p>
                             <p className="text-xs text-muted-foreground">
+                              {member.user_email && member.user_id !== user?.id && (
+                                <span className="mr-2">{member.user_email}</span>
+                              )}
                               Joined {new Date(member.joined_at).toLocaleDateString()}
                             </p>
                           </div>
