@@ -280,7 +280,7 @@ const VoiceAssistantTasks = () => {
                   assistantName={selectedAssistant?.name || "Unassigned"}
                   orgId={selectedAssistant?.org_id}
                   onTaskCreated={handleTaskCreated}
-                  placeholder="Type a task and press Enter..."
+                  placeholder="Type a task and press Enter (assistant optional)..."
                 />
               </div>
             </div>
