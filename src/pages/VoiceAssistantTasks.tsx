@@ -180,9 +180,9 @@ const VoiceAssistantTasks = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-[calc(100vh-120px)] overflow-hidden">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between flex-shrink-0 mb-4">
         <div>
           <h1 className="text-2xl font-bold">Task Manager</h1>
           <p className="text-muted-foreground">
@@ -212,7 +212,7 @@ const VoiceAssistantTasks = () => {
       </div>
 
       {/* Quick Add Task */}
-      <Card>
+      <Card className="flex-shrink-0 mb-4">
         <CardContent className="pt-4">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
@@ -277,7 +277,7 @@ const VoiceAssistantTasks = () => {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 flex-shrink-0 mb-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
@@ -337,7 +337,7 @@ const VoiceAssistantTasks = () => {
 
       {/* Filters */}
       {viewMode === "list" && (
-        <Card>
+        <Card className="flex-shrink-0 mb-4">
           <CardContent className="pt-4">
             <div className="flex flex-col md:flex-row gap-4">
               <AssistantSearchPreview
@@ -400,43 +400,45 @@ const VoiceAssistantTasks = () => {
         </Card>
       )}
 
-      {/* Tasks Display */}
-      {viewMode === "kanban" ? (
-        <TaskKanbanBoard
-          tasks={filteredTasks}
-          getAssistantName={getAssistantName}
-          getOrgName={getOrgName}
-          onTaskUpdated={handleTaskUpdated}
-          onTaskDeleted={handleTaskDeleted}
-        />
-      ) : (
-        <div className="space-y-4">
-          {filteredTasks.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <CheckSquare className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No tasks found</h3>
-                <p className="text-muted-foreground text-center">
-                  {tasks.length === 0
-                    ? "Use the quick add above to create your first task"
-                    : "No tasks match your current filters"}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                assistantName={getAssistantName(task.assistant_id)}
-                orgName={getOrgName(task.org_id)}
-                onUpdate={handleTaskUpdated}
-                onDelete={handleTaskDeleted}
-              />
-            ))
-          )}
-        </div>
-      )}
+      {/* Tasks Display - fills remaining space */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {viewMode === "kanban" ? (
+          <TaskKanbanBoard
+            tasks={filteredTasks}
+            getAssistantName={getAssistantName}
+            getOrgName={getOrgName}
+            onTaskUpdated={handleTaskUpdated}
+            onTaskDeleted={handleTaskDeleted}
+          />
+        ) : (
+          <div className="space-y-4 h-full overflow-y-auto pr-2">
+            {filteredTasks.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <CheckSquare className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No tasks found</h3>
+                  <p className="text-muted-foreground text-center">
+                    {tasks.length === 0
+                      ? "Use the quick add above to create your first task"
+                      : "No tasks match your current filters"}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  assistantName={getAssistantName(task.assistant_id)}
+                  orgName={getOrgName(task.org_id)}
+                  onUpdate={handleTaskUpdated}
+                  onDelete={handleTaskDeleted}
+                />
+              ))
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

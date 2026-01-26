@@ -134,11 +134,8 @@ export function TaskKanbanBoard({
         },
       }}
     >
-      {/* Fixed height container - columns scroll independently */}
-      <div
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-        style={{ height: 'calc(100vh - 380px)', minHeight: '400px' }}
-      >
+      {/* Full height container - columns scroll independently */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full">
         {COLUMNS.map((column) => (
           <TaskKanbanColumn
             key={column.id}
