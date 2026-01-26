@@ -43,6 +43,15 @@ export default function Auth() {
       console.log('Auth page redirecting to customer portal - user is a customer');
       return <Navigate to="/customer-login" replace />;
     }
+
+    // Check for pending team invite token
+    const pendingInviteToken = localStorage.getItem('pending_invite_token');
+    if (pendingInviteToken) {
+      console.log('Auth page redirecting to invite acceptance - pending invite token found');
+      localStorage.removeItem('pending_invite_token');
+      return <Navigate to={`/invite/${pendingInviteToken}`} replace />;
+    }
+
     console.log('Auth page redirecting to dashboard - user exists');
     return <Navigate to="/dashboard" replace />;
   }

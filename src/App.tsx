@@ -55,6 +55,7 @@ import SupportTickets from "./pages/SupportTickets";
 import CustomerSupportTicketsPage from "./pages/customer/CustomerSupportTicketsPage";
 import CustomerLeadsPage from "./pages/customer/CustomerLeadsPage";
 import Teams from "./pages/Teams";
+import AcceptInvite from "./pages/AcceptInvite";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,7 @@ const App = () => (
                 <Route path="/support-tickets" element={<DashboardLayout><SupportTickets /></DashboardLayout>} />
                 <Route path="/settings" element={<DashboardLayout><Settings /></DashboardLayout>} />
                 <Route path="/teams" element={<DashboardLayout><Teams /></DashboardLayout>} />
+                <Route path="/invite/:token" element={<AcceptInvite />} />
                 <Route path="/billing" element={<DashboardLayout><Billing /></DashboardLayout>} />
                 <Route path="/changelog" element={<Changelog />} />
                 <Route path="/create-chatbot" element={<CreateChatbot />} />

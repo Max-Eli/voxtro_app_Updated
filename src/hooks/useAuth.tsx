@@ -72,7 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/dashboard`
+        // Redirect to /auth so pending invite tokens can be checked
+        redirectTo: `${window.location.origin}/auth`
       }
     });
     return { error };
