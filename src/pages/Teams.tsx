@@ -179,11 +179,22 @@ const Teams = () => {
 
     setInviting(true);
     try {
+      const normalizedEmail = inviteEmail.trim().toLowerCase();
+
+      // First, delete any existing non-pending invitations for this email
+      // (cancelled or expired ones that might be blocking a new invite)
+      await supabase
+        .from("team_invitations")
+        .delete()
+        .eq("team_org_id", selectedTeam.id)
+        .ilike("email", normalizedEmail)
+        .neq("status", "pending");
+
       const { data, error } = await supabase
         .from("team_invitations")
         .insert({
           team_org_id: selectedTeam.id,
-          email: inviteEmail.trim().toLowerCase(),
+          email: normalizedEmail,
           invited_by: user?.id,
         })
         .select()
@@ -191,7 +202,7 @@ const Teams = () => {
 
       if (error) {
         if (error.code === "23505") {
-          toast.error("This email has already been invited to this team");
+          toast.error("This email already has a pending invitation to this team");
           return;
         }
         throw error;
@@ -202,7 +213,7 @@ const Teams = () => {
 
       // Send invitation email via backend API
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://voxtro-backend.onrender.com';
-      console.log("[Teams] Sending invitation email to:", inviteEmail.trim().toLowerCase());
+      console.log("[Teams] Sending invitation email to:", normalizedEmail);
       console.log("[Teams] API URL:", `${apiBaseUrl}/api/notifications/team-invite`);
       try {
         const { data: sessionData } = await supabase.auth.getSession();
@@ -210,7 +221,7 @@ const Teams = () => {
         console.log("[Teams] Auth token present:", !!token);
 
         const requestBody = {
-          email: inviteEmail.trim().toLowerCase(),
+          email: normalizedEmail,
           team_name: selectedTeam.name,
           inviter_name: user?.user_metadata?.full_name || user?.email,
           invite_url: inviteUrl,
@@ -234,12 +245,12 @@ const Teams = () => {
           console.error('[Teams] Failed to send invitation email:', responseData);
           // Still copy link as fallback
           await navigator.clipboard.writeText(inviteUrl);
-          toast.success(`Invitation created for ${inviteEmail}`, {
+          toast.success(`Invitation created for ${normalizedEmail}`, {
             description: "Email failed to send, but link copied to clipboard.",
             duration: 5000,
           });
         } else {
-          toast.success(`Invitation sent to ${inviteEmail}!`, {
+          toast.success(`Invitation sent to ${normalizedEmail}!`, {
             description: "They'll receive an email with instructions to join.",
             duration: 5000,
           });
@@ -247,7 +258,7 @@ const Teams = () => {
       } catch (emailError) {
         console.error('[Teams] Email sending error:', emailError);
         await navigator.clipboard.writeText(inviteUrl);
-        toast.success(`Invitation created for ${inviteEmail}`, {
+        toast.success(`Invitation created for ${normalizedEmail}`, {
           description: "Email failed to send, but link copied to clipboard.",
           duration: 5000,
         });
@@ -264,9 +275,10 @@ const Teams = () => {
 
   const handleCancelInvitation = async (invitationId: string) => {
     try {
+      // Delete the invitation completely so the same email can be re-invited
       const { error } = await supabase
         .from("team_invitations")
-        .update({ status: "cancelled" })
+        .delete()
         .eq("id", invitationId);
 
       if (error) throw error;
