@@ -65,6 +65,9 @@ export default function SupportTickets() {
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teamOrganizations, setTeamOrganizations] = useState<TeamOrganization[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
 
   const fetchTickets = async () => {
     if (!user) return;
@@ -116,9 +119,84 @@ export default function SupportTickets() {
     }
   };
 
+  const fetchTeamData = async () => {
+    if (!user?.id) return;
+
+    try {
+      // Fetch team members (all teams the current user is part of)
+      const { data: membersData, error: membersError } = await supabase
+        .from("team_members")
+        .select("team_org_id, user_id, role")
+        .eq("user_id", user.id);
+
+      if (membersError) throw membersError;
+
+      if (membersData && membersData.length > 0) {
+        // Get all team IDs
+        const teamIds = membersData.map((m) => m.team_org_id);
+
+        // Fetch all members of those teams
+        const { data: allTeamMembers, error: allMembersError } = await supabase
+          .from("team_members")
+          .select("team_org_id, user_id, role")
+          .in("team_org_id", teamIds);
+
+        if (allMembersError) throw allMembersError;
+        setTeamMembers(allTeamMembers || []);
+
+        // Fetch team organizations
+        const { data: orgsData, error: orgsError } = await supabase
+          .from("team_organizations")
+          .select("id, name")
+          .in("id", teamIds);
+
+        if (orgsError) throw orgsError;
+        setTeamOrganizations(orgsData || []);
+
+        // Fetch profiles for all teammates
+        const teammateIds = [...new Set((allTeamMembers || []).map((m) => m.user_id))];
+        if (teammateIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, full_name, email")
+            .in("id", teammateIds);
+
+          if (profilesError) throw profilesError;
+          setProfiles(profilesData || []);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching team data:", error);
+    }
+  };
+
+  // Get owner info for a ticket
+  const getTicketOwnerInfo = (ticket: SupportTicket) => {
+    if (!ticket.user_id) return { ownerName: "Unknown", teamName: null, isOwn: false };
+    if (ticket.user_id === user?.id) return { ownerName: "You", teamName: null, isOwn: true };
+
+    const profile = profiles.find((p) => p.id === ticket.user_id);
+    const ownerName = profile?.full_name || profile?.email?.split("@")[0] || "Unknown";
+
+    // Find which team this ticket owner belongs to
+    const ownerTeamMembership = teamMembers.find(
+      (tm) =>
+        tm.user_id === ticket.user_id &&
+        teamMembers.some((myTm) => myTm.team_org_id === tm.team_org_id && myTm.user_id === user?.id)
+    );
+
+    if (ownerTeamMembership) {
+      const team = teamOrganizations.find((t) => t.id === ownerTeamMembership.team_org_id);
+      return { ownerName, teamName: team?.name || null, isOwn: false };
+    }
+
+    return { ownerName, teamName: null, isOwn: false };
+  };
+
   useEffect(() => {
     if (user) {
       fetchTickets();
+      fetchTeamData();
 
       // Set up real-time subscription for all tickets (RLS handles visibility)
       const channel = supabase
@@ -421,41 +499,54 @@ export default function SupportTickets() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredTickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  onClick={() => setSelectedTicket(ticket)}
-                  className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {getStatusIcon(ticket.status)}
-                        <h4 className="font-medium truncate">{ticket.subject}</h4>
+              {filteredTickets.map((ticket) => {
+                const ownerInfo = getTicketOwnerInfo(ticket);
+                return (
+                  <div
+                    key={ticket.id}
+                    onClick={() => setSelectedTicket(ticket)}
+                    className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          {getStatusIcon(ticket.status)}
+                          <h4 className="font-medium truncate">{ticket.subject}</h4>
+                          {/* Owner badge */}
+                          {ownerInfo.isOwn ? (
+                            <Badge variant="outline" className="text-xs shrink-0">Your ticket</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs shrink-0 flex items-center gap-1">
+                              <Users className="h-2.5 w-2.5" />
+                              {ownerInfo.ownerName}
+                              {ownerInfo.teamName && <span className="text-muted-foreground">({ownerInfo.teamName})</span>}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{ticket.description}</p>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {ticket.customer_name}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {format(new Date(ticket.created_at), "MMM d, h:mm a")}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            {ticket.messages.length} messages
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{ticket.description}</p>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {ticket.customer_name}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {format(new Date(ticket.created_at), "MMM d, h:mm a")}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MessageSquare className="h-3 w-3" />
-                          {ticket.messages.length} messages
-                        </span>
+                      <div className="flex flex-col items-end gap-2">
+                        {getStatusBadge(ticket.status)}
+                        {getPriorityBadge(ticket.priority)}
                       </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      {getStatusBadge(ticket.status)}
-                      {getPriorityBadge(ticket.priority)}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -473,6 +564,24 @@ export default function SupportTickets() {
                     <DialogDescription className="mt-1">
                       From {selectedTicket.customer_name} ({selectedTicket.customer_email})
                     </DialogDescription>
+                    {/* Show ticket owner info */}
+                    {(() => {
+                      const ownerInfo = getTicketOwnerInfo(selectedTicket);
+                      return (
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs text-muted-foreground">Managed by:</span>
+                          {ownerInfo.isOwn ? (
+                            <Badge variant="outline" className="text-xs">You</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              <Users className="h-2.5 w-2.5" />
+                              {ownerInfo.ownerName}
+                              {ownerInfo.teamName && <span>({ownerInfo.teamName})</span>}
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="flex gap-2">
                     {getStatusBadge(selectedTicket.status)}
