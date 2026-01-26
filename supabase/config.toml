@@ -107,3 +107,6 @@ verify_jwt = false
 
 [functions.get-customer-branding]
 verify_jwt = false
+
+[functions.report-error]
+verify_jwt = false
