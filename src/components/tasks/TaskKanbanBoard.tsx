@@ -18,12 +18,19 @@ import { TaskKanbanColumn } from "./TaskKanbanColumn";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+interface Assistant {
+  id: string;
+  name: string | null;
+  org_id: string | null;
+}
+
 interface TaskKanbanBoardProps {
   tasks: Task[];
-  getAssistantName: (assistantId: string) => string;
+  getAssistantName: (assistantId: string | null) => string;
   getOrgName: (orgId: string | null) => string;
   onTaskUpdated: (task: Task) => void;
   onTaskDeleted: (taskId: string) => void;
+  assistants?: Assistant[];
 }
 
 const COLUMNS = [
@@ -39,6 +46,7 @@ export function TaskKanbanBoard({
   getOrgName,
   onTaskUpdated,
   onTaskDeleted,
+  assistants = [],
 }: TaskKanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -161,6 +169,7 @@ export function TaskKanbanBoard({
                   orgName={getOrgName(task.org_id)}
                   onUpdate={onTaskUpdated}
                   onDelete={onTaskDeleted}
+                  assistants={assistants}
                 />
               ))}
             </SortableContext>
@@ -182,6 +191,7 @@ export function TaskKanbanBoard({
                 onUpdate={onTaskUpdated}
                 onDelete={onTaskDeleted}
                 isDragging
+                assistants={assistants}
               />
             </div>
           ) : null}

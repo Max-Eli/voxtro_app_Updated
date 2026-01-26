@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 interface QuickTaskFormProps {
-  assistantId: string;
-  assistantName: string;
+  assistantId?: string | null;
+  assistantName?: string;
   orgId?: string | null;
   onTaskCreated?: (task: any) => void;
   placeholder?: string;
@@ -31,21 +31,25 @@ export const QuickTaskForm = ({
 
     setIsSubmitting(true);
     try {
-      // Insert into BOTH tables so it shows on both Tasks page AND Changelog page
-      const [tasksResult, changelogResult] = await Promise.all([
-        supabase
-          .from("voice_assistant_tasks")
-          .insert({
-            user_id: user.id,
-            assistant_id: assistantId,
-            org_id: orgId,
-            title: title.trim(),
-            priority: "medium",
-            status: "pending",
-          })
-          .select()
-          .single(),
-        supabase.from('changelog_entries').insert({
+      // Insert into voice_assistant_tasks table
+      const tasksResult = await supabase
+        .from("voice_assistant_tasks")
+        .insert({
+          user_id: user.id,
+          assistant_id: assistantId || null,
+          org_id: orgId || null,
+          title: title.trim(),
+          priority: "medium",
+          status: "pending",
+        })
+        .select()
+        .single();
+
+      if (tasksResult.error) throw tasksResult.error;
+
+      // Only insert changelog entry if assistant is assigned
+      if (assistantId) {
+        await supabase.from('changelog_entries').insert({
           user_id: user.id,
           entity_type: 'voice_assistant',
           entity_id: assistantId,
@@ -53,15 +57,12 @@ export const QuickTaskForm = ({
           title: title.trim(),
           status: 'pending',
           source: 'manual',
-        })
-      ]);
-
-      if (tasksResult.error) throw tasksResult.error;
-      if (changelogResult.error) throw changelogResult.error;
+        });
+      }
 
       onTaskCreated?.(tasksResult.data);
       setTitle("");
-      toast.success(`Task added for ${assistantName}`);
+      toast.success(assistantId ? `Task added for ${assistantName}` : "Task added (unassigned)");
     } catch (error) {
       console.error("Error creating task:", error);
       toast.error("Failed to create task");

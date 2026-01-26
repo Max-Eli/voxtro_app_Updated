@@ -29,7 +29,7 @@ interface VoiceConnection {
 export interface Task {
   id: string;
   user_id: string;
-  assistant_id: string;
+  assistant_id: string | null;
   org_id: string | null;
   title: string;
   description: string | null;
@@ -79,11 +79,6 @@ const VoiceAssistantTasks = () => {
         .eq("user_id", user?.id);
 
       setAssistants(assistantsData || []);
-      
-      // Auto-select first assistant if none selected
-      if (assistantsData && assistantsData.length > 0 && !selectedAssistantId) {
-        setSelectedAssistantId(assistantsData[0].id);
-      }
 
       // Fetch tasks
       const { data: tasksData, error } = await supabase
@@ -116,7 +111,8 @@ const VoiceAssistantTasks = () => {
     setTasks((prev) => prev.filter((task) => task.id !== taskId));
   };
 
-  const getAssistantName = (assistantId: string) => {
+  const getAssistantName = (assistantId: string | null) => {
+    if (!assistantId) return "Unassigned";
     const assistant = assistants.find((a) => a.id === assistantId);
     return assistant?.name || "Unknown Assistant";
   };
@@ -227,7 +223,7 @@ const VoiceAssistantTasks = () => {
                     <span className="truncate">
                       {selectedAssistantId
                         ? assistants.find((a) => a.id === selectedAssistantId)?.name || "Unnamed Assistant"
-                        : "Select assistant..."}
+                        : "Unassigned (optional)"}
                     </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
@@ -238,6 +234,22 @@ const VoiceAssistantTasks = () => {
                     <CommandList>
                       <CommandEmpty>No assistant found.</CommandEmpty>
                       <CommandGroup>
+                        <CommandItem
+                          value="unassigned"
+                          onSelect={() => {
+                            setSelectedAssistantId("");
+                            setAssistantDropdownOpen(false);
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <Check
+                            className={cn(
+                              "h-4 w-4 shrink-0",
+                              !selectedAssistantId ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span className="truncate text-muted-foreground">Unassigned (assign later)</span>
+                        </CommandItem>
                         {assistants.map((assistant) => (
                           <CommandItem
                             key={assistant.id}
@@ -264,8 +276,8 @@ const VoiceAssistantTasks = () => {
               </Popover>
               <div className="flex-1">
                 <QuickTaskForm
-                  assistantId={selectedAssistantId}
-                  assistantName={selectedAssistant?.name || "Assistant"}
+                  assistantId={selectedAssistantId || null}
+                  assistantName={selectedAssistant?.name || "Unassigned"}
                   orgId={selectedAssistant?.org_id}
                   onTaskCreated={handleTaskCreated}
                   placeholder="Type a task and press Enter..."
@@ -409,6 +421,7 @@ const VoiceAssistantTasks = () => {
             getOrgName={getOrgName}
             onTaskUpdated={handleTaskUpdated}
             onTaskDeleted={handleTaskDeleted}
+            assistants={assistants}
           />
         ) : (
           <div className="space-y-4 h-full overflow-y-auto pr-2">

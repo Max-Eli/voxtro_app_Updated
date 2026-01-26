@@ -15,6 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+interface Assistant {
+  id: string;
+  name: string | null;
+  org_id: string | null;
+}
+
 interface TaskKanbanCardProps {
   task: Task;
   assistantName: string;
@@ -22,6 +28,7 @@ interface TaskKanbanCardProps {
   onUpdate: (task: Task) => void;
   onDelete: (taskId: string) => void;
   isDragging?: boolean;
+  assistants?: Assistant[];
 }
 
 const PRIORITY_COLORS = {
@@ -45,6 +52,7 @@ export function TaskKanbanCard({
   onUpdate,
   onDelete,
   isDragging = false,
+  assistants = [],
 }: TaskKanbanCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -52,6 +60,7 @@ export function TaskKanbanCard({
   const [description, setDescription] = useState(task.description || "");
   const [priority, setPriority] = useState(task.priority);
   const [dueDate, setDueDate] = useState(task.due_date || "");
+  const [assistantId, setAssistantId] = useState(task.assistant_id || "");
   const [saving, setSaving] = useState(false);
 
   const {
@@ -71,6 +80,7 @@ export function TaskKanbanCard({
   const handleSave = async () => {
     setSaving(true);
     try {
+      const selectedAssistant = assistants.find(a => a.id === assistantId);
       const { error } = await supabase
         .from("voice_assistant_tasks")
         .update({
@@ -78,6 +88,8 @@ export function TaskKanbanCard({
           description,
           priority,
           due_date: dueDate || null,
+          assistant_id: assistantId || null,
+          org_id: selectedAssistant?.org_id || null,
         })
         .eq("id", task.id);
 
@@ -89,6 +101,8 @@ export function TaskKanbanCard({
         description,
         priority,
         due_date: dueDate || null,
+        assistant_id: assistantId || null,
+        org_id: selectedAssistant?.org_id || null,
       });
 
       toast.success("Task updated");
@@ -106,6 +120,7 @@ export function TaskKanbanCard({
     setDescription(task.description || "");
     setPriority(task.priority);
     setDueDate(task.due_date || "");
+    setAssistantId(task.assistant_id || "");
     setIsEditing(false);
   };
 
@@ -224,6 +239,23 @@ export function TaskKanbanCard({
                     rows={3}
                     className="text-sm resize-none"
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Assistant</Label>
+                  <Select value={assistantId} onValueChange={setAssistantId}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Unassigned</SelectItem>
+                      {assistants.map((assistant) => (
+                        <SelectItem key={assistant.id} value={assistant.id}>
+                          {assistant.name || "Unnamed Assistant"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
