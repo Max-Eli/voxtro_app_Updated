@@ -94,7 +94,7 @@ const Teams = () => {
 
   const fetchTeamMembers = async (teamOrgId: string) => {
     try {
-      // First get team members
+      // Get team members - now includes email column
       const { data: membersData, error: membersError } = await supabase
         .from("team_members")
         .select("*")
@@ -108,10 +108,10 @@ const Teams = () => {
         return;
       }
 
-      // Get user IDs to fetch profiles
+      // Get user IDs to fetch profiles for names
       const userIds = membersData.map(m => m.user_id);
 
-      // Fetch profiles for these users
+      // Fetch profiles for user names
       const { data: profilesData } = await supabase
         .from("profiles")
         .select("user_id, full_name, email")
@@ -126,11 +126,16 @@ const Teams = () => {
       }
 
       // Merge member data with profile info
-      const membersWithProfiles = membersData.map(member => ({
-        ...member,
-        user_name: profileMap.get(member.user_id)?.full_name,
-        user_email: profileMap.get(member.user_id)?.email,
-      }));
+      // Use email from team_members first (stored on join), fallback to profile
+      const membersWithProfiles = membersData.map(member => {
+        const profile = profileMap.get(member.user_id);
+        const memberEmail = (member as any).email; // email column added to team_members
+        return {
+          ...member,
+          user_name: profile?.full_name,
+          user_email: memberEmail || profile?.email,
+        };
+      });
 
       setMembers(membersWithProfiles);
     } catch (error) {
