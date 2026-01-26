@@ -30,15 +30,30 @@ interface TeamMember {
   user_name?: string;
 }
 
+interface Chatbot {
+  id: string;
+  name: string;
+}
+
+interface WhatsAppAgent {
+  id: string;
+  name: string | null;
+  phone_number: string | null;
+}
+
 interface TaskKanbanBoardProps {
   tasks: Task[];
   getAssistantName: (assistantId: string | null) => string;
   getOrgName: (orgId: string | null) => string;
   getAssignedToName?: (userId: string | null) => string;
+  getChatbotName?: (chatbotId: string | null) => string;
+  getWhatsappAgentName?: (agentId: string | null) => string;
   onTaskUpdated: (task: Task) => void;
   onTaskDeleted: (taskId: string) => void;
   assistants?: Assistant[];
   teamMembers?: TeamMember[];
+  chatbots?: Chatbot[];
+  whatsappAgents?: WhatsAppAgent[];
 }
 
 const COLUMNS = [
@@ -53,10 +68,14 @@ export function TaskKanbanBoard({
   getAssistantName,
   getOrgName,
   getAssignedToName,
+  getChatbotName,
+  getWhatsappAgentName,
   onTaskUpdated,
   onTaskDeleted,
   assistants = [],
   teamMembers = [],
+  chatbots = [],
+  whatsappAgents = [],
 }: TaskKanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -178,10 +197,14 @@ export function TaskKanbanBoard({
                   assistantName={getAssistantName(task.assistant_id)}
                   orgName={getOrgName(task.org_id)}
                   assignedToName={getAssignedToName?.(task.assigned_to)}
+                  chatbotName={getChatbotName?.(task.chatbot_id)}
+                  whatsappAgentName={getWhatsappAgentName?.(task.whatsapp_agent_id)}
                   onUpdate={onTaskUpdated}
                   onDelete={onTaskDeleted}
                   assistants={assistants}
                   teamMembers={teamMembers}
+                  chatbots={chatbots}
+                  whatsappAgents={whatsappAgents}
                 />
               ))}
             </SortableContext>
@@ -201,11 +224,15 @@ export function TaskKanbanBoard({
                 assistantName={getAssistantName(activeTask.assistant_id)}
                 orgName={getOrgName(activeTask.org_id)}
                 assignedToName={getAssignedToName?.(activeTask.assigned_to)}
+                chatbotName={getChatbotName?.(activeTask.chatbot_id)}
+                whatsappAgentName={getWhatsappAgentName?.(activeTask.whatsapp_agent_id)}
                 onUpdate={onTaskUpdated}
                 onDelete={onTaskDeleted}
                 isDragging
                 assistants={assistants}
                 teamMembers={teamMembers}
+                chatbots={chatbots}
+                whatsappAgents={whatsappAgents}
               />
             </div>
           ) : null}

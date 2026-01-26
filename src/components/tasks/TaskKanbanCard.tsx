@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Task } from "@/pages/VoiceAssistantTasks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, GripVertical, Trash2, Edit, ChevronDown, ChevronUp, Save, X, User, Building2, MoreVertical } from "lucide-react";
+import { Calendar, GripVertical, Trash2, Edit, ChevronDown, ChevronUp, Save, X, User, Building2, MoreVertical, Bot, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,17 @@ interface TeamMember {
   user_name?: string;
 }
 
+interface Chatbot {
+  id: string;
+  name: string;
+}
+
+interface WhatsAppAgent {
+  id: string;
+  name: string | null;
+  phone_number: string | null;
+}
+
 interface TaskKanbanCardProps {
   task: Task;
   assistantName: string;
@@ -43,7 +54,11 @@ interface TaskKanbanCardProps {
   isDragging?: boolean;
   assistants?: Assistant[];
   teamMembers?: TeamMember[];
+  chatbots?: Chatbot[];
+  whatsappAgents?: WhatsAppAgent[];
   assignedToName?: string;
+  chatbotName?: string;
+  whatsappAgentName?: string;
 }
 
 const PRIORITY_COLORS = {
@@ -69,7 +84,11 @@ export function TaskKanbanCard({
   isDragging = false,
   assistants = [],
   teamMembers = [],
+  chatbots = [],
+  whatsappAgents = [],
   assignedToName,
+  chatbotName,
+  whatsappAgentName,
 }: TaskKanbanCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -79,6 +98,8 @@ export function TaskKanbanCard({
   const [dueDate, setDueDate] = useState(task.due_date || "");
   const [assistantId, setAssistantId] = useState(task.assistant_id || "");
   const [assignedTo, setAssignedTo] = useState(task.assigned_to || "");
+  const [chatbotId, setChatbotId] = useState(task.chatbot_id || "");
+  const [whatsappAgentId, setWhatsappAgentId] = useState(task.whatsapp_agent_id || "");
   const [saving, setSaving] = useState(false);
 
   const {
@@ -109,6 +130,8 @@ export function TaskKanbanCard({
           assistant_id: assistantId || null,
           org_id: selectedAssistant?.org_id || null,
           assigned_to: assignedTo || null,
+          chatbot_id: chatbotId || null,
+          whatsapp_agent_id: whatsappAgentId || null,
         })
         .eq("id", task.id);
 
@@ -123,6 +146,8 @@ export function TaskKanbanCard({
         assistant_id: assistantId || null,
         org_id: selectedAssistant?.org_id || null,
         assigned_to: assignedTo || null,
+        chatbot_id: chatbotId || null,
+        whatsapp_agent_id: whatsappAgentId || null,
       });
 
       toast.success("Task updated");
@@ -142,6 +167,8 @@ export function TaskKanbanCard({
     setDueDate(task.due_date || "");
     setAssistantId(task.assistant_id || "");
     setAssignedTo(task.assigned_to || "");
+    setChatbotId(task.chatbot_id || "");
+    setWhatsappAgentId(task.whatsapp_agent_id || "");
     setIsEditing(false);
   };
 
@@ -316,6 +343,40 @@ export function TaskKanbanCard({
                   </Select>
                 </div>
 
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Chatbot</Label>
+                  <Select value={chatbotId || "__unassigned__"} onValueChange={(val) => setChatbotId(val === "__unassigned__" ? "" : val)}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__unassigned__">Unassigned</SelectItem>
+                      {chatbots.filter(c => c.id).map((chatbot) => (
+                        <SelectItem key={chatbot.id} value={chatbot.id}>
+                          {chatbot.name || "Unnamed Chatbot"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">WhatsApp Agent</Label>
+                  <Select value={whatsappAgentId || "__unassigned__"} onValueChange={(val) => setWhatsappAgentId(val === "__unassigned__" ? "" : val)}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__unassigned__">Unassigned</SelectItem>
+                      {whatsappAgents.filter(a => a.id).map((agent) => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          {agent.name || agent.phone_number || "Unnamed Agent"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Priority</Label>
@@ -419,6 +480,22 @@ export function TaskKanbanCard({
                     <p className="text-sm flex items-center gap-1">
                       <User className="h-3 w-3" />
                       {assignedToName || <span className="text-muted-foreground italic">Unassigned</span>}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Chatbot</Label>
+                    <p className="text-sm flex items-center gap-1">
+                      <Bot className="h-3 w-3" />
+                      {chatbotName || <span className="text-muted-foreground italic">Unassigned</span>}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">WhatsApp Agent</Label>
+                    <p className="text-sm flex items-center gap-1">
+                      <MessageSquare className="h-3 w-3" />
+                      {whatsappAgentName || <span className="text-muted-foreground italic">Unassigned</span>}
                     </p>
                   </div>
                 </div>

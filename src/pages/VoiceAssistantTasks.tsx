@@ -29,6 +29,17 @@ interface TeamMember {
   user_name?: string;
 }
 
+interface Chatbot {
+  id: string;
+  name: string;
+}
+
+interface WhatsAppAgent {
+  id: string;
+  name: string | null;
+  phone_number: string | null;
+}
+
 export interface Task {
   id: string;
   user_id: string;
@@ -44,6 +55,8 @@ export interface Task {
   team_org_id: string | null;
   is_team_shared: boolean;
   assigned_to: string | null;
+  chatbot_id: string | null;
+  whatsapp_agent_id: string | null;
 }
 
 const VoiceAssistantTasks = () => {
@@ -52,6 +65,8 @@ const VoiceAssistantTasks = () => {
   const [assistants, setAssistants] = useState<VoiceAssistant[]>([]);
   const [connections, setConnections] = useState<VoiceConnection[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [chatbots, setChatbots] = useState<Chatbot[]>([]);
+  const [whatsappAgents, setWhatsappAgents] = useState<WhatsAppAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -110,6 +125,24 @@ const VoiceAssistantTasks = () => {
         setTeamMembers(membersWithNames);
       }
 
+      // Fetch chatbots
+      const { data: chatbotsData } = await supabase
+        .from("chatbots")
+        .select("id, name")
+        .eq("user_id", user?.id)
+        .order("name");
+
+      setChatbots(chatbotsData || []);
+
+      // Fetch WhatsApp agents
+      const { data: whatsappData } = await supabase
+        .from("whatsapp_agents")
+        .select("id, name, phone_number")
+        .eq("user_id", user?.id)
+        .order("name");
+
+      setWhatsappAgents(whatsappData || []);
+
       // Fetch tasks (RLS policy handles filtering for owned/assigned/team tasks)
       const { data: tasksData, error } = await supabase
         .from("voice_assistant_tasks")
@@ -156,6 +189,18 @@ const VoiceAssistantTasks = () => {
     if (!userId) return "";
     const member = teamMembers.find((m) => m.user_id === userId);
     return member?.user_name || member?.email || userId;
+  };
+
+  const getChatbotName = (chatbotId: string | null) => {
+    if (!chatbotId) return "";
+    const chatbot = chatbots.find((c) => c.id === chatbotId);
+    return chatbot?.name || "Unknown Chatbot";
+  };
+
+  const getWhatsappAgentName = (agentId: string | null) => {
+    if (!agentId) return "";
+    const agent = whatsappAgents.find((a) => a.id === agentId);
+    return agent?.name || agent?.phone_number || "Unknown Agent";
   };
 
   // Filter and sort tasks
@@ -385,10 +430,14 @@ const VoiceAssistantTasks = () => {
             getAssistantName={getAssistantName}
             getOrgName={getOrgName}
             getAssignedToName={getAssignedToName}
+            getChatbotName={getChatbotName}
+            getWhatsappAgentName={getWhatsappAgentName}
             onTaskUpdated={handleTaskUpdated}
             onTaskDeleted={handleTaskDeleted}
             assistants={assistants}
             teamMembers={teamMembers}
+            chatbots={chatbots}
+            whatsappAgents={whatsappAgents}
           />
         ) : (
           <div className="space-y-4 h-full overflow-y-auto pr-2">

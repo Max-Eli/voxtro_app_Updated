@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Bot, User } from "lucide-react";
+import { CalendarIcon, Loader2, Bot, User, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -42,6 +42,17 @@ interface TeamMember {
   user_name?: string;
 }
 
+interface Chatbot {
+  id: string;
+  name: string;
+}
+
+interface WhatsAppAgent {
+  id: string;
+  name: string | null;
+  phone_number: string | null;
+}
+
 interface EditTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -66,8 +77,12 @@ export const EditTaskDialog = ({
   );
   const [assistantId, setAssistantId] = useState(task.assistant_id || "__unassigned__");
   const [assignedTo, setAssignedTo] = useState(task.assigned_to || "__unassigned__");
+  const [chatbotId, setChatbotId] = useState(task.chatbot_id || "__unassigned__");
+  const [whatsappAgentId, setWhatsappAgentId] = useState(task.whatsapp_agent_id || "__unassigned__");
   const [assistants, setAssistants] = useState<VoiceAssistant[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [chatbots, setChatbots] = useState<Chatbot[]>([]);
+  const [whatsappAgents, setWhatsappAgents] = useState<WhatsAppAgent[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
   useEffect(() => {
@@ -79,6 +94,8 @@ export const EditTaskDialog = ({
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
       setAssistantId(task.assistant_id || "__unassigned__");
       setAssignedTo(task.assigned_to || "__unassigned__");
+      setChatbotId(task.chatbot_id || "__unassigned__");
+      setWhatsappAgentId(task.whatsapp_agent_id || "__unassigned__");
       fetchAssistantsAndTeamMembers();
     }
   }, [open, task]);
@@ -121,6 +138,26 @@ export const EditTaskDialog = ({
 
         setTeamMembers(membersWithNames);
       }
+
+      // Fetch chatbots
+      const { data: chatbotsData } = await supabase
+        .from("chatbots")
+        .select("id, name")
+        .order("name");
+
+      if (chatbotsData) {
+        setChatbots(chatbotsData);
+      }
+
+      // Fetch WhatsApp agents
+      const { data: whatsappData } = await supabase
+        .from("whatsapp_agents")
+        .select("id, name, phone_number")
+        .order("name");
+
+      if (whatsappData) {
+        setWhatsappAgents(whatsappData);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -147,6 +184,8 @@ export const EditTaskDialog = ({
           due_date: dueDate?.toISOString() || null,
           assistant_id: assistantId === "__unassigned__" ? null : assistantId,
           assigned_to: assignedTo === "__unassigned__" ? null : assignedTo,
+          chatbot_id: chatbotId === "__unassigned__" ? null : chatbotId,
+          whatsapp_agent_id: whatsappAgentId === "__unassigned__" ? null : whatsappAgentId,
         })
         .eq("id", task.id)
         .select()
@@ -272,6 +311,56 @@ export const EditTaskDialog = ({
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4" />
                       <span>{member.user_name || member.email || member.user_id}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-chatbot">Chatbot</Label>
+            <Select value={chatbotId} onValueChange={setChatbotId}>
+              <SelectTrigger>
+                <SelectValue placeholder={loadingData ? "Loading..." : "Select chatbot"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__unassigned__">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-muted-foreground" />
+                    <span>Unassigned</span>
+                  </div>
+                </SelectItem>
+                {chatbots.filter(c => c.id).map((chatbot) => (
+                  <SelectItem key={chatbot.id} value={chatbot.id}>
+                    <div className="flex items-center gap-2">
+                      <Bot className="h-4 w-4" />
+                      <span>{chatbot.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-whatsapp-agent">WhatsApp Agent</Label>
+            <Select value={whatsappAgentId} onValueChange={setWhatsappAgentId}>
+              <SelectTrigger>
+                <SelectValue placeholder={loadingData ? "Loading..." : "Select WhatsApp agent"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__unassigned__">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    <span>Unassigned</span>
+                  </div>
+                </SelectItem>
+                {whatsappAgents.filter(a => a.id).map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      <span>{agent.name || agent.phone_number || "Unnamed Agent"}</span>
                     </div>
                   </SelectItem>
                 ))}
