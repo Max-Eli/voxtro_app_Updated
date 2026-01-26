@@ -35,17 +35,29 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       // Check current Supabase session
       const { data: { session } } = await supabase.auth.getSession();
       console.log("Session found:", !!session, "User:", session?.user?.email);
-      
+
       if (session?.user?.user_metadata?.is_customer) {
         console.log("User is a customer, fetching profile...");
         const customerEmail = session.user.email;
-        
-        // Fetch customer profile using the user's email
-        const { data, error } = await supabase
+
+        // Try direct query first (works for authenticated customers with correct user_id)
+        let { data, error } = await supabase
           .from('customers')
           .select('*')
           .eq('email', customerEmail)
           .maybeSingle();
+
+        // If direct query fails due to RLS, use the secure RPC function
+        if (error || !data) {
+          console.log("Direct query failed, trying RPC function...");
+          const { data: rpcResults, error: rpcError } = await supabase
+            .rpc('verify_customer_for_signin', { p_email: customerEmail });
+
+          if (!rpcError && rpcResults?.[0]) {
+            data = rpcResults[0];
+            error = null;
+          }
+        }
 
         console.log("Customer profile fetch result:", data, error);
 
@@ -69,15 +81,14 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     console.log("Customer sign in attempt for:", email);
-    
-    try {
-      // First verify customer exists in our customers table
-      const { data: customerData, error: customerError } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('email', email)
-        .single();
 
+    try {
+      // First verify customer exists using secure RPC function
+      // This bypasses RLS safely for sign-in verification
+      const { data: customerResults, error: customerError } = await supabase
+        .rpc('verify_customer_for_signin', { p_email: email });
+
+      const customerData = customerResults?.[0] || null;
       console.log("Customer lookup result:", customerData ? "found" : "not found", customerError);
 
       if (customerError || !customerData) {

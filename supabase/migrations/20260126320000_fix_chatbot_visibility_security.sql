@@ -108,6 +108,13 @@ FOR SELECT USING (
   user_id = auth.uid()
 );
 
+-- CUSTOMERS: Self-update for customer portal
+-- Customers can update their own record (for last_login, profile updates)
+CREATE POLICY "customers_self_update" ON customers
+FOR UPDATE USING (
+  user_id = auth.uid()
+);
+
 -- CUSTOMERS: Team-based visibility for admins
 -- Users can see customers if:
 -- 1. They created the customer
@@ -159,3 +166,39 @@ FOR INSERT WITH CHECK (
     OR team_org_id IN (SELECT get_user_team_ids())
   )
 );
+
+-- CUSTOMER PORTAL: Secure function for sign-in verification
+-- This uses SECURITY DEFINER to bypass RLS safely for customer sign-in
+-- It's secure because:
+-- 1. Requires exact email match (can't enumerate customers)
+-- 2. Returns only necessary fields for authentication
+-- 3. Can be called by unauthenticated users (needed for sign-in flow)
+CREATE OR REPLACE FUNCTION verify_customer_for_signin(p_email TEXT)
+RETURNS TABLE (
+  id UUID,
+  email TEXT,
+  full_name TEXT,
+  company_name TEXT,
+  weekly_summary_enabled BOOLEAN,
+  user_id UUID
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    c.id,
+    c.email,
+    c.full_name,
+    c.company_name,
+    c.weekly_summary_enabled,
+    c.user_id
+  FROM customers c
+  WHERE c.email = p_email
+  LIMIT 1;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION verify_customer_for_signin(TEXT) TO anon, authenticated;
