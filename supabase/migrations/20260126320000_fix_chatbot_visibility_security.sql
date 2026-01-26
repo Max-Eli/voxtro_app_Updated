@@ -102,3 +102,25 @@ FOR SELECT USING (
   created_by_user_id = auth.uid()
   OR created_by_user_id IN (SELECT get_direct_teammates(auth.uid()))
 );
+
+-- Create team-based policies for support_ticket_messages
+-- Allows teammates to view and respond to each other's support tickets
+
+-- Users can view messages on tickets created by direct teammates
+CREATE POLICY "team_messages_select_policy" ON support_ticket_messages
+FOR SELECT USING (
+  ticket_id IN (
+    SELECT id FROM support_tickets
+    WHERE user_id IN (SELECT get_direct_teammates(auth.uid()))
+  )
+);
+
+-- Users can create messages (respond) on tickets created by themselves or direct teammates
+CREATE POLICY "team_messages_insert_policy" ON support_ticket_messages
+FOR INSERT WITH CHECK (
+  ticket_id IN (
+    SELECT id FROM support_tickets
+    WHERE user_id = auth.uid()
+    OR user_id IN (SELECT get_direct_teammates(auth.uid()))
+  )
+);
