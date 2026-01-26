@@ -54,11 +54,10 @@ export default function SupportTickets() {
     try {
       setLoading(true);
       
-      // Fetch tickets
+      // Fetch tickets - RLS policies determine visibility (own + teammates' tickets)
       const { data: ticketsData, error: ticketsError } = await supabase
         .from("support_tickets")
         .select("*")
-        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (ticketsError) {
@@ -103,7 +102,7 @@ export default function SupportTickets() {
     if (user) {
       fetchTickets();
 
-      // Set up real-time subscription
+      // Set up real-time subscription for all tickets (RLS handles visibility)
       const channel = supabase
         .channel("support-tickets-changes")
         .on(
@@ -112,7 +111,6 @@ export default function SupportTickets() {
             event: "*",
             schema: "public",
             table: "support_tickets",
-            filter: `user_id=eq.${user.id}`,
           },
           () => {
             fetchTickets();

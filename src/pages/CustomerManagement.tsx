@@ -57,16 +57,15 @@ export function CustomerManagement() {
 
   const fetchData = async () => {
     try {
-      // Fetch user's chatbots
+      // Fetch chatbots - RLS policies determine visibility (own + teammates' chatbots)
       const { data: chatbotsData, error: chatbotsError } = await supabase
         .from('chatbots')
-        .select('id, name, description')
-        .eq('user_id', user?.id);
+        .select('id, name, description');
 
       if (chatbotsError) throw chatbotsError;
       setChatbots(chatbotsData || []);
 
-      // Fetch customers created by this user
+      // Fetch customers - RLS policies determine visibility (own + teammates' customers)
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
         .select(`
@@ -74,17 +73,16 @@ export function CustomerManagement() {
           customer_chatbot_assignments (
             chatbot_id
           )
-        `)
-        .eq('created_by_user_id', user?.id);
+        `);
 
       if (customersError) throw customersError;
 
-      // Map customers with their assigned chatbot IDs
-      const userChatbotIds = chatbotsData?.map(c => c.id) || [];
+      // Map customers with their assigned chatbot IDs (show all assignments for visible chatbots)
+      const visibleChatbotIds = chatbotsData?.map(c => c.id) || [];
       const customersWithAssignments = customersData?.map(customer => ({
         ...customer,
         assigned_chatbots: customer.customer_chatbot_assignments
-          .filter(assignment => userChatbotIds.includes(assignment.chatbot_id))
+          .filter(assignment => visibleChatbotIds.includes(assignment.chatbot_id))
           .map(assignment => assignment.chatbot_id)
       })) || [];
 
