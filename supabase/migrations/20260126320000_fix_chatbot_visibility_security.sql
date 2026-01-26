@@ -97,10 +97,14 @@ $$;
 GRANT EXECUTE ON FUNCTION get_user_team_ids() TO authenticated;
 
 -- CUSTOMERS: Team-based visibility
--- Users can see customers they created OR customers that belong to their team
+-- Users can see customers if:
+-- 1. They created the customer
+-- 2. The creator is a direct teammate
+-- 3. The customer belongs to their team (via team_org_id)
 CREATE POLICY "customers_team_select_policy" ON customers
 FOR SELECT USING (
   created_by_user_id = auth.uid()
+  OR created_by_user_id IN (SELECT get_direct_teammates(auth.uid()))
   OR team_org_id IN (SELECT get_user_team_ids())
 );
 
