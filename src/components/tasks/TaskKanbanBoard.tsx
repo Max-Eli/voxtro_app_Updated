@@ -123,7 +123,7 @@ export function TaskKanbanBoard({
   };
 
   return (
-    <div className="h-full overflow-hidden">
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -136,7 +136,10 @@ export function TaskKanbanBoard({
         }}
       >
         {/* Full height container - columns scroll independently */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full overflow-hidden">
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+          style={{ flex: 1, minHeight: 0, height: '100%' }}
+        >
         {COLUMNS.map((column) => (
           <TaskKanbanColumn
             key={column.id}
