@@ -32,6 +32,7 @@ interface TeamInvitation {
   id: string;
   team_org_id: string;
   email: string;
+  token: string;
   status: string;
   expires_at: string;
   created_at: string;
@@ -178,13 +179,15 @@ const Teams = () => {
 
     setInviting(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("team_invitations")
         .insert({
           team_org_id: selectedTeam.id,
           email: inviteEmail.trim().toLowerCase(),
           invited_by: user?.id,
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
         if (error.code === "23505") {
@@ -194,7 +197,14 @@ const Teams = () => {
         throw error;
       }
 
-      toast.success(`Invitation sent to ${inviteEmail}`);
+      // Copy invite link to clipboard automatically
+      const inviteUrl = `${window.location.origin}/invite/${data.token}`;
+      await navigator.clipboard.writeText(inviteUrl);
+
+      toast.success(`Invitation created for ${inviteEmail}. Link copied to clipboard!`, {
+        description: "Share this link with your teammate to join the team.",
+        duration: 5000,
+      });
       setInviteEmail("");
       await fetchTeamInvitations(selectedTeam.id);
     } catch (error: any) {
@@ -301,7 +311,7 @@ const Teams = () => {
   };
 
   const copyInviteLink = async (token: string) => {
-    const inviteUrl = `${window.location.origin}/auth?invite=${token}`;
+    const inviteUrl = `${window.location.origin}/invite/${token}`;
     await navigator.clipboard.writeText(inviteUrl);
     setCopiedInvite(token);
     toast.success("Invite link copied to clipboard");
@@ -523,9 +533,9 @@ const Teams = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => copyInviteLink((invitation as any).token)}
+                                onClick={() => copyInviteLink(invitation.token)}
                               >
-                                {copiedInvite === (invitation as any).token ? (
+                                {copiedInvite === invitation.token ? (
                                   <Check className="h-4 w-4 text-green-500" />
                                 ) : (
                                   <Copy className="h-4 w-4" />
