@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,7 @@ export default function AcceptInvite() {
   const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const acceptAttemptedRef = useRef(false);
 
   useEffect(() => {
     console.log("[AcceptInvite] Component mounted, token:", token);
@@ -40,18 +41,22 @@ export default function AcceptInvite() {
       user: user?.email,
       invite: invite?.email,
       error,
-      success
+      success,
+      accepting,
+      acceptAttempted: acceptAttemptedRef.current
     });
     // If user is logged in and invite is valid, check if we can auto-accept
-    if (!authLoading && user && invite && !error && !success) {
+    // Use ref to prevent multiple acceptance attempts
+    if (!authLoading && user && invite && !error && !success && !accepting && !acceptAttemptedRef.current) {
       console.log("[AcceptInvite] Checking email match:", user.email?.toLowerCase(), "vs", invite.email.toLowerCase());
       if (user.email?.toLowerCase() === invite.email.toLowerCase()) {
         // Auto-accept the invitation
         console.log("[AcceptInvite] Email matches, auto-accepting...");
+        acceptAttemptedRef.current = true;
         handleAcceptInvite();
       }
     }
-  }, [user, authLoading, invite]);
+  }, [user, authLoading, invite, error, success, accepting]);
 
   const fetchInviteDetails = async () => {
     console.log("[AcceptInvite] Fetching invite details for token:", token);
@@ -106,15 +111,27 @@ export default function AcceptInvite() {
   };
 
   const handleAcceptInvite = async () => {
-    console.log("[AcceptInvite] handleAcceptInvite called", { invite, user: user?.email });
+    console.log("[AcceptInvite] handleAcceptInvite called", {
+      invite,
+      userEmail: user?.email,
+      token,
+      accepting
+    });
+
     if (!invite || !user) {
       console.log("[AcceptInvite] Missing invite or user, aborting");
+      return;
+    }
+
+    if (accepting) {
+      console.log("[AcceptInvite] Already accepting, skipping");
       return;
     }
 
     setAccepting(true);
     try {
       console.log("[AcceptInvite] Calling accept_team_invitation RPC with token:", token);
+
       // Call the accept_team_invitation function
       const { data, error: acceptError } = await supabase.rpc("accept_team_invitation", {
         invitation_token: token,
@@ -124,10 +141,16 @@ export default function AcceptInvite() {
 
       if (acceptError) {
         console.error("[AcceptInvite] RPC error:", acceptError);
-        throw acceptError;
+        throw new Error(acceptError.message || "Database error while accepting invitation");
       }
 
-      const result = data as { success: boolean; error?: string };
+      // Handle case where data is null or undefined
+      if (!data) {
+        console.error("[AcceptInvite] No data returned from RPC");
+        throw new Error("No response from server. Please try again.");
+      }
+
+      const result = data as { success: boolean; error?: string; message?: string };
       console.log("[AcceptInvite] Parsed result:", result);
 
       if (!result.success) {
@@ -136,6 +159,7 @@ export default function AcceptInvite() {
 
       setSuccess(true);
       toast.success(`You've joined ${invite.team_name}!`);
+      console.log("[AcceptInvite] Successfully joined team, redirecting...");
 
       // Redirect to teams page after 2 seconds
       setTimeout(() => {
@@ -144,6 +168,9 @@ export default function AcceptInvite() {
     } catch (err: any) {
       console.error("[AcceptInvite] Error accepting invite:", err);
       setError(err.message || "Failed to accept invitation");
+      toast.error(err.message || "Failed to accept invitation");
+      // Reset the attempt flag so user can try again
+      acceptAttemptedRef.current = false;
     } finally {
       setAccepting(false);
     }
