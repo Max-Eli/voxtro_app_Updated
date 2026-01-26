@@ -83,44 +83,59 @@ FOR UPDATE USING (
   OR assigned_to = auth.uid()
 );
 
--- Create secure policies for support_tickets
-CREATE POLICY "support_tickets_select_policy" ON support_tickets
-FOR SELECT USING (
-  user_id = auth.uid()
-  OR user_id IN (SELECT get_direct_teammates(auth.uid()))
-);
+-- Helper function to get team IDs the current user belongs to
+CREATE OR REPLACE FUNCTION get_user_team_ids()
+RETURNS SETOF UUID
+LANGUAGE SQL
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT team_org_id FROM team_members WHERE user_id = auth.uid();
+$$;
 
-CREATE POLICY "support_tickets_update_policy" ON support_tickets
-FOR UPDATE USING (
-  user_id = auth.uid()
-  OR user_id IN (SELECT get_direct_teammates(auth.uid()))
-);
+GRANT EXECUTE ON FUNCTION get_user_team_ids() TO authenticated;
 
--- Create secure policy for customers
+-- CUSTOMERS: Team-based visibility
+-- Users can see customers they created OR customers that belong to their team
 CREATE POLICY "customers_team_select_policy" ON customers
 FOR SELECT USING (
   created_by_user_id = auth.uid()
-  OR created_by_user_id IN (SELECT get_direct_teammates(auth.uid()))
+  OR team_org_id IN (SELECT get_user_team_ids())
 );
 
--- Create team-based policies for support_ticket_messages
--- Allows teammates to view and respond to each other's support tickets
+-- SUPPORT TICKETS: Team-based visibility (customer -> admin communication)
+-- Users can see tickets they own OR tickets for their team
+CREATE POLICY "support_tickets_team_select_policy" ON support_tickets
+FOR SELECT USING (
+  user_id = auth.uid()
+  OR team_org_id IN (SELECT get_user_team_ids())
+);
 
--- Users can view messages on tickets created by direct teammates
+-- Users can update tickets they own OR tickets for their team
+CREATE POLICY "support_tickets_team_update_policy" ON support_tickets
+FOR UPDATE USING (
+  user_id = auth.uid()
+  OR team_org_id IN (SELECT get_user_team_ids())
+);
+
+-- SUPPORT TICKET MESSAGES: Team-based visibility
+-- Users can view messages if the ticket belongs to their team
 CREATE POLICY "team_messages_select_policy" ON support_ticket_messages
 FOR SELECT USING (
   ticket_id IN (
     SELECT id FROM support_tickets
-    WHERE user_id IN (SELECT get_direct_teammates(auth.uid()))
+    WHERE user_id = auth.uid()
+    OR team_org_id IN (SELECT get_user_team_ids())
   )
 );
 
--- Users can create messages (respond) on tickets created by themselves or direct teammates
+-- Users can respond to tickets that belong to their team
 CREATE POLICY "team_messages_insert_policy" ON support_ticket_messages
 FOR INSERT WITH CHECK (
   ticket_id IN (
     SELECT id FROM support_tickets
     WHERE user_id = auth.uid()
-    OR user_id IN (SELECT get_direct_teammates(auth.uid()))
+    OR team_org_id IN (SELECT get_user_team_ids())
   )
 );
