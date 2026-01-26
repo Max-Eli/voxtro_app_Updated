@@ -60,6 +60,7 @@ interface Chatbot {
   last_crawled_at?: string;
   created_at: string;
   conversationCount?: number;
+  user_id: string;
 }
 
 interface Customer {
@@ -73,6 +74,23 @@ interface AssignmentWithCustomer {
   id: string;
   chatbot_id: string;
   customer: Customer;
+}
+
+interface TeamMember {
+  team_org_id: string;
+  user_id: string;
+  role: string;
+}
+
+interface TeamOrganization {
+  id: string;
+  name: string;
+}
+
+interface Profile {
+  id: string;
+  full_name: string | null;
+  email: string | null;
 }
 
 export default function Chatbots() {
@@ -89,6 +107,10 @@ export default function Chatbots() {
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('conversations');
+  const [sidebarTab, setSidebarTab] = useState<'mine' | 'team'>('mine');
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teamOrganizations, setTeamOrganizations] = useState<TeamOrganization[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
 
   const fetchChatbots = async () => {
     if (!user?.id) return;
@@ -226,11 +248,63 @@ export default function Chatbots() {
     }
   };
 
+  const fetchTeamData = async () => {
+    if (!user?.id) return;
+
+    try {
+      // Fetch team members (all teams the current user is part of)
+      const { data: membersData, error: membersError } = await supabase
+        .from('team_members')
+        .select('team_org_id, user_id, role')
+        .eq('user_id', user.id);
+
+      if (membersError) throw membersError;
+
+      if (membersData && membersData.length > 0) {
+        // Get all team IDs
+        const teamIds = membersData.map(m => m.team_org_id);
+
+        // Fetch all members of those teams (to get teammate IDs)
+        const { data: allTeamMembers, error: allMembersError } = await supabase
+          .from('team_members')
+          .select('team_org_id, user_id, role')
+          .in('team_org_id', teamIds);
+
+        if (allMembersError) throw allMembersError;
+        setTeamMembers(allTeamMembers || []);
+
+        // Fetch team organizations
+        const { data: orgsData, error: orgsError } = await supabase
+          .from('team_organizations')
+          .select('id, name')
+          .in('id', teamIds);
+
+        if (orgsError) throw orgsError;
+        setTeamOrganizations(orgsData || []);
+
+        // Fetch profiles for all teammates
+        const teammateIds = [...new Set((allTeamMembers || []).map(m => m.user_id))];
+        if (teammateIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', teammateIds);
+
+          if (profilesError) throw profilesError;
+          setProfiles(profilesData || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching team data:', error);
+    }
+  };
+
   useEffect(() => {
     if (user?.id && !authLoading) {
       fetchChatbots();
       fetchCustomers();
       fetchAssignments();
+      fetchTeamData();
     }
   }, [user?.id, authLoading]);
 
@@ -545,21 +619,49 @@ export default function Chatbots() {
 
   const getCrawlStatusBadge = (status?: string) => {
     if (!status) return null;
-    
+
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
       completed: { variant: "default", label: "Crawled" },
       crawling: { variant: "secondary", label: "Crawling..." },
       failed: { variant: "destructive", label: "Failed" },
       pending: { variant: "outline", label: "Pending" }
     };
-    
+
     const config = variants[status] || { variant: "outline" as const, label: status };
     return <Badge variant={config.variant} className="text-xs">{config.label}</Badge>;
   };
 
+  // Get team name and owner info for a chatbot
+  const getChatbotOwnerInfo = (chatbot: Chatbot) => {
+    if (chatbot.user_id === user?.id) return null;
+
+    const profile = profiles.find(p => p.id === chatbot.user_id);
+    const ownerName = profile?.full_name || profile?.email?.split('@')[0] || 'Unknown';
+
+    // Find which team this chatbot owner belongs to (that the current user is also in)
+    const ownerTeamMembership = teamMembers.find(
+      tm => tm.user_id === chatbot.user_id && teamMembers.some(
+        myTm => myTm.team_org_id === tm.team_org_id && myTm.user_id === user?.id
+      )
+    );
+
+    if (ownerTeamMembership) {
+      const team = teamOrganizations.find(t => t.id === ownerTeamMembership.team_org_id);
+      return { ownerName, teamName: team?.name || 'Unknown Team' };
+    }
+
+    return { ownerName, teamName: null };
+  };
+
   const selectedChatbot = chatbots.find(c => c.id === selectedChatbotId);
   const selectedAssignments = assignments.filter(a => a.chatbot_id === selectedChatbotId);
-  const filteredChatbots = chatbots.filter(c => 
+
+  // Separate chatbots into "mine" and "team"
+  const myChatbots = chatbots.filter(c => c.user_id === user?.id);
+  const teamChatbots = chatbots.filter(c => c.user_id !== user?.id);
+
+  // Filter based on sidebar tab selection and search query
+  const filteredChatbots = (sidebarTab === 'mine' ? myChatbots : teamChatbots).filter(c =>
     c.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -595,11 +697,37 @@ export default function Chatbots() {
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Search chatbots..."
+              placeholder={sidebarTab === 'mine' ? "Search my chatbots..." : "Search team chatbots..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8 h-8 text-sm"
             />
+          </div>
+        </div>
+
+        {/* Sidebar Tabs for My Chatbots / Team Chatbots */}
+        <div className="px-2 pt-2">
+          <div className="flex rounded-lg bg-muted p-1">
+            <button
+              onClick={() => setSidebarTab('mine')}
+              className={`flex-1 text-xs py-1.5 px-2 rounded-md transition-colors ${
+                sidebarTab === 'mine'
+                  ? 'bg-background text-foreground shadow-sm font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              My Chatbots ({myChatbots.length})
+            </button>
+            <button
+              onClick={() => setSidebarTab('team')}
+              className={`flex-1 text-xs py-1.5 px-2 rounded-md transition-colors ${
+                sidebarTab === 'team'
+                  ? 'bg-background text-foreground shadow-sm font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Team ({teamChatbots.length})
+            </button>
           </div>
         </div>
 
@@ -610,33 +738,43 @@ export default function Chatbots() {
               <div className="text-center py-8 px-4">
                 <Bot className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  {searchQuery ? 'No matching chatbots' : 'No chatbots yet'}
+                  {searchQuery
+                    ? 'No matching chatbots'
+                    : sidebarTab === 'mine'
+                      ? 'No chatbots yet'
+                      : 'No team chatbots available'}
                 </p>
-                {!searchQuery && (
+                {!searchQuery && sidebarTab === 'mine' && (
                   <Button onClick={handleCreateChatbot} variant="link" className="text-xs mt-1 p-0 h-auto">
                     Create your first chatbot
                   </Button>
+                )}
+                {!searchQuery && sidebarTab === 'team' && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Join a team or invite teammates to see their chatbots
+                  </p>
                 )}
               </div>
             ) : (
               filteredChatbots.map((chatbot) => {
                 const assignmentCount = assignments.filter(a => a.chatbot_id === chatbot.id).length;
                 const isSelected = selectedChatbotId === chatbot.id;
-                
+                const ownerInfo = sidebarTab === 'team' ? getChatbotOwnerInfo(chatbot) : null;
+
                 return (
                   <button
                     key={chatbot.id}
                     onClick={() => setSelectedChatbotId(chatbot.id)}
                     className={`w-full text-left p-3 rounded-lg mb-1 transition-all ${
-                      isSelected 
-                        ? 'bg-primary/10 border border-primary/30' 
+                      isSelected
+                        ? 'bg-primary/10 border border-primary/30'
                         : 'hover:bg-muted border border-transparent'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <div 
+                          <div
                             className="w-2 h-2 rounded-full shrink-0"
                             style={{ backgroundColor: chatbot.is_active ? '#22c55e' : '#94a3b8' }}
                           />
@@ -644,6 +782,14 @@ export default function Chatbots() {
                             {chatbot.name}
                           </p>
                         </div>
+                        {/* Show owner and team info for team chatbots */}
+                        {ownerInfo && (
+                          <div className="ml-4 mt-0.5">
+                            <span className="text-[10px] text-muted-foreground">
+                              {ownerInfo.ownerName}{ownerInfo.teamName && ` • ${ownerInfo.teamName}`}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 mt-1 ml-4">
                           <span className="text-xs text-muted-foreground">
                             {chatbot.conversationCount || 0} chats
@@ -665,11 +811,11 @@ export default function Chatbots() {
         </ScrollArea>
 
         {/* Sidebar Footer Stats */}
-        {chatbots.length > 0 && (
+        {filteredChatbots.length > 0 && (
           <div className="p-3 border-t border-border bg-background/50">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{chatbots.length} chatbots</span>
-              <span>{chatbots.filter(c => c.is_active).length} active</span>
+              <span>{filteredChatbots.length} {sidebarTab === 'mine' ? 'chatbots' : 'team chatbots'}</span>
+              <span>{filteredChatbots.filter(c => c.is_active).length} active</span>
             </div>
           </div>
         )}
