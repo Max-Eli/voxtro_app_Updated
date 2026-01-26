@@ -123,19 +123,20 @@ export function TaskKanbanBoard({
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      measuring={{
-        droppable: {
-          strategy: MeasuringStrategy.Always,
-        },
-      }}
-    >
-      {/* Full height container - columns scroll independently */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full">
+    <div className="h-full overflow-hidden">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        measuring={{
+          droppable: {
+            strategy: MeasuringStrategy.Always,
+          },
+        }}
+      >
+        {/* Full height container - columns scroll independently */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full overflow-hidden">
         {COLUMNS.map((column) => (
           <TaskKanbanColumn
             key={column.id}
@@ -164,24 +165,25 @@ export function TaskKanbanBoard({
         ))}
       </div>
 
-      {/* Drag overlay - shows the card being dragged */}
-      <DragOverlay dropAnimation={{
-        duration: 200,
-        easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
-      }}>
-        {activeTask ? (
-          <div className="rotate-3 scale-105 shadow-2xl">
-            <TaskKanbanCard
-              task={activeTask}
-              assistantName={getAssistantName(activeTask.assistant_id)}
-              orgName={getOrgName(activeTask.org_id)}
-              onUpdate={onTaskUpdated}
-              onDelete={onTaskDeleted}
-              isDragging
-            />
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+        {/* Drag overlay - shows the card being dragged */}
+        <DragOverlay dropAnimation={{
+          duration: 200,
+          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+        }}>
+          {activeTask ? (
+            <div className="rotate-3 scale-105 shadow-2xl">
+              <TaskKanbanCard
+                task={activeTask}
+                assistantName={getAssistantName(activeTask.assistant_id)}
+                orgName={getOrgName(activeTask.org_id)}
+                onUpdate={onTaskUpdated}
+                onDelete={onTaskDeleted}
+                isDragging
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+    </div>
   );
 }
