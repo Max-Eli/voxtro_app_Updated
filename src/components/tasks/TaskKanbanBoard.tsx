@@ -24,13 +24,21 @@ interface Assistant {
   org_id: string | null;
 }
 
+interface TeamMember {
+  user_id: string;
+  email?: string;
+  user_name?: string;
+}
+
 interface TaskKanbanBoardProps {
   tasks: Task[];
   getAssistantName: (assistantId: string | null) => string;
   getOrgName: (orgId: string | null) => string;
+  getAssignedToName?: (userId: string | null) => string;
   onTaskUpdated: (task: Task) => void;
   onTaskDeleted: (taskId: string) => void;
   assistants?: Assistant[];
+  teamMembers?: TeamMember[];
 }
 
 const COLUMNS = [
@@ -44,9 +52,11 @@ export function TaskKanbanBoard({
   tasks,
   getAssistantName,
   getOrgName,
+  getAssignedToName,
   onTaskUpdated,
   onTaskDeleted,
   assistants = [],
+  teamMembers = [],
 }: TaskKanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -167,9 +177,11 @@ export function TaskKanbanBoard({
                   task={task}
                   assistantName={getAssistantName(task.assistant_id)}
                   orgName={getOrgName(task.org_id)}
+                  assignedToName={getAssignedToName?.(task.assigned_to)}
                   onUpdate={onTaskUpdated}
                   onDelete={onTaskDeleted}
                   assistants={assistants}
+                  teamMembers={teamMembers}
                 />
               ))}
             </SortableContext>
@@ -188,10 +200,12 @@ export function TaskKanbanBoard({
                 task={activeTask}
                 assistantName={getAssistantName(activeTask.assistant_id)}
                 orgName={getOrgName(activeTask.org_id)}
+                assignedToName={getAssignedToName?.(activeTask.assigned_to)}
                 onUpdate={onTaskUpdated}
                 onDelete={onTaskDeleted}
                 isDragging
                 assistants={assistants}
+                teamMembers={teamMembers}
               />
             </div>
           ) : null}

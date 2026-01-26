@@ -23,6 +23,12 @@ interface VoiceConnection {
   is_active: boolean;
 }
 
+interface TeamMember {
+  user_id: string;
+  email?: string;
+  user_name?: string;
+}
+
 export interface Task {
   id: string;
   user_id: string;
@@ -37,6 +43,7 @@ export interface Task {
   updated_at: string;
   team_org_id: string | null;
   is_team_shared: boolean;
+  assigned_to: string | null;
 }
 
 const VoiceAssistantTasks = () => {
@@ -44,6 +51,7 @@ const VoiceAssistantTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [assistants, setAssistants] = useState<VoiceAssistant[]>([]);
   const [connections, setConnections] = useState<VoiceConnection[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -77,11 +85,35 @@ const VoiceAssistantTasks = () => {
 
       setAssistants(assistantsData || []);
 
-      // Fetch tasks
+      // Fetch team members for assignment
+      const { data: membersData } = await supabase
+        .from("team_members")
+        .select("user_id, email");
+
+      if (membersData) {
+        const uniqueUserIds = [...new Set(membersData.map(m => m.user_id))];
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, email")
+          .in("user_id", uniqueUserIds);
+
+        const membersWithNames = uniqueUserIds.map(userId => {
+          const member = membersData.find(m => m.user_id === userId);
+          const profile = profilesData?.find(p => p.user_id === userId);
+          return {
+            user_id: userId,
+            email: member?.email || profile?.email,
+            user_name: profile?.full_name,
+          };
+        });
+
+        setTeamMembers(membersWithNames);
+      }
+
+      // Fetch tasks (RLS policy handles filtering for owned/assigned/team tasks)
       const { data: tasksData, error } = await supabase
         .from("voice_assistant_tasks")
         .select("*")
-        .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -118,6 +150,12 @@ const VoiceAssistantTasks = () => {
     if (!orgId) return "No Organization";
     const connection = connections.find((c) => c.org_id === orgId);
     return connection?.org_name || orgId;
+  };
+
+  const getAssignedToName = (userId: string | null) => {
+    if (!userId) return "";
+    const member = teamMembers.find((m) => m.user_id === userId);
+    return member?.user_name || member?.email || userId;
   };
 
   // Filter and sort tasks
@@ -346,9 +384,11 @@ const VoiceAssistantTasks = () => {
             tasks={filteredTasks}
             getAssistantName={getAssistantName}
             getOrgName={getOrgName}
+            getAssignedToName={getAssignedToName}
             onTaskUpdated={handleTaskUpdated}
             onTaskDeleted={handleTaskDeleted}
             assistants={assistants}
+            teamMembers={teamMembers}
           />
         ) : (
           <div className="space-y-4 h-full overflow-y-auto pr-2">

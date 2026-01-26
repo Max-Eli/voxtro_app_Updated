@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, Bot, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,18 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Task } from "@/pages/VoiceAssistantTasks";
 
+interface VoiceAssistant {
+  id: string;
+  name: string;
+  org_id: string;
+}
+
+interface TeamMember {
+  user_id: string;
+  email?: string;
+  user_name?: string;
+}
+
 interface EditTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -42,6 +55,7 @@ export const EditTaskDialog = ({
   task,
   onUpdate,
 }: EditTaskDialogProps) => {
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || "");
@@ -50,6 +64,11 @@ export const EditTaskDialog = ({
   const [dueDate, setDueDate] = useState<Date | undefined>(
     task.due_date ? new Date(task.due_date) : undefined
   );
+  const [assistantId, setAssistantId] = useState(task.assistant_id || "__unassigned__");
+  const [assignedTo, setAssignedTo] = useState(task.assigned_to || "__unassigned__");
+  const [assistants, setAssistants] = useState<VoiceAssistant[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -58,8 +77,56 @@ export const EditTaskDialog = ({
       setPriority(task.priority);
       setStatus(task.status);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
+      setAssistantId(task.assistant_id || "__unassigned__");
+      setAssignedTo(task.assigned_to || "__unassigned__");
+      fetchAssistantsAndTeamMembers();
     }
   }, [open, task]);
+
+  const fetchAssistantsAndTeamMembers = async () => {
+    setLoadingData(true);
+    try {
+      // Fetch voice assistants
+      const { data: assistantsData } = await supabase
+        .from("voice_assistants")
+        .select("id, name, org_id")
+        .order("name");
+
+      if (assistantsData) {
+        setAssistants(assistantsData);
+      }
+
+      // Fetch team members from user's teams
+      const { data: membersData } = await supabase
+        .from("team_members")
+        .select("user_id, email");
+
+      if (membersData) {
+        // Get unique members and fetch their profiles
+        const uniqueUserIds = [...new Set(membersData.map(m => m.user_id))];
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, email")
+          .in("user_id", uniqueUserIds);
+
+        const membersWithNames = uniqueUserIds.map(userId => {
+          const member = membersData.find(m => m.user_id === userId);
+          const profile = profilesData?.find(p => p.user_id === userId);
+          return {
+            user_id: userId,
+            email: member?.email || profile?.email,
+            user_name: profile?.full_name,
+          };
+        });
+
+        setTeamMembers(membersWithNames);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +145,8 @@ export const EditTaskDialog = ({
           priority,
           status,
           due_date: dueDate?.toISOString() || null,
+          assistant_id: assistantId === "__unassigned__" ? null : assistantId,
+          assigned_to: assignedTo === "__unassigned__" ? null : assignedTo,
         })
         .eq("id", task.id)
         .select()
@@ -158,6 +227,56 @@ export const EditTaskDialog = ({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-assistant">Voice Assistant</Label>
+            <Select value={assistantId} onValueChange={setAssistantId}>
+              <SelectTrigger>
+                <SelectValue placeholder={loadingData ? "Loading..." : "Select assistant"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__unassigned__">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-muted-foreground" />
+                    <span>Unassigned</span>
+                  </div>
+                </SelectItem>
+                {assistants.filter(a => a.id).map((assistant) => (
+                  <SelectItem key={assistant.id} value={assistant.id}>
+                    <div className="flex items-center gap-2">
+                      <Bot className="h-4 w-4" />
+                      <span>{assistant.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-assigned-to">Assign to Team Member</Label>
+            <Select value={assignedTo} onValueChange={setAssignedTo}>
+              <SelectTrigger>
+                <SelectValue placeholder={loadingData ? "Loading..." : "Select team member"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__unassigned__">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span>Unassigned</span>
+                  </div>
+                </SelectItem>
+                {teamMembers.filter(m => m.user_id).map((member) => (
+                  <SelectItem key={member.user_id} value={member.user_id}>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span>{member.user_name || member.email || member.user_id}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

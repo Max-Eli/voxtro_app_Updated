@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Task } from "@/pages/VoiceAssistantTasks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, GripVertical, Trash2, Edit, ChevronDown, ChevronUp, Save, X, User, Building2 } from "lucide-react";
+import { Calendar, GripVertical, Trash2, Edit, ChevronDown, ChevronUp, Save, X, User, Building2, MoreVertical } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -19,6 +26,12 @@ interface Assistant {
   id: string;
   name: string | null;
   org_id: string | null;
+}
+
+interface TeamMember {
+  user_id: string;
+  email?: string;
+  user_name?: string;
 }
 
 interface TaskKanbanCardProps {
@@ -29,6 +42,8 @@ interface TaskKanbanCardProps {
   onDelete: (taskId: string) => void;
   isDragging?: boolean;
   assistants?: Assistant[];
+  teamMembers?: TeamMember[];
+  assignedToName?: string;
 }
 
 const PRIORITY_COLORS = {
@@ -53,6 +68,8 @@ export function TaskKanbanCard({
   onDelete,
   isDragging = false,
   assistants = [],
+  teamMembers = [],
+  assignedToName,
 }: TaskKanbanCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -61,6 +78,7 @@ export function TaskKanbanCard({
   const [priority, setPriority] = useState(task.priority);
   const [dueDate, setDueDate] = useState(task.due_date || "");
   const [assistantId, setAssistantId] = useState(task.assistant_id || "");
+  const [assignedTo, setAssignedTo] = useState(task.assigned_to || "");
   const [saving, setSaving] = useState(false);
 
   const {
@@ -90,6 +108,7 @@ export function TaskKanbanCard({
           due_date: dueDate || null,
           assistant_id: assistantId || null,
           org_id: selectedAssistant?.org_id || null,
+          assigned_to: assignedTo || null,
         })
         .eq("id", task.id);
 
@@ -103,6 +122,7 @@ export function TaskKanbanCard({
         due_date: dueDate || null,
         assistant_id: assistantId || null,
         org_id: selectedAssistant?.org_id || null,
+        assigned_to: assignedTo || null,
       });
 
       toast.success("Task updated");
@@ -121,6 +141,7 @@ export function TaskKanbanCard({
     setPriority(task.priority);
     setDueDate(task.due_date || "");
     setAssistantId(task.assistant_id || "");
+    setAssignedTo(task.assigned_to || "");
     setIsEditing(false);
   };
 
@@ -144,12 +165,13 @@ export function TaskKanbanCard({
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't expand if clicking on buttons or drag handle
+    // Don't expand if clicking on buttons, drag handle, or dropdown
     if ((e.target as HTMLElement).closest('button') ||
         (e.target as HTMLElement).closest('[data-drag-handle]') ||
         (e.target as HTMLElement).closest('input') ||
         (e.target as HTMLElement).closest('textarea') ||
-        (e.target as HTMLElement).closest('[data-radix-select-trigger]')) {
+        (e.target as HTMLElement).closest('[data-radix-select-trigger]') ||
+        (e.target as HTMLElement).closest('[role="menu"]')) {
       return;
     }
     if (!isEditing) {
@@ -196,6 +218,25 @@ export function TaskKanbanCard({
               </p>
             )}
           </div>
+          {/* Quick Actions Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                <MoreVertical className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => { setIsExpanded(true); setIsEditing(true); }}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Collapsed view - Priority and due date */}
@@ -243,15 +284,32 @@ export function TaskKanbanCard({
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Assistant</Label>
-                  <Select value={assistantId} onValueChange={setAssistantId}>
+                  <Select value={assistantId || "__unassigned__"} onValueChange={(val) => setAssistantId(val === "__unassigned__" ? "" : val)}>
                     <SelectTrigger className="h-8 text-sm">
                       <SelectValue placeholder="Unassigned" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
-                      {assistants.map((assistant) => (
+                      <SelectItem value="__unassigned__">Unassigned</SelectItem>
+                      {assistants.filter(a => a.id).map((assistant) => (
                         <SelectItem key={assistant.id} value={assistant.id}>
                           {assistant.name || "Unnamed Assistant"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Assign to Team Member</Label>
+                  <Select value={assignedTo || "__unassigned__"} onValueChange={(val) => setAssignedTo(val === "__unassigned__" ? "" : val)}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__unassigned__">Unassigned</SelectItem>
+                      {teamMembers.filter(m => m.user_id).map((member) => (
+                        <SelectItem key={member.user_id} value={member.user_id}>
+                          {member.user_name || member.email || member.user_id}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -353,6 +411,14 @@ export function TaskKanbanCard({
                     <p className="text-sm flex items-center gap-1">
                       <Building2 className="h-3 w-3" />
                       {orgName}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs text-muted-foreground">Assigned To</Label>
+                    <p className="text-sm flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      {assignedToName || <span className="text-muted-foreground italic">Unassigned</span>}
                     </p>
                   </div>
                 </div>

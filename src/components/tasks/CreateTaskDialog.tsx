@@ -83,8 +83,8 @@ export const CreateTaskDialog = ({
     return connection?.org_name || orgId;
   };
 
-  // Group assistants by organization
-  const groupedAssistants = assistants.reduce((acc, assistant) => {
+  // Group assistants by organization (filter out any with empty IDs)
+  const groupedAssistants = assistants.filter(a => a.id).reduce((acc, assistant) => {
     const orgName = getOrgName(assistant.org_id);
     if (!acc[orgName]) {
       acc[orgName] = [];
