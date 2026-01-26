@@ -48,6 +48,7 @@ interface TaskKanbanBoardProps {
   getAssignedToName?: (userId: string | null) => string;
   getChatbotName?: (chatbotId: string | null) => string;
   getWhatsappAgentName?: (agentId: string | null) => string;
+  getCreatedByName?: (userId: string | null) => string;
   onTaskUpdated: (task: Task) => void;
   onTaskDeleted: (taskId: string) => void;
   assistants?: Assistant[];
@@ -70,6 +71,7 @@ export function TaskKanbanBoard({
   getAssignedToName,
   getChatbotName,
   getWhatsappAgentName,
+  getCreatedByName,
   onTaskUpdated,
   onTaskDeleted,
   assistants = [],
@@ -199,6 +201,7 @@ export function TaskKanbanBoard({
                   assignedToName={getAssignedToName?.(task.assigned_to)}
                   chatbotName={getChatbotName?.(task.chatbot_id)}
                   whatsappAgentName={getWhatsappAgentName?.(task.whatsapp_agent_id)}
+                  createdByName={getCreatedByName?.(task.user_id)}
                   onUpdate={onTaskUpdated}
                   onDelete={onTaskDeleted}
                   assistants={assistants}
@@ -226,6 +229,7 @@ export function TaskKanbanBoard({
                 assignedToName={getAssignedToName?.(activeTask.assigned_to)}
                 chatbotName={getChatbotName?.(activeTask.chatbot_id)}
                 whatsappAgentName={getWhatsappAgentName?.(activeTask.whatsapp_agent_id)}
+                createdByName={getCreatedByName?.(activeTask.user_id)}
                 onUpdate={onTaskUpdated}
                 onDelete={onTaskDeleted}
                 isDragging

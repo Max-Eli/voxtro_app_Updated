@@ -236,6 +236,14 @@ const VoiceAssistantTasks = () => {
     return agent?.name || agent?.phone_number || "Unknown Agent";
   };
 
+  const getCreatedByName = (userId: string | null) => {
+    if (!userId) return "Unknown";
+    const member = teamMembers.find((m) => m.user_id === userId);
+    if (member?.user_name) return member.user_name;
+    if (member?.email) return member.email;
+    return `User ${userId.slice(0, 8)}...`;
+  };
+
   // Filter and sort tasks
   const filteredTasks = tasks
     .filter((task) => {
@@ -465,6 +473,7 @@ const VoiceAssistantTasks = () => {
             getAssignedToName={getAssignedToName}
             getChatbotName={getChatbotName}
             getWhatsappAgentName={getWhatsappAgentName}
+            getCreatedByName={getCreatedByName}
             onTaskUpdated={handleTaskUpdated}
             onTaskDeleted={handleTaskDeleted}
             assistants={assistants}

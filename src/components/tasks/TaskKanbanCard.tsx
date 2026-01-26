@@ -59,6 +59,7 @@ interface TaskKanbanCardProps {
   assignedToName?: string;
   chatbotName?: string;
   whatsappAgentName?: string;
+  createdByName?: string;
 }
 
 const PRIORITY_COLORS = {
@@ -89,6 +90,7 @@ export function TaskKanbanCard({
   assignedToName,
   chatbotName,
   whatsappAgentName,
+  createdByName,
 }: TaskKanbanCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -496,6 +498,14 @@ export function TaskKanbanCard({
                     <p className="text-sm flex items-center gap-1">
                       <MessageSquare className="h-3 w-3" />
                       {whatsappAgentName || <span className="text-muted-foreground italic">Unassigned</span>}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs text-muted-foreground">Created By</Label>
+                    <p className="text-sm flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      {createdByName || <span className="text-muted-foreground italic">Unknown</span>}
                     </p>
                   </div>
                 </div>
