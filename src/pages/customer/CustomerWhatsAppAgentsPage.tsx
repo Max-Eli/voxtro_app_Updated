@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { syncCustomerWhatsAppConversations } from "@/integrations/api/endpoints/customers";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -42,6 +43,7 @@ export default function CustomerWhatsAppAgentsPage() {
   const { customer } = useCustomerAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [agents, setAgents] = useState<AgentWithDetails[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [showConversationDetail, setShowConversationDetail] = useState(false);
@@ -56,7 +58,23 @@ export default function CustomerWhatsAppAgentsPage() {
     }
   }, [customer]);
 
-  const fetchData = async () => {
+  // Background sync function - syncs from ElevenLabs without blocking UI
+  const syncFromElevenLabs = async () => {
+    try {
+      setSyncing(true);
+      const result = await syncCustomerWhatsAppConversations();
+      console.log('WhatsApp sync result:', result);
+      // Refresh data after sync completes
+      await loadCachedData();
+    } catch (syncError) {
+      console.log('WhatsApp sync error:', syncError);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Load data from database (fast - shows cached data immediately)
+  const loadCachedData = async () => {
     try {
       // Get assigned agent IDs
       const { data: assignments, error: assignmentsError } = await supabase
@@ -68,7 +86,7 @@ export default function CustomerWhatsAppAgentsPage() {
 
       if (!assignments || assignments.length === 0) {
         setLoading(false);
-        return;
+        return false;
       }
 
       const agentIds = assignments.map(a => a.agent_id);
@@ -113,7 +131,7 @@ export default function CustomerWhatsAppAgentsPage() {
           status: conv.status || 'unknown',
           start_time: new Date(conv.started_at).getTime() / 1000,
           end_time: conv.ended_at ? new Date(conv.ended_at).getTime() / 1000 : undefined,
-          duration_seconds: conv.ended_at 
+          duration_seconds: conv.ended_at
             ? Math.floor((new Date(conv.ended_at).getTime() - new Date(conv.started_at).getTime()) / 1000)
             : undefined,
           summary: conv.summary,
@@ -123,6 +141,25 @@ export default function CustomerWhatsAppAgentsPage() {
       });
 
       setConversations(formattedConversations);
+      setLoading(false);
+      return agentIds.length > 0;
+    } catch (error) {
+      console.error('Error loading cached data:', error);
+      setLoading(false);
+      return false;
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      // Step 1: Load cached data immediately (fast - no API calls)
+      const hasAgents = await loadCachedData();
+
+      // Step 2: Sync from ElevenLabs in background (slow - don't block UI)
+      if (hasAgents) {
+        // Don't await - let it run in background and refresh when done
+        syncFromElevenLabs();
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -130,7 +167,6 @@ export default function CustomerWhatsAppAgentsPage() {
         description: "Failed to load WhatsApp agent data",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -189,10 +225,19 @@ export default function CustomerWhatsAppAgentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">WhatsApp Agents</h1>
-        <p className="text-muted-foreground">
-          View conversations and transcripts from your WhatsApp agents
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">WhatsApp Agents</h1>
+            <p className="text-muted-foreground">
+              View conversations and transcripts from your WhatsApp agents
+            </p>
+          </div>
+          {syncing && (
+            <Badge variant="secondary" className="animate-pulse">
+              Updating...
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}

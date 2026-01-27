@@ -184,3 +184,19 @@ export interface CustomerAnalyticsResponse {
   };
 }
 
+/**
+ * Sync WhatsApp conversations from ElevenLabs for customer's assigned agents
+ * Call this when loading the WhatsApp agents page to get latest conversations
+ */
+export async function syncCustomerWhatsAppConversations() {
+  return apiClient.post('/api/customers/portal/sync-whatsapp-conversations');
+}
+
+/**
+ * Sync Voice Assistant calls from VAPI for customer's assigned assistants
+ * Call this when loading the Voice Assistants page to get latest calls
+ */
+export async function syncCustomerVoiceCalls() {
+  return apiClient.post('/api/customers/portal/sync-voice-calls');
+}
+

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
-import { fetchVapiCalls } from "@/integrations/api/endpoints/voice";
+import { syncCustomerVoiceCalls } from "@/integrations/api/endpoints/customers";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -122,20 +122,12 @@ export default function CustomerVoiceAssistantsPage() {
   }, [customer, selectedCall]);
 
   // Background sync function - syncs from VAPI without blocking UI
-  const syncFromVapi = async (assistantIds: string[]) => {
-    for (const assistantId of assistantIds) {
-      try {
-        const syncResult = await fetchVapiCalls(assistantId);
-        console.log(`VAPI sync for ${assistantId}:`, {
-          assistant: syncResult.data?.assistant_name,
-          org: syncResult.data?.vapi_org_name,
-          matchedId: syncResult.data?.matched_vapi_id,
-          callsSynced: syncResult.data?.synced_count,
-          totalCalls: syncResult.data?.total_from_vapi
-        });
-      } catch (syncError) {
-        console.log('VAPI sync error for assistant', assistantId, syncError);
-      }
+  const syncFromVapi = async () => {
+    try {
+      const syncResult = await syncCustomerVoiceCalls();
+      console.log('VAPI sync result:', syncResult);
+    } catch (syncError) {
+      console.log('VAPI sync error:', syncError);
     }
     // Refresh data after sync completes
     await loadCachedData();
@@ -242,7 +234,7 @@ export default function CustomerVoiceAssistantsPage() {
       // Step 2: Sync from VAPI in background (slow - don't block UI)
       if (assistantIds.length > 0) {
         // Don't await - let it run in background and refresh when done
-        syncFromVapi(assistantIds);
+        syncFromVapi();
       }
 
     } catch (error) {
