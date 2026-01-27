@@ -212,7 +212,7 @@ export default function Auth() {
                       type="email"
                       placeholder="name@company.com"
                       required
-                      className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
+                      className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133] text-gray-900 bg-white"
                     />
                   </div>
                   <div className="space-y-2">
@@ -223,7 +223,7 @@ export default function Auth() {
                       type="password"
                       placeholder="Enter your password"
                       required
-                      className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
+                      className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133] text-gray-900 bg-white"
                     />
                   </div>
 
@@ -291,7 +291,7 @@ export default function Auth() {
                       type="email"
                       placeholder="name@company.com"
                       required
-                      className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
+                      className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133] text-gray-900 bg-white"
                     />
                   </div>
                   <Button
@@ -333,7 +333,7 @@ export default function Auth() {
                     type="text"
                     placeholder="John Doe"
                     required
-                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
+                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133] text-gray-900 bg-white"
                   />
                 </div>
                 <div className="space-y-2">
@@ -344,7 +344,7 @@ export default function Auth() {
                     type="email"
                     placeholder="name@company.com"
                     required
-                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
+                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133] text-gray-900 bg-white"
                   />
                 </div>
                 <div className="space-y-2">
@@ -356,7 +356,7 @@ export default function Auth() {
                     placeholder="Create a password"
                     required
                     minLength={6}
-                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
+                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133] text-gray-900 bg-white"
                   />
                 </div>
                 <div className="space-y-2">
@@ -368,7 +368,7 @@ export default function Auth() {
                     placeholder="Confirm your password"
                     required
                     minLength={6}
-                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133]"
+                    className="h-12 border-gray-300 focus:border-[#e45133] focus:ring-[#e45133] text-gray-900 bg-white"
                   />
                 </div>
                 <Button
