@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { MessageCircle, Clock, Calendar, FileText, TrendingUp, Phone, Search } from "lucide-react";
+import { MessageCircle, Clock, Calendar, FileText, TrendingUp, Phone, Search, Sparkles, CheckCircle, AlertCircle, Target, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -30,7 +30,20 @@ interface Conversation {
   duration_seconds?: number;
   summary?: string;
   sentiment?: string;
+  sentiment_notes?: string;
   phone_number?: string;
+  key_points?: string[];
+  action_items?: string[];
+  conversation_outcome?: string;
+  topics_discussed?: string[];
+  lead_info?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    interest_level?: string;
+    notes?: string;
+  };
 }
 
 interface Message {
@@ -136,7 +149,13 @@ export default function CustomerWhatsAppAgentsPage() {
             : undefined,
           summary: conv.summary,
           sentiment: conv.sentiment,
+          sentiment_notes: conv.sentiment_notes,
           phone_number: conv.phone_number,
+          key_points: conv.key_points,
+          action_items: conv.action_items,
+          conversation_outcome: conv.conversation_outcome,
+          topics_discussed: conv.topics_discussed,
+          lead_info: conv.lead_info,
         };
       });
 
@@ -443,11 +462,135 @@ export default function CustomerWhatsAppAgentsPage() {
           </SheetHeader>
 
           <div className="mt-6 space-y-6">
-            {/* Summary */}
+            {/* AI Summary Section - Compact */}
             {selectedConversation?.summary && (
-              <div className="space-y-3">
-                <h3 className="font-semibold">Summary</h3>
-                <p className="text-sm text-muted-foreground">{selectedConversation.summary}</p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <h3 className="text-sm font-semibold">AI Analysis</h3>
+                </div>
+
+                {/* Summary */}
+                <div className="p-2.5 bg-muted/50 rounded-md">
+                  <p className="text-xs leading-relaxed">{selectedConversation.summary}</p>
+                </div>
+
+                {/* Sentiment & Outcome */}
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedConversation.sentiment && (
+                    <Badge variant={
+                      selectedConversation.sentiment === 'positive' ? 'default' :
+                      selectedConversation.sentiment === 'negative' ? 'destructive' : 'secondary'
+                    } className="text-xs py-0">
+                      {selectedConversation.sentiment === 'positive' && <CheckCircle className="h-2.5 w-2.5 mr-1" />}
+                      {selectedConversation.sentiment === 'negative' && <AlertCircle className="h-2.5 w-2.5 mr-1" />}
+                      {selectedConversation.sentiment.charAt(0).toUpperCase() + selectedConversation.sentiment.slice(1)}
+                    </Badge>
+                  )}
+                  {selectedConversation.conversation_outcome && (
+                    <Badge variant="outline" className="text-xs py-0">
+                      <Target className="h-2.5 w-2.5 mr-1" />
+                      {selectedConversation.conversation_outcome.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Sentiment Notes */}
+                {selectedConversation.sentiment_notes && (
+                  <p className="text-xs text-muted-foreground italic">
+                    {selectedConversation.sentiment_notes}
+                  </p>
+                )}
+
+                {/* Key Points */}
+                {selectedConversation.key_points && selectedConversation.key_points.length > 0 && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium flex items-center gap-1.5">
+                      <MessageSquare className="h-2.5 w-2.5" />
+                      Key Points
+                    </h4>
+                    <ul className="space-y-0.5 text-xs">
+                      {selectedConversation.key_points.map((point, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-primary mt-0.5">•</span>
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Action Items */}
+                {selectedConversation.action_items && selectedConversation.action_items.length > 0 && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium flex items-center gap-1.5">
+                      <CheckCircle className="h-2.5 w-2.5" />
+                      Action Items
+                    </h4>
+                    <ul className="space-y-0.5 text-xs">
+                      {selectedConversation.action_items.map((item, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-green-500 mt-0.5">✓</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Topics Discussed */}
+                {selectedConversation.topics_discussed && selectedConversation.topics_discussed.length > 0 && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium">Topics</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedConversation.topics_discussed.map((topic, i) => (
+                        <Badge key={i} variant="secondary" className="text-[10px] py-0 px-1.5">
+                          {topic}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Lead Info */}
+                {selectedConversation.lead_info && (selectedConversation.lead_info.name || selectedConversation.lead_info.email || selectedConversation.lead_info.phone) && (
+                  <div className="space-y-1 p-2 border rounded-md">
+                    <h4 className="text-xs font-medium">Lead Information</h4>
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      {selectedConversation.lead_info.name && (
+                        <div>
+                          <span className="text-muted-foreground">Name:</span> {selectedConversation.lead_info.name}
+                        </div>
+                      )}
+                      {selectedConversation.lead_info.email && (
+                        <div>
+                          <span className="text-muted-foreground">Email:</span> {selectedConversation.lead_info.email}
+                        </div>
+                      )}
+                      {selectedConversation.lead_info.phone && (
+                        <div>
+                          <span className="text-muted-foreground">Phone:</span> {selectedConversation.lead_info.phone}
+                        </div>
+                      )}
+                      {selectedConversation.lead_info.company && (
+                        <div>
+                          <span className="text-muted-foreground">Company:</span> {selectedConversation.lead_info.company}
+                        </div>
+                      )}
+                      {selectedConversation.lead_info.interest_level && (
+                        <div>
+                          <span className="text-muted-foreground">Interest:</span>{' '}
+                          <Badge variant="outline" className="text-[10px] py-0">
+                            {selectedConversation.lead_info.interest_level}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                    {selectedConversation.lead_info.notes && (
+                      <p className="text-xs text-muted-foreground mt-1">{selectedConversation.lead_info.notes}</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
