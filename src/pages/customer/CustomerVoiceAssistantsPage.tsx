@@ -121,11 +121,29 @@ export default function CustomerVoiceAssistantsPage() {
     };
   }, [customer, selectedCall]);
 
-  const fetchData = async () => {
-    if (refreshing) return;
+  // Background sync function - syncs from VAPI without blocking UI
+  const syncFromVapi = async (assistantIds: string[]) => {
+    for (const assistantId of assistantIds) {
+      try {
+        const syncResult = await fetchVapiCalls(assistantId);
+        console.log(`VAPI sync for ${assistantId}:`, {
+          assistant: syncResult.data?.assistant_name,
+          org: syncResult.data?.vapi_org_name,
+          matchedId: syncResult.data?.matched_vapi_id,
+          callsSynced: syncResult.data?.synced_count,
+          totalCalls: syncResult.data?.total_from_vapi
+        });
+      } catch (syncError) {
+        console.log('VAPI sync error for assistant', assistantId, syncError);
+      }
+    }
+    // Refresh data after sync completes
+    await loadCachedData();
+  };
 
+  // Load data from database (fast - shows cached data immediately)
+  const loadCachedData = async (): Promise<string[]> => {
     try {
-      setRefreshing(true);
       const { data: assignments, error: assignmentsError } = await supabase
         .from('customer_assistant_assignments')
         .select('assistant_id')
@@ -134,40 +152,14 @@ export default function CustomerVoiceAssistantsPage() {
       if (assignmentsError) throw assignmentsError;
 
       if (!assignments || assignments.length === 0) {
+        setAssistants([]);
+        setCallLogs([]);
         setLoading(false);
         setRefreshing(false);
-        return;
+        return [];
       }
 
-      let assistantIds = assignments.map(a => a.assistant_id);
-
-      // Sync calls from VAPI API for each assigned assistant
-      // This searches ALL VAPI orgs to find the correct API key for each assistant
-      for (const assistantId of assistantIds) {
-        try {
-          const syncResult = await fetchVapiCalls(assistantId);
-          console.log(`VAPI sync for ${assistantId}:`, {
-            assistant: syncResult.data?.assistant_name,
-            org: syncResult.data?.vapi_org_name,
-            matchedId: syncResult.data?.matched_vapi_id,
-            callsSynced: syncResult.data?.synced_count,
-            totalCalls: syncResult.data?.total_from_vapi
-          });
-        } catch (syncError) {
-          console.log('VAPI sync error for assistant', assistantId, syncError);
-          // Continue even if sync fails - we'll show cached data
-        }
-      }
-
-      // Re-fetch assignments after sync in case IDs were updated
-      const { data: updatedAssignments } = await supabase
-        .from('customer_assistant_assignments')
-        .select('assistant_id')
-        .eq('customer_id', customerId);
-
-      if (updatedAssignments && updatedAssignments.length > 0) {
-        assistantIds = updatedAssignments.map(a => a.assistant_id);
-      }
+      const assistantIds = assignments.map(a => a.assistant_id);
 
       const { data: assistantData, error: assistantError } = await supabase
         .from('voice_assistants')
@@ -186,20 +178,22 @@ export default function CustomerVoiceAssistantsPage() {
       const calls = callData || [];
 
       const callIds = calls.map(c => c.id);
-      const { data: recordings } = await supabase
-        .from('voice_assistant_recordings')
-        .select('call_id, recording_url')
-        .in('call_id', callIds);
+      const { data: recordings } = callIds.length > 0
+        ? await supabase
+            .from('voice_assistant_recordings')
+            .select('call_id, recording_url')
+            .in('call_id', callIds)
+        : { data: [] };
 
       const recordingMap = new Map(recordings?.map(r => [r.call_id, r.recording_url]) || []);
 
-      const assistantsWithStats = assistantData.map(assistant => {
+      // Build assistant stats
+      const assistantsWithStats = (assistantData || []).map(assistant => {
         const assistantCalls = calls.filter(c => c.assistant_id === assistant.id);
-        // Only count calls with valid duration for accurate averages
         const callsWithDuration = assistantCalls.filter(c => c.duration_seconds != null && c.duration_seconds > 0);
         const totalDuration = callsWithDuration.reduce((sum, call) => sum + (call.duration_seconds || 0), 0);
         const completedCalls = assistantCalls.filter(c => c.status === 'completed' || c.ended_at != null).length;
-        
+
         return {
           id: assistant.id,
           name: assistant.name || 'Unnamed Assistant',
@@ -211,35 +205,53 @@ export default function CustomerVoiceAssistantsPage() {
         };
       });
 
-      setAssistants(assistantsWithStats);
-
+      // Format call logs
       const formattedCalls = calls.map(call => {
-        const assistant = assistantData.find(a => a.id === call.assistant_id);
+        const assistant = (assistantData || []).find(a => a.id === call.assistant_id);
         return {
           ...call,
           assistant_name: assistant?.name || 'Unknown',
           assistant_id: call.assistant_id,
           recording_url: recordingMap.get(call.id),
-          summary: call.summary,
-          key_points: call.key_points,
-          action_items: call.action_items,
-          sentiment: call.sentiment,
-          sentiment_notes: call.sentiment_notes,
-          call_outcome: call.call_outcome,
-          topics_discussed: call.topics_discussed,
-          lead_info: call.lead_info,
         };
       });
 
+      setAssistants(assistantsWithStats);
       setCallLogs(formattedCalls);
+      setLoading(false);
+      setRefreshing(false);
+
+      return assistantIds;
+    } catch (error) {
+      console.error('Error loading cached data:', error);
+      setLoading(false);
+      setRefreshing(false);
+      return [];
+    }
+  };
+
+  const fetchData = async () => {
+    if (refreshing) return;
+
+    try {
+      setRefreshing(true);
+
+      // Step 1: Load cached data immediately (fast - no VAPI calls)
+      const assistantIds = await loadCachedData();
+
+      // Step 2: Sync from VAPI in background (slow - don't block UI)
+      if (assistantIds.length > 0) {
+        // Don't await - let it run in background and refresh when done
+        syncFromVapi(assistantIds);
+      }
+
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
         title: "Error",
-        description: "Failed to load voice assistant data",
+        description: "Failed to load voice assistants",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
       setRefreshing(false);
     }
