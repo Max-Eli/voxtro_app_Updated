@@ -570,12 +570,38 @@ export default function Chatbots() {
     }
   };
 
-  const copyEmbedCode = (botId: string, type: 'widget' | 'inline' | 'messenger' = 'widget') => {
+  const copyEmbedCode = (botId: string, type: 'widget' | 'inline' | 'messenger' | 'iframe' = 'widget') => {
     let embedCode;
     let description;
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://voxtro-backend.onrender.com';
-    
-    if (type === 'inline') {
+    const frontendUrl = window.location.origin;
+
+    if (type === 'iframe') {
+      // Pure iframe embed - works on ANY website without external script loading
+      // No CSP restrictions for scripts - only requires frame-src to allow the domain
+      const themeColor = selectedChatbot?.theme_color || '#6366f1';
+      embedCode = `<!-- Voxtro Chat Widget - Iframe Embed (Works on all websites) -->
+<div id="voxtro-chat-widget">
+  <style>
+    #voxtro-chat-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    #voxtro-chat-container { display: none; width: 400px; max-width: calc(100vw - 40px); height: 600px; max-height: calc(100vh - 100px); margin-bottom: 16px; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+    #voxtro-chat-container.open { display: block; }
+    #voxtro-chat-iframe { width: 100%; height: 100%; border: none; }
+    #voxtro-toggle-btn { width: 60px; height: 60px; border-radius: 50%; border: none; background: ${themeColor}; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.2); transition: transform 0.2s, box-shadow 0.2s; margin-left: auto; }
+    #voxtro-toggle-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
+    #voxtro-toggle-btn svg { width: 28px; height: 28px; }
+  </style>
+  <div id="voxtro-chat-container">
+    <iframe id="voxtro-chat-iframe" src="${frontendUrl}/messenger/${botId}" allow="microphone"></iframe>
+  </div>
+  <div style="display: flex; justify-content: flex-end;">
+    <button id="voxtro-toggle-btn" onclick="(function(){ var c=document.getElementById('voxtro-chat-container'); var b=document.getElementById('voxtro-toggle-btn'); var isOpen=c.classList.toggle('open'); b.innerHTML=isOpen?'<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><line x1=\\'18\\' y1=\\'6\\' x2=\\'6\\' y2=\\'18\\'></line><line x1=\\'6\\' y1=\\'6\\' x2=\\'18\\' y2=\\'18\\'></line></svg>':'<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><path d=\\'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\\'></path></svg>'; })()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    </button>
+  </div>
+</div>`;
+      description = 'Iframe embed code copied - works on all websites!';
+    } else if (type === 'inline') {
       embedCode = `<script>
   (function() {
     var script = document.createElement('script');
@@ -609,7 +635,7 @@ export default function Chatbots() {
 </script>`;
       description = 'Widget embed code copied to clipboard';
     }
-    
+
     navigator.clipboard.writeText(embedCode);
     toast({
       title: 'Copied!',
@@ -897,6 +923,10 @@ export default function Chatbots() {
               <Button variant="outline" size="sm" onClick={() => copyEmbedCode(selectedChatbot.id, 'messenger')} className="justify-start gap-2">
                 <Copy className="h-4 w-4" />
                 Copy Messenger Code
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => copyEmbedCode(selectedChatbot.id, 'iframe')} className="justify-start gap-2 col-span-2 md:col-span-4 bg-green-50 hover:bg-green-100 border-green-200 text-green-700">
+                <Copy className="h-4 w-4" />
+                Copy Universal Embed (Works Everywhere)
               </Button>
             </div>
 
