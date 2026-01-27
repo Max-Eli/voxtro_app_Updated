@@ -524,34 +524,34 @@ export default function CustomerVoiceAssistantsPage() {
           </SheetHeader>
 
           <div className="mt-6 space-y-6">
-            {/* AI Summary Section */}
+            {/* AI Summary Section - Compact */}
             {selectedCall?.summary && (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold">AI Analysis</h3>
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <h3 className="text-sm font-semibold">AI Analysis</h3>
                 </div>
 
                 {/* Summary */}
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm">{selectedCall.summary}</p>
+                <div className="p-2.5 bg-muted/50 rounded-md">
+                  <p className="text-xs leading-relaxed">{selectedCall.summary}</p>
                 </div>
 
                 {/* Sentiment & Outcome */}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {selectedCall.sentiment && (
                     <Badge variant={
                       selectedCall.sentiment === 'positive' ? 'default' :
                       selectedCall.sentiment === 'negative' ? 'destructive' : 'secondary'
-                    }>
-                      {selectedCall.sentiment === 'positive' && <CheckCircle className="h-3 w-3 mr-1" />}
-                      {selectedCall.sentiment === 'negative' && <AlertCircle className="h-3 w-3 mr-1" />}
-                      {selectedCall.sentiment.charAt(0).toUpperCase() + selectedCall.sentiment.slice(1)} Sentiment
+                    } className="text-xs py-0">
+                      {selectedCall.sentiment === 'positive' && <CheckCircle className="h-2.5 w-2.5 mr-1" />}
+                      {selectedCall.sentiment === 'negative' && <AlertCircle className="h-2.5 w-2.5 mr-1" />}
+                      {selectedCall.sentiment.charAt(0).toUpperCase() + selectedCall.sentiment.slice(1)}
                     </Badge>
                   )}
                   {selectedCall.call_outcome && (
-                    <Badge variant="outline">
-                      <Target className="h-3 w-3 mr-1" />
+                    <Badge variant="outline" className="text-xs py-0">
+                      <Target className="h-2.5 w-2.5 mr-1" />
                       {selectedCall.call_outcome.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </Badge>
                   )}
@@ -559,22 +559,22 @@ export default function CustomerVoiceAssistantsPage() {
 
                 {/* Sentiment Notes */}
                 {selectedCall.sentiment_notes && (
-                  <p className="text-sm text-muted-foreground italic">
+                  <p className="text-xs text-muted-foreground italic">
                     {selectedCall.sentiment_notes}
                   </p>
                 )}
 
                 {/* Key Points */}
                 {selectedCall.key_points && selectedCall.key_points.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium flex items-center gap-2">
-                      <MessageSquare className="h-3 w-3" />
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium flex items-center gap-1.5">
+                      <MessageSquare className="h-2.5 w-2.5" />
                       Key Points
                     </h4>
-                    <ul className="space-y-1 text-sm">
+                    <ul className="space-y-0.5 text-xs">
                       {selectedCall.key_points.map((point, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-primary mt-1">•</span>
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-primary mt-0.5">•</span>
                           <span>{point}</span>
                         </li>
                       ))}
@@ -584,15 +584,15 @@ export default function CustomerVoiceAssistantsPage() {
 
                 {/* Action Items */}
                 {selectedCall.action_items && selectedCall.action_items.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium flex items-center gap-2">
-                      <CheckCircle className="h-3 w-3" />
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium flex items-center gap-1.5">
+                      <CheckCircle className="h-2.5 w-2.5" />
                       Action Items
                     </h4>
-                    <ul className="space-y-1 text-sm">
+                    <ul className="space-y-0.5 text-xs">
                       {selectedCall.action_items.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-green-500 mt-1">✓</span>
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-green-500 mt-0.5">✓</span>
                           <span>{item}</span>
                         </li>
                       ))}
@@ -602,11 +602,11 @@ export default function CustomerVoiceAssistantsPage() {
 
                 {/* Topics Discussed */}
                 {selectedCall.topics_discussed && selectedCall.topics_discussed.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Topics Discussed</h4>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium">Topics</h4>
                     <div className="flex flex-wrap gap-1">
                       {selectedCall.topics_discussed.map((topic, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs">
+                        <Badge key={i} variant="secondary" className="text-[10px] py-0 px-1.5">
                           {topic}
                         </Badge>
                       ))}
@@ -616,9 +616,9 @@ export default function CustomerVoiceAssistantsPage() {
 
                 {/* Lead Info */}
                 {selectedCall.lead_info && (selectedCall.lead_info.name || selectedCall.lead_info.email || selectedCall.lead_info.phone) && (
-                  <div className="space-y-2 p-3 border rounded-lg">
-                    <h4 className="text-sm font-medium">Lead Information</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="space-y-1 p-2 border rounded-md">
+                    <h4 className="text-xs font-medium">Lead Information</h4>
+                    <div className="grid grid-cols-2 gap-1 text-xs">
                       {selectedCall.lead_info.name && (
                         <div>
                           <span className="text-muted-foreground">Name:</span> {selectedCall.lead_info.name}
@@ -642,14 +642,14 @@ export default function CustomerVoiceAssistantsPage() {
                       {selectedCall.lead_info.interest_level && (
                         <div>
                           <span className="text-muted-foreground">Interest:</span>{' '}
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-[10px] py-0">
                             {selectedCall.lead_info.interest_level}
                           </Badge>
                         </div>
                       )}
                     </div>
                     {selectedCall.lead_info.notes && (
-                      <p className="text-sm text-muted-foreground mt-2">{selectedCall.lead_info.notes}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{selectedCall.lead_info.notes}</p>
                     )}
                   </div>
                 )}
