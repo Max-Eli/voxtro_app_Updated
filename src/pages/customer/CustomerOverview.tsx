@@ -353,6 +353,19 @@ export function CustomerOverview() {
         </Card>
       </div>
 
+      {/* Conversion Rate Summary - Prominent placement */}
+      {(conversionRates?.overall || 0) > 0 && (
+        <Card className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Overall Conversion Rate</p>
+              <p className="text-xs text-muted-foreground">Leads captured from all interactions</p>
+            </div>
+            <p className="text-3xl font-bold text-primary">{conversionRates?.overall || 0}%</p>
+          </div>
+        </Card>
+      )}
+
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chatbot Analytics */}
@@ -537,19 +550,6 @@ export function CustomerOverview() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Conversion Rate Summary */}
-      {(conversionRates?.overall || 0) > 0 && (
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Overall Conversion Rate</p>
-              <p className="text-xs text-muted-foreground">Leads captured from all interactions</p>
-            </div>
-            <p className="text-3xl font-bold">{conversionRates?.overall || 0}%</p>
-          </div>
-        </Card>
-      )}
     </div>
   );
 }
