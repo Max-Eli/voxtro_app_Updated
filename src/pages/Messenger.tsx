@@ -494,14 +494,6 @@ export default function Messenger() {
       {faqs.length === 0 && messages.length <= 1 && !showInput && (
         <div className="flex-shrink-0 px-4 py-6 border-t bg-gradient-to-t from-white via-white to-transparent">
           <div className="max-w-sm mx-auto text-center">
-            <div className="mb-4">
-              <div
-                className="w-14 h-14 rounded-full mx-auto flex items-center justify-center shadow-lg"
-                style={{ backgroundColor: `${themeColor}15` }}
-              >
-                <Send className="w-6 h-6" style={{ color: themeColor }} />
-              </div>
-            </div>
             <p className="text-sm text-gray-600 mb-4">
               Have a question? We're here to help!
             </p>
