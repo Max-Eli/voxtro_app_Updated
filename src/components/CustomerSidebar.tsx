@@ -1,10 +1,9 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { 
-  Home, 
-  MessageSquare, 
-  FileText, 
-  BarChart3, 
-  Settings, 
+import {
+  Home,
+  MessageSquare,
+  BarChart3,
+  Settings,
   LogOut,
   Bot,
   Phone,
@@ -37,7 +36,6 @@ const menuItems = [
   { title: "WhatsApp Agents", url: "/customer-dashboard/whatsapp-agents", icon: MessageCircle },
   { title: "Leads", url: "/customer-dashboard/leads", icon: Users },
   { title: "Support Tickets", url: "/customer-dashboard/support-tickets", icon: Ticket },
-  { title: "Forms", url: "/customer-dashboard/forms", icon: FileText },
   { title: "Analytics", url: "/customer-dashboard/analytics", icon: BarChart3 },
   { title: "Settings", url: "/customer-dashboard/settings", icon: Settings },
 ];

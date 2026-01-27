@@ -519,8 +519,13 @@ export function CustomerOverview() {
 
         {/* Support Tickets */}
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base font-medium">Support</CardTitle>
+            {supportTickets.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => navigate('/customer-dashboard/support-tickets')} className="text-xs">
+                View All <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {supportTickets.length === 0 ? (
@@ -538,7 +543,11 @@ export function CustomerOverview() {
             ) : (
               <div className="space-y-2">
                 {supportTickets.slice(0, 4).map((ticket) => (
-                  <div key={ticket.id} className="flex items-center justify-between gap-2">
+                  <div
+                    key={ticket.id}
+                    onClick={() => navigate('/customer-dashboard/support-tickets')}
+                    className="flex items-center justify-between gap-2 p-2 -mx-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                  >
                     <p className="text-sm truncate">{ticket.subject}</p>
                     <Badge className={`text-xs shrink-0 ${getStatusColor(ticket.status)}`}>
                       {ticket.status.replace('_', ' ')}
