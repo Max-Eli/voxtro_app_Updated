@@ -33,3 +33,11 @@ export async function updateWhatsAppAgent(agentId: string, updates: any) {
 export async function getWhatsAppAgent(agentId: string) {
   return apiClient.get(`/api/whatsapp/${agentId}`);
 }
+
+/**
+ * Fetch conversations from ElevenLabs and sync to database
+ * This fetches conversation details including transcripts
+ */
+export async function fetchWhatsAppConversations(agentId: string) {
+  return apiClient.post(`/api/whatsapp/${agentId}/fetch-conversations`);
+}

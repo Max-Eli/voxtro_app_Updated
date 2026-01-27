@@ -19,7 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { format } from "date-fns";
-import { syncWhatsAppAgents, updateWhatsAppAgent, getWhatsAppAgent } from "@/integrations/api/endpoints";
+import { syncWhatsAppAgents, updateWhatsAppAgent, getWhatsAppAgent, fetchWhatsAppConversations } from "@/integrations/api/endpoints";
 
 interface WhatsAppAgent {
   id: string;
@@ -106,6 +106,7 @@ const WhatsAppAgents = () => {
   const [conversationMessages, setConversationMessages] = useState<any[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [dbConversations, setDbConversations] = useState<DbConversation[]>([]);
+  const [syncingConversations, setSyncingConversations] = useState(false);
 
   const checkConnection = async () => {
     if (!user) return;
@@ -247,6 +248,42 @@ const WhatsAppAgents = () => {
     }
   };
 
+  const syncConversationsFromElevenLabs = async (agentId: string, showToast = false) => {
+    setSyncingConversations(true);
+    try {
+      const result = await fetchWhatsAppConversations(agentId);
+
+      if (showToast && result.synced > 0) {
+        toast({
+          title: "Conversations Synced",
+          description: result.message || `Synced ${result.synced} conversations`,
+        });
+      }
+
+      // Refresh local database conversations
+      const { data: dbConvs, error: dbError } = await supabase
+        .from('whatsapp_conversations')
+        .select('*')
+        .eq('agent_id', agentId)
+        .order('started_at', { ascending: false });
+
+      if (!dbError && dbConvs) {
+        setDbConversations(dbConvs);
+      }
+    } catch (error: any) {
+      console.error('Error syncing conversations:', error);
+      if (showToast) {
+        toast({
+          title: "Sync Error",
+          description: error.message || "Failed to sync conversations",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setSyncingConversations(false);
+    }
+  };
+
   const fetchAgentConfig = useCallback(async (agentId: string) => {
     setLoadingConfig(true);
     try {
@@ -259,6 +296,9 @@ const WhatsAppAgents = () => {
       if (data.conversations) {
         setConversations(data.conversations);
       }
+
+      // Sync conversations from ElevenLabs in the background
+      syncConversationsFromElevenLabs(agentId, false);
 
       // Also fetch conversations from local database with summary and sentiment
       const { data: dbConvs, error: dbError } = await supabase
@@ -887,17 +927,38 @@ const WhatsAppAgents = () => {
 
                 <TabsContent value="conversations" className="space-y-4">
                   <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Recent Conversations</CardTitle>
-                      <CardDescription>
-                        Click on a conversation to view the transcript and AI summary
-                      </CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg">Recent Conversations</CardTitle>
+                        <CardDescription>
+                          Click on a conversation to view the transcript and AI summary
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => selectedAgentId && syncConversationsFromElevenLabs(selectedAgentId, true)}
+                        disabled={syncingConversations}
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${syncingConversations ? 'animate-spin' : ''}`} />
+                        {syncingConversations ? 'Syncing...' : 'Sync Conversations'}
+                      </Button>
                     </CardHeader>
                     <CardContent>
                       {dbConversations.length === 0 ? (
-                        <p className="text-center text-muted-foreground py-8">
-                          No conversations yet. Sync conversations to see them here.
-                        </p>
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground mb-4">
+                            No conversations yet. Click "Sync Conversations" to fetch from ElevenLabs.
+                          </p>
+                          <Button
+                            variant="outline"
+                            onClick={() => selectedAgentId && syncConversationsFromElevenLabs(selectedAgentId, true)}
+                            disabled={syncingConversations}
+                          >
+                            <RefreshCw className={`h-4 w-4 mr-2 ${syncingConversations ? 'animate-spin' : ''}`} />
+                            Sync Now
+                          </Button>
+                        </div>
                       ) : (
                         <ScrollArea className="h-[400px]">
                           <div className="space-y-3">
