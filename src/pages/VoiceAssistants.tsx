@@ -26,6 +26,7 @@ interface VoiceAssistant {
   model?: string;
   transcriber_provider?: string;
   phone_number?: string;
+  org_id?: string | null;
   created_at: string;
 }
 
@@ -136,22 +137,25 @@ export default function VoiceAssistants() {
     try {
       setLoading(true);
 
-      // Build query based on whether we have an org_id filter
-      let assistantsQuery = supabase
+      // Fetch ALL assistants for this user first
+      // We'll filter in-memory to include those with matching org_id OR null org_id (for backwards compat)
+      const { data: allAssistantsData, error: assistantsError } = await supabase
         .from('voice_assistants')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
-      // Filter by org_id if we have one
-      if (activeOrgId) {
-        assistantsQuery = assistantsQuery.eq('org_id', activeOrgId);
-      }
-
-      const { data: assistantsData, error: assistantsError } = await assistantsQuery;
-
       if (assistantsError) throw assistantsError;
-      setAssistants(assistantsData || []);
+
+      // Filter by org_id if we have one, but also include assistants with NULL org_id
+      // This provides backwards compatibility until all assistants are synced with proper org_id
+      let assistantsData = allAssistantsData || [];
+      if (activeOrgId) {
+        assistantsData = assistantsData.filter(
+          a => a.org_id === activeOrgId || a.org_id === null
+        );
+      }
+      setAssistants(assistantsData);
 
       // Fetch customers from all assignment types (chatbots, voice assistants, WhatsApp agents)
       const allCustomers: Customer[] = [];
