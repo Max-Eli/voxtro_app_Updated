@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { fetchVapiCalls } from "@/integrations/api/endpoints/voice";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -122,7 +123,7 @@ export default function CustomerVoiceAssistantsPage() {
 
   const fetchData = async () => {
     if (refreshing) return;
-    
+
     try {
       setRefreshing(true);
       const { data: assignments, error: assignmentsError } = await supabase
@@ -134,10 +135,22 @@ export default function CustomerVoiceAssistantsPage() {
 
       if (!assignments || assignments.length === 0) {
         setLoading(false);
+        setRefreshing(false);
         return;
       }
 
       const assistantIds = assignments.map(a => a.assistant_id);
+
+      // Sync calls from VAPI API for each assigned assistant
+      // This ensures we have the latest call data from the user's VAPI account
+      for (const assistantId of assistantIds) {
+        try {
+          await fetchVapiCalls(assistantId);
+        } catch (syncError) {
+          console.log('VAPI sync error for assistant', assistantId, syncError);
+          // Continue even if sync fails - we'll show cached data
+        }
+      }
 
       const { data: assistantData, error: assistantError } = await supabase
         .from('voice_assistants')

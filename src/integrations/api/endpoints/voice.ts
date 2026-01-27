@@ -46,3 +46,16 @@ export async function validateElevenLabsConnection(apiKey: string) {
   // Send API key in request body for better handling of special characters
   return apiClient.post('/api/whatsapp/validate-elevenlabs', { api_key: apiKey });
 }
+
+/**
+ * Fetch and sync calls from VAPI API for a specific assistant
+ * Used by customer portal to get call history
+ */
+export async function fetchVapiCalls(assistantId: string) {
+  return apiClient.post<{
+    success: boolean;
+    total_from_vapi: number;
+    synced_count: number;
+    assistant_name: string | null;
+  }>('/api/voice/fetch-calls', { assistant_id: assistantId });
+}
