@@ -50,6 +50,9 @@ export async function validateElevenLabsConnection(apiKey: string) {
 /**
  * Fetch and sync calls from VAPI API for a specific assistant
  * Used by customer portal to get call history
+ *
+ * This endpoint searches through ALL VAPI connections for the user
+ * to find the correct organization containing the assistant.
  */
 export async function fetchVapiCalls(assistantId: string) {
   return apiClient.post<{
@@ -57,5 +60,9 @@ export async function fetchVapiCalls(assistantId: string) {
     total_from_vapi: number;
     synced_count: number;
     assistant_name: string | null;
+    vapi_org_name: string | null;
+    matched_vapi_id: string | null;
+    total_all_calls: number | null;
+    assistant_ids_in_vapi: string[] | null;
   }>('/api/voice/fetch-calls', { assistant_id: assistantId });
 }

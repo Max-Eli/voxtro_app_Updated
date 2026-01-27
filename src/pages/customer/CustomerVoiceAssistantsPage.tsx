@@ -139,17 +139,34 @@ export default function CustomerVoiceAssistantsPage() {
         return;
       }
 
-      const assistantIds = assignments.map(a => a.assistant_id);
+      let assistantIds = assignments.map(a => a.assistant_id);
 
       // Sync calls from VAPI API for each assigned assistant
-      // This ensures we have the latest call data from the user's VAPI account
+      // This searches ALL VAPI orgs to find the correct API key for each assistant
       for (const assistantId of assistantIds) {
         try {
-          await fetchVapiCalls(assistantId);
+          const syncResult = await fetchVapiCalls(assistantId);
+          console.log(`VAPI sync for ${assistantId}:`, {
+            assistant: syncResult.data?.assistant_name,
+            org: syncResult.data?.vapi_org_name,
+            matchedId: syncResult.data?.matched_vapi_id,
+            callsSynced: syncResult.data?.synced_count,
+            totalCalls: syncResult.data?.total_from_vapi
+          });
         } catch (syncError) {
           console.log('VAPI sync error for assistant', assistantId, syncError);
           // Continue even if sync fails - we'll show cached data
         }
+      }
+
+      // Re-fetch assignments after sync in case IDs were updated
+      const { data: updatedAssignments } = await supabase
+        .from('customer_assistant_assignments')
+        .select('assistant_id')
+        .eq('customer_id', customerId);
+
+      if (updatedAssignments && updatedAssignments.length > 0) {
+        assistantIds = updatedAssignments.map(a => a.assistant_id);
       }
 
       const { data: assistantData, error: assistantError } = await supabase
