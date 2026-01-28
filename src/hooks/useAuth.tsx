@@ -1,6 +1,10 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { syncVoiceAssistants } from '@/integrations/api/endpoints';
+
+const VAPI_SYNC_KEY = 'voxtro_last_vapi_sync';
+const SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type Provider = 'google' | 'apple';
 
@@ -21,6 +25,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const syncInProgressRef = useRef(false);
+
+  // Check if VAPI sync is needed (more than 24 hours since last sync)
+  const shouldSyncVapi = (): boolean => {
+    const lastSync = localStorage.getItem(VAPI_SYNC_KEY);
+    if (!lastSync) return true;
+    const lastSyncTime = parseInt(lastSync, 10);
+    return Date.now() - lastSyncTime > SYNC_INTERVAL_MS;
+  };
+
+  // Perform VAPI sync in background
+  const performVapiSync = async () => {
+    if (syncInProgressRef.current) return;
+    syncInProgressRef.current = true;
+
+    try {
+      console.log('Starting automatic VAPI sync...');
+      await syncVoiceAssistants();
+      localStorage.setItem(VAPI_SYNC_KEY, Date.now().toString());
+      console.log('VAPI sync completed successfully');
+    } catch (error) {
+      console.error('VAPI auto-sync error:', error);
+      // Don't throw - this is a background operation
+    } finally {
+      syncInProgressRef.current = false;
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -30,6 +61,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Trigger VAPI sync on sign in
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Small delay to ensure auth is fully established
+          setTimeout(() => {
+            if (shouldSyncVapi()) {
+              performVapiSync();
+            }
+          }, 1000);
+        }
       }
     );
 
@@ -39,6 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Auto-sync on app load if user has session and sync is due
+      if (session?.user && shouldSyncVapi()) {
+        setTimeout(() => performVapiSync(), 2000);
+      }
     });
 
     return () => subscription.unsubscribe();
