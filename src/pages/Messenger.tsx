@@ -445,8 +445,8 @@ export default function Messenger() {
       {faqs.length > 0 && messages.length <= 1 && !showInput && (
         <div className="flex-shrink-0 px-4 py-6 border-t bg-white/90 shadow-sm rounded-b-xl">
           <div className="max-w-sm mx-auto">
-            <p className="text-xs font-medium text-gray-500 mb-3">Suggested questions</p>
-            <div className="flex flex-wrap gap-2 mb-5">
+            <p className="text-xs font-medium text-gray-500 mb-3 text-right">FAQ'S</p>
+            <div className="flex flex-wrap gap-2 mb-5 justify-end">
               {faqs.slice(0, 4).map((faq, index) => (
                 <button
                   key={index}

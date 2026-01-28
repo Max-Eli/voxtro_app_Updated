@@ -345,11 +345,11 @@ export default function EmbedChat() {
             <div ref={setMessagesEndRef} />
           </div>
 
-          {/* Suggested Questions - Show FAQs if configured */}
+          {/* FAQ Section */}
           {showSuggestions && faqs.length > 0 && (
             <div className="px-4 pb-4">
-              <p className="text-xs font-medium text-gray-500 mb-3">Suggested questions</p>
-              <div className="flex flex-wrap gap-2">
+              <p className="text-xs font-medium text-gray-500 mb-3 text-right">FAQ'S</p>
+              <div className="flex flex-wrap gap-2 justify-end">
                 {faqs.map((faq) => (
                   <button
                     key={faq.id}
