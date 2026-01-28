@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { syncVoiceAssistants } from '@/integrations/api/endpoints';
+import { syncVoiceAssistants, syncWhatsAppAgents } from '@/integrations/api/endpoints';
 
 const VAPI_SYNC_KEY = 'voxtro_last_vapi_sync';
+const WHATSAPP_SYNC_KEY = 'voxtro_last_whatsapp_sync';
 const SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type Provider = 'google' | 'apple';
@@ -27,26 +28,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const syncInProgressRef = useRef(false);
 
-  // Check if VAPI sync is needed (more than 24 hours since last sync)
-  const shouldSyncVapi = (): boolean => {
-    const lastSync = localStorage.getItem(VAPI_SYNC_KEY);
+  // Check if sync is needed (more than 24 hours since last sync)
+  const shouldSync = (key: string): boolean => {
+    const lastSync = localStorage.getItem(key);
     if (!lastSync) return true;
     const lastSyncTime = parseInt(lastSync, 10);
     return Date.now() - lastSyncTime > SYNC_INTERVAL_MS;
   };
 
-  // Perform VAPI sync in background
-  const performVapiSync = async () => {
+  // Perform all agent syncs in background
+  const performAgentSync = async () => {
     if (syncInProgressRef.current) return;
     syncInProgressRef.current = true;
 
     try {
-      console.log('Starting automatic VAPI sync...');
-      await syncVoiceAssistants();
-      localStorage.setItem(VAPI_SYNC_KEY, Date.now().toString());
-      console.log('VAPI sync completed successfully');
+      // Sync VAPI voice assistants if needed
+      if (shouldSync(VAPI_SYNC_KEY)) {
+        console.log('Starting automatic VAPI sync...');
+        await syncVoiceAssistants();
+        localStorage.setItem(VAPI_SYNC_KEY, Date.now().toString());
+        console.log('VAPI sync completed successfully');
+      }
+
+      // Sync WhatsApp agents if needed
+      if (shouldSync(WHATSAPP_SYNC_KEY)) {
+        console.log('Starting automatic WhatsApp sync...');
+        await syncWhatsAppAgents();
+        localStorage.setItem(WHATSAPP_SYNC_KEY, Date.now().toString());
+        console.log('WhatsApp sync completed successfully');
+      }
     } catch (error) {
-      console.error('VAPI auto-sync error:', error);
+      console.error('Agent auto-sync error:', error);
       // Don't throw - this is a background operation
     } finally {
       syncInProgressRef.current = false;
@@ -62,13 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Trigger VAPI sync on sign in
+        // Trigger agent sync on sign in
         if (event === 'SIGNED_IN' && session?.user) {
           // Small delay to ensure auth is fully established
           setTimeout(() => {
-            if (shouldSyncVapi()) {
-              performVapiSync();
-            }
+            performAgentSync();
           }, 1000);
         }
       }
@@ -81,9 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Auto-sync on app load if user has session and sync is due
-      if (session?.user && shouldSyncVapi()) {
-        setTimeout(() => performVapiSync(), 2000);
+      // Auto-sync on app load if user has session
+      if (session?.user) {
+        setTimeout(() => performAgentSync(), 2000);
       }
     });
 
