@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { CreateTicketDialog } from '@/components/customer/CreateTicketDialog';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, Phone, MessageCircle, Ticket, Users, ArrowRight } from 'lucide-react';
+import { Bot, Phone, MessageCircle, Ticket, Users, ArrowRight, TrendingUp, Mail, PhoneCall } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmptyAgentState } from '@/components/customer/EmptyAgentState';
 import { useNavigate } from 'react-router-dom';
 import { getCustomerPortalLeads, CustomerLead } from '@/integrations/api/endpoints';
+import { format } from 'date-fns';
 
 interface CustomerChatbot {
   id: string;
@@ -64,6 +65,7 @@ interface SupportTicket {
   id: string;
   subject: string;
   status: string;
+  priority?: string;
   created_at: string;
   updated_at: string;
 }
@@ -87,6 +89,7 @@ export function CustomerOverview() {
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [leads, setLeads] = useState<CustomerLead[]>([]);
   const [conversionRates, setConversionRates] = useState<ConversionRates | null>(null);
+  const [totalLeadsCount, setTotalLeadsCount] = useState(0);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -221,18 +224,19 @@ export function CustomerOverview() {
       // Fetch support tickets
       const { data: tickets } = await supabase
         .from('support_tickets')
-        .select('id, subject, status, created_at, updated_at')
+        .select('id, subject, status, priority, created_at, updated_at')
         .eq('customer_id', customer.id)
         .order('updated_at', { ascending: false })
         .limit(5);
 
       setSupportTickets(tickets || []);
 
-      // Fetch leads using API (same as leads page)
+      // Fetch leads using API
       try {
         const leadsResponse = await getCustomerPortalLeads();
         const allLeads = leadsResponse.leads || [];
         setLeads(allLeads.slice(0, 5));
+        setTotalLeadsCount(allLeads.length);
 
         // Calculate conversion rates
         const chatbotLeads = allLeads.filter(l => l.source_type === 'chatbot').length;
@@ -256,6 +260,7 @@ export function CustomerOverview() {
       } catch (e) {
         console.error('Error fetching leads:', e);
         setLeads([]);
+        setTotalLeadsCount(0);
         setConversionRates({ chatbot: 0, voice: 0, whatsapp: 0, overall: 0 });
       }
 
@@ -275,146 +280,157 @@ export function CustomerOverview() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'open': return 'bg-yellow-500/10 text-yellow-600';
-      case 'in_progress': return 'bg-blue-500/10 text-blue-600';
-      case 'resolved': return 'bg-green-500/10 text-green-600';
+      case 'open': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+      case 'in_progress': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'resolved': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+      case 'closed': return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
       default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const getSourceIcon = (sourceType: string) => {
+    switch (sourceType) {
+      case 'chatbot': return <Bot className="h-3 w-3" />;
+      case 'voice': return <PhoneCall className="h-3 w-3" />;
+      case 'whatsapp': return <MessageCircle className="h-3 w-3" />;
+      default: return <Users className="h-3 w-3" />;
     }
   };
 
   if (loadingData) {
     return (
       <div className="p-6 space-y-6">
-        <div className="h-8 w-48 bg-muted/50 rounded animate-pulse" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="h-10 w-64 bg-muted/50 rounded animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-24 bg-muted/50 rounded-lg animate-pulse" />
+            <div key={i} className="h-28 bg-muted/50 rounded-xl animate-pulse" />
           ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-64 bg-muted/50 rounded-xl animate-pulse" />
+          <div className="h-64 bg-muted/50 rounded-xl animate-pulse" />
         </div>
       </div>
     );
   }
 
   const openTickets = supportTickets.filter(t => t.status === 'open' || t.status === 'in_progress');
+  const totalInteractions = (analytics?.total_conversations || 0) + (voiceAnalytics?.total_calls || 0) + (whatsappAnalytics?.total_conversations || 0);
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">Overview of your AI agents</p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-md bg-primary/10">
-              <Bot className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{chatbots.length}</p>
-              <p className="text-xs text-muted-foreground">Chatbots</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-md bg-violet-500/10">
-              <Phone className="h-4 w-4 text-violet-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{assistants.length}</p>
-              <p className="text-xs text-muted-foreground">Voice</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-md bg-green-500/10">
-              <MessageCircle className="h-4 w-4 text-green-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{whatsappAgents.length}</p>
-              <p className="text-xs text-muted-foreground">WhatsApp</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-md bg-orange-500/10">
-              <Ticket className="h-4 w-4 text-orange-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{openTickets.length}</p>
-              <p className="text-xs text-muted-foreground">Open Tickets</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Conversion Rate Summary - Prominent placement */}
-      {(conversionRates?.overall || 0) > 0 && (
-        <Card className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Overall Conversion Rate</p>
-              <p className="text-xs text-muted-foreground">Leads captured from all interactions</p>
-            </div>
-            <p className="text-3xl font-bold text-primary">{conversionRates?.overall || 0}%</p>
-          </div>
-        </Card>
-      )}
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chatbot Analytics */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-medium">Chatbot Analytics</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/customer-dashboard/conversations')} className="text-xs">
-              View All <ArrowRight className="h-3 w-3 ml-1" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Welcome back{customer?.full_name ? `, ${customer.full_name.split(' ')[0]}` : ''}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Here's an overview of your AI agents performance
+          </p>
+        </div>
+        <CreateTicketDialog
+          customerId={customer?.id || ''}
+          customerName={customer?.full_name || ''}
+          customerEmail={customer?.email || ''}
+          onTicketCreated={fetchCustomerData}
+          trigger={
+            <Button variant="outline" size="sm">
+              <Ticket className="h-4 w-4 mr-2" />
+              New Support Ticket
             </Button>
-          </CardHeader>
-          <CardContent>
-            {chatbots.length === 0 ? (
-              <EmptyAgentState type="chatbot" compact />
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-semibold">{analytics?.total_conversations || 0}</p>
-                    <p className="text-xs text-muted-foreground">Conversations</p>
-                  </div>
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-semibold">{analytics?.total_messages || 0}</p>
-                    <p className="text-xs text-muted-foreground">Messages</p>
-                  </div>
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-semibold">{conversionRates?.chatbot || 0}%</p>
-                    <p className="text-xs text-muted-foreground">Conversion</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {chatbots.map((chatbot) => (
-                    <div key={chatbot.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: chatbot.theme_color || 'hsl(var(--primary))' }} />
-                        <span className="text-sm font-medium">{chatbot.name}</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">{chatbot.conversation_count} convos</span>
-                    </div>
-                  ))}
-                </div>
+          }
+        />
+      </div>
+
+      {/* Key Metrics Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Conversion Rate */}
+        <Card className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5" />
+          <CardContent className="p-4 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Conversion Rate</p>
+                <p className="text-3xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">
+                  {conversionRates?.overall || 0}%
+                </p>
               </div>
-            )}
+              <div className="p-2.5 rounded-full bg-emerald-500/10">
+                <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {totalLeadsCount} leads from {totalInteractions} interactions
+            </p>
           </CardContent>
         </Card>
 
-        {/* Recent Leads */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-medium">Recent Leads</CardTitle>
+        {/* Total Leads */}
+        <Card className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-blue-500/5" />
+          <CardContent className="p-4 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Leads</p>
+                <p className="text-3xl font-bold mt-1">{totalLeadsCount}</p>
+              </div>
+              <div className="p-2.5 rounded-full bg-blue-500/10">
+                <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Captured across all channels</p>
+          </CardContent>
+        </Card>
+
+        {/* Total Interactions */}
+        <Card className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-violet-500/5" />
+          <CardContent className="p-4 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Interactions</p>
+                <p className="text-3xl font-bold mt-1">{totalInteractions}</p>
+              </div>
+              <div className="p-2.5 rounded-full bg-violet-500/10">
+                <MessageCircle className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Chats, calls & messages
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Open Tickets */}
+        <Card className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-amber-500/5" />
+          <CardContent className="p-4 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Open Tickets</p>
+                <p className="text-3xl font-bold mt-1">{openTickets.length}</p>
+              </div>
+              <div className="p-2.5 rounded-full bg-amber-500/10">
+                <Ticket className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {supportTickets.length} total tickets
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Leads - Takes 2 columns */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-base font-semibold">Recent Leads</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Latest contacts captured by your AI agents</p>
+            </div>
             {leads.length > 0 && (
               <Button variant="ghost" size="sm" onClick={() => navigate('/customer-dashboard/leads')} className="text-xs">
                 View All <ArrowRight className="h-3 w-3 ml-1" />
@@ -423,95 +439,45 @@ export function CustomerOverview() {
           </CardHeader>
           <CardContent>
             {leads.length === 0 ? (
-              <div className="text-center py-8">
-                <Users className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-                <p className="text-sm text-muted-foreground">No leads yet</p>
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="p-3 rounded-full bg-muted/50 mb-3">
+                  <Users className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium">No leads captured yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Leads will appear here as your AI agents capture contact information</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {leads.map((lead) => (
-                  <div key={lead.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                        {(lead.name || 'U').charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{lead.name || 'Unknown'}</p>
-                        <p className="text-xs text-muted-foreground truncate">{lead.email || lead.phone_number}</p>
+                  <div key={lead.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
+                      {(lead.name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{lead.name || 'Unknown'}</p>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                        {lead.email && (
+                          <span className="flex items-center gap-1 truncate">
+                            <Mail className="h-3 w-3" />
+                            {lead.email}
+                          </span>
+                        )}
+                        {lead.phone_number && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {lead.phone_number}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-xs capitalize">{lead.source_type}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs capitalize flex items-center gap-1">
+                        {getSourceIcon(lead.source_type)}
+                        {lead.source_type}
+                      </Badge>
+                    </div>
                   </div>
                 ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Second Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Voice Stats */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Voice Calls</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {assistants.length === 0 ? (
-              <EmptyAgentState type="voice" compact />
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-semibold">{voiceAnalytics?.total_calls || 0}</p>
-                    <p className="text-xs text-muted-foreground">Total Calls</p>
-                  </div>
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-semibold">{formatDuration(voiceAnalytics?.avg_duration || 0)}</p>
-                    <p className="text-xs text-muted-foreground">Avg Duration</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {assistants.slice(0, 3).map((a) => (
-                    <div key={a.id} className="flex items-center justify-between text-sm">
-                      <span className="truncate">{a.voice_assistants.name}</span>
-                      <span className="text-muted-foreground">{a.call_count} calls</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* WhatsApp Stats */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">WhatsApp</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {whatsappAgents.length === 0 ? (
-              <EmptyAgentState type="whatsapp" compact />
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-semibold">{whatsappAnalytics?.total_conversations || 0}</p>
-                    <p className="text-xs text-muted-foreground">Conversations</p>
-                  </div>
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-semibold">{whatsappAnalytics?.total_messages || 0}</p>
-                    <p className="text-xs text-muted-foreground">Messages</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {whatsappAgents.slice(0, 3).map((a) => (
-                    <div key={a.id} className="flex items-center justify-between text-sm">
-                      <span className="truncate">{a.whatsapp_agents.name}</span>
-                      <span className="text-muted-foreground">{a.conversation_count} chats</span>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
           </CardContent>
@@ -519,8 +485,11 @@ export function CustomerOverview() {
 
         {/* Support Tickets */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-medium">Support</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-base font-semibold">Support Tickets</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Your recent requests</p>
+            </div>
             {supportTickets.length > 0 && (
               <Button variant="ghost" size="sm" onClick={() => navigate('/customer-dashboard/support-tickets')} className="text-xs">
                 View All <ArrowRight className="h-3 w-3 ml-1" />
@@ -529,16 +498,12 @@ export function CustomerOverview() {
           </CardHeader>
           <CardContent>
             {supportTickets.length === 0 ? (
-              <div className="text-center py-6">
-                <Ticket className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-                <p className="text-sm text-muted-foreground mb-3">No tickets yet</p>
-                <CreateTicketDialog
-                  customerId={customer?.id || ''}
-                  customerName={customer?.full_name || ''}
-                  customerEmail={customer?.email || ''}
-                  onTicketCreated={fetchCustomerData}
-                  trigger={<Button size="sm" variant="outline">Create Ticket</Button>}
-                />
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="p-3 rounded-full bg-muted/50 mb-3">
+                  <Ticket className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium">No tickets yet</p>
+                <p className="text-xs text-muted-foreground mt-1 mb-3">Need help? Create a support ticket</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -546,18 +511,161 @@ export function CustomerOverview() {
                   <div
                     key={ticket.id}
                     onClick={() => navigate('/customer-dashboard/support-tickets')}
-                    className="flex items-center justify-between gap-2 p-2 -mx-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                    className="p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors border border-transparent hover:border-border"
                   >
-                    <p className="text-sm truncate">{ticket.subject}</p>
-                    <Badge className={`text-xs shrink-0 ${getStatusColor(ticket.status)}`}>
-                      {ticket.status.replace('_', ' ')}
-                    </Badge>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium truncate flex-1">{ticket.subject}</p>
+                      <Badge className={`text-[10px] shrink-0 ${getStatusColor(ticket.status)}`}>
+                        {ticket.status.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Updated {format(new Date(ticket.updated_at), 'MMM d, h:mm a')}
+                    </p>
                   </div>
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Agents Performance Grid */}
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Your AI Agents</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Chatbots Card */}
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Bot className="h-4 w-4 text-primary" />
+                  </div>
+                  <CardTitle className="text-sm font-semibold">Chatbots</CardTitle>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/customer-dashboard/conversations')} className="text-xs h-7 px-2">
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {chatbots.length === 0 ? (
+                <EmptyAgentState type="chatbot" compact />
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-center p-2.5 bg-muted/50 rounded-lg">
+                      <p className="text-lg font-semibold">{analytics?.total_conversations || 0}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Conversations</p>
+                    </div>
+                    <div className="text-center p-2.5 bg-muted/50 rounded-lg">
+                      <p className="text-lg font-semibold">{conversionRates?.chatbot || 0}%</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Conversion</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    {chatbots.slice(0, 3).map((chatbot) => (
+                      <div key={chatbot.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: chatbot.theme_color || 'hsl(var(--primary))' }} />
+                          <span className="text-xs font-medium truncate">{chatbot.name}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{chatbot.conversation_count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Voice Assistants Card */}
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-violet-500/10">
+                    <Phone className="h-4 w-4 text-violet-500" />
+                  </div>
+                  <CardTitle className="text-sm font-semibold">Voice Assistants</CardTitle>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/customer-dashboard/voice-assistants')} className="text-xs h-7 px-2">
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {assistants.length === 0 ? (
+                <EmptyAgentState type="voice" compact />
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-center p-2.5 bg-muted/50 rounded-lg">
+                      <p className="text-lg font-semibold">{voiceAnalytics?.total_calls || 0}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Calls</p>
+                    </div>
+                    <div className="text-center p-2.5 bg-muted/50 rounded-lg">
+                      <p className="text-lg font-semibold">{formatDuration(voiceAnalytics?.avg_duration || 0)}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg Duration</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    {assistants.slice(0, 3).map((a) => (
+                      <div key={a.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors">
+                        <span className="text-xs font-medium truncate">{a.voice_assistants.name}</span>
+                        <span className="text-xs text-muted-foreground">{a.call_count} calls</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* WhatsApp Agents Card */}
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-green-500/10">
+                    <MessageCircle className="h-4 w-4 text-green-500" />
+                  </div>
+                  <CardTitle className="text-sm font-semibold">WhatsApp Agents</CardTitle>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/customer-dashboard/whatsapp-agents')} className="text-xs h-7 px-2">
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {whatsappAgents.length === 0 ? (
+                <EmptyAgentState type="whatsapp" compact />
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-center p-2.5 bg-muted/50 rounded-lg">
+                      <p className="text-lg font-semibold">{whatsappAnalytics?.total_conversations || 0}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Conversations</p>
+                    </div>
+                    <div className="text-center p-2.5 bg-muted/50 rounded-lg">
+                      <p className="text-lg font-semibold">{whatsappAnalytics?.total_messages || 0}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Messages</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    {whatsappAgents.slice(0, 3).map((a) => (
+                      <div key={a.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors">
+                        <span className="text-xs font-medium truncate">{a.whatsapp_agents.name}</span>
+                        <span className="text-xs text-muted-foreground">{a.conversation_count} chats</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
