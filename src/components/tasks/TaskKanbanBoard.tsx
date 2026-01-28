@@ -51,6 +51,8 @@ interface TaskKanbanBoardProps {
   getCreatedByName?: (userId: string | null) => string;
   onTaskUpdated: (task: Task) => void;
   onTaskDeleted: (taskId: string) => void;
+  onTaskHidden?: (taskId: string) => void;
+  currentUserId?: string;
   assistants?: Assistant[];
   teamMembers?: TeamMember[];
   chatbots?: Chatbot[];
@@ -74,6 +76,8 @@ export function TaskKanbanBoard({
   getCreatedByName,
   onTaskUpdated,
   onTaskDeleted,
+  onTaskHidden,
+  currentUserId,
   assistants = [],
   teamMembers = [],
   chatbots = [],
@@ -204,6 +208,8 @@ export function TaskKanbanBoard({
                   createdByName={getCreatedByName?.(task.user_id)}
                   onUpdate={onTaskUpdated}
                   onDelete={onTaskDeleted}
+                  onHide={onTaskHidden}
+                  currentUserId={currentUserId}
                   assistants={assistants}
                   teamMembers={teamMembers}
                   chatbots={chatbots}
@@ -232,6 +238,8 @@ export function TaskKanbanBoard({
                 createdByName={getCreatedByName?.(activeTask.user_id)}
                 onUpdate={onTaskUpdated}
                 onDelete={onTaskDeleted}
+                onHide={onTaskHidden}
+                currentUserId={currentUserId}
                 isDragging
                 assistants={assistants}
                 teamMembers={teamMembers}

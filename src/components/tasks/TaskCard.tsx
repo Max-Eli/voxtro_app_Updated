@@ -39,6 +39,8 @@ interface TaskCardProps {
   orgName: string;
   onUpdate: (task: Task) => void;
   onDelete: (taskId: string) => void;
+  onHide?: (taskId: string) => void;
+  currentUserId?: string;
 }
 
 const priorityColors: Record<string, string> = {
@@ -62,7 +64,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
-export const TaskCard = ({ task, assistantName, orgName, onUpdate, onDelete }: TaskCardProps) => {
+export const TaskCard = ({ task, assistantName, orgName, onUpdate, onDelete, onHide, currentUserId }: TaskCardProps) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -112,18 +114,36 @@ export const TaskCard = ({ task, assistantName, orgName, onUpdate, onDelete }: T
   };
 
   const handleDelete = async () => {
-    try {
-      const { error } = await supabase
-        .from("voice_assistant_tasks")
-        .delete()
-        .eq("id", task.id);
+    // Check if this is a shared task and user is not the owner
+    const isOwner = task.user_id === currentUserId;
+    const isSharedTask = task.is_team_shared || task.assigned_to;
 
-      if (error) throw error;
-      onDelete(task.id);
-      toast.success("Task deleted");
+    try {
+      if (isSharedTask && !isOwner) {
+        // Hide the task for this user only
+        const { error } = await supabase
+          .from("task_hidden_by_users")
+          .insert({ task_id: task.id, user_id: currentUserId });
+
+        if (error) throw error;
+
+        onHide?.(task.id);
+        toast.success("Task removed from your view");
+      } else {
+        // Actually delete the task
+        const { error } = await supabase
+          .from("voice_assistant_tasks")
+          .delete()
+          .eq("id", task.id);
+
+        if (error) throw error;
+
+        onDelete(task.id);
+        toast.success("Task deleted");
+      }
     } catch (error) {
-      console.error("Error deleting task:", error);
-      toast.error("Failed to delete task");
+      console.error("Error deleting/hiding task:", error);
+      toast.error("Failed to remove task");
     }
   };
 
@@ -238,15 +258,23 @@ export const TaskCard = ({ task, assistantName, orgName, onUpdate, onDelete }: T
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogTitle>
+              {(task.is_team_shared || task.assigned_to) && task.user_id !== currentUserId
+                ? "Remove Task"
+                : "Delete Task"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{task.title}"? This action cannot be undone.
+              {(task.is_team_shared || task.assigned_to) && task.user_id !== currentUserId
+                ? `This will remove "${task.title}" from your view only. Other team members will still see it.`
+                : `Are you sure you want to delete "${task.title}"? This action cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Delete
+              {(task.is_team_shared || task.assigned_to) && task.user_id !== currentUserId
+                ? "Remove"
+                : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

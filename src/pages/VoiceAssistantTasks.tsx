@@ -62,6 +62,7 @@ export interface Task {
 const VoiceAssistantTasks = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [hiddenTaskIds, setHiddenTaskIds] = useState<Set<string>>(new Set());
   const [assistants, setAssistants] = useState<VoiceAssistant[]>([]);
   const [connections, setConnections] = useState<VoiceConnection[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -140,6 +141,15 @@ const VoiceAssistantTasks = () => {
 
       setWhatsappAgents(whatsappData || []);
 
+      // Fetch hidden task IDs for current user
+      const { data: hiddenData } = await supabase
+        .from("task_hidden_by_users")
+        .select("task_id")
+        .eq("user_id", user?.id);
+
+      const hiddenIds = new Set((hiddenData || []).map(h => h.task_id));
+      setHiddenTaskIds(hiddenIds);
+
       // Fetch tasks (RLS policy handles filtering for owned/assigned/team tasks)
       const { data: tasksData, error } = await supabase
         .from("voice_assistant_tasks")
@@ -147,7 +157,10 @@ const VoiceAssistantTasks = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setTasks(tasksData || []);
+
+      // Filter out hidden tasks
+      const visibleTasks = (tasksData || []).filter(task => !hiddenIds.has(task.id));
+      setTasks(visibleTasks);
 
       // Fetch profiles for all users involved in tasks (creators and assignees)
       if (tasksData && tasksData.length > 0) {
@@ -200,6 +213,12 @@ const VoiceAssistantTasks = () => {
   };
 
   const handleTaskDeleted = (taskId: string) => {
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
+  };
+
+  const handleTaskHidden = (taskId: string) => {
+    // Update local state when a task is hidden (not deleted)
+    setHiddenTaskIds((prev) => new Set([...prev, taskId]));
     setTasks((prev) => prev.filter((task) => task.id !== taskId));
   };
 
@@ -476,6 +495,8 @@ const VoiceAssistantTasks = () => {
             getCreatedByName={getCreatedByName}
             onTaskUpdated={handleTaskUpdated}
             onTaskDeleted={handleTaskDeleted}
+            onTaskHidden={handleTaskHidden}
+            currentUserId={user?.id}
             assistants={assistants}
             teamMembers={teamMembers}
             chatbots={chatbots}
@@ -504,6 +525,8 @@ const VoiceAssistantTasks = () => {
                   orgName={getOrgName(task.org_id)}
                   onUpdate={handleTaskUpdated}
                   onDelete={handleTaskDeleted}
+                  onHide={handleTaskHidden}
+                  currentUserId={user?.id}
                 />
               ))
             )}

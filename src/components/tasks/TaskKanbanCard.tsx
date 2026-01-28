@@ -51,6 +51,8 @@ interface TaskKanbanCardProps {
   orgName: string;
   onUpdate: (task: Task) => void;
   onDelete: (taskId: string) => void;
+  onHide?: (taskId: string) => void;
+  currentUserId?: string;
   isDragging?: boolean;
   assistants?: Assistant[];
   teamMembers?: TeamMember[];
@@ -82,6 +84,8 @@ export function TaskKanbanCard({
   orgName,
   onUpdate,
   onDelete,
+  onHide,
+  currentUserId,
   isDragging = false,
   assistants = [],
   teamMembers = [],
@@ -175,21 +179,43 @@ export function TaskKanbanCard({
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this task?")) return;
+    // Check if this is a shared task and user is not the owner
+    const isOwner = task.user_id === currentUserId;
+    const isSharedTask = task.is_team_shared || task.assigned_to;
+
+    // Different confirmation message based on ownership
+    const confirmMessage = isSharedTask && !isOwner
+      ? "This will remove the task from your view only. Other team members will still see it. Continue?"
+      : "Are you sure you want to delete this task? This action cannot be undone.";
+
+    if (!confirm(confirmMessage)) return;
 
     try {
-      const { error } = await supabase
-        .from("voice_assistant_tasks")
-        .delete()
-        .eq("id", task.id);
+      if (isSharedTask && !isOwner) {
+        // Hide the task for this user only
+        const { error } = await supabase
+          .from("task_hidden_by_users")
+          .insert({ task_id: task.id, user_id: currentUserId });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      onDelete(task.id);
-      toast.success("Task deleted");
+        onHide?.(task.id);
+        toast.success("Task removed from your view");
+      } else {
+        // Actually delete the task
+        const { error } = await supabase
+          .from("voice_assistant_tasks")
+          .delete()
+          .eq("id", task.id);
+
+        if (error) throw error;
+
+        onDelete(task.id);
+        toast.success("Task deleted");
+      }
     } catch (error) {
-      console.error("Error deleting task:", error);
-      toast.error("Failed to delete task");
+      console.error("Error deleting/hiding task:", error);
+      toast.error("Failed to remove task");
     }
   };
 
