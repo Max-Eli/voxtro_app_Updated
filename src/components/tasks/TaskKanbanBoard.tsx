@@ -169,7 +169,8 @@ export function TaskKanbanBoard({
             .eq('id', existingEntry.id);
         } else {
           // Create new changelog entry for completed task
-          await supabase.from('changelog_entries').insert({
+          console.log('Creating changelog entry:', { entityType, entityId, title: task.title });
+          const { error: insertError } = await supabase.from('changelog_entries').insert({
             user_id: task.user_id,
             entity_type: entityType,
             entity_id: entityId,
@@ -179,6 +180,9 @@ export function TaskKanbanBoard({
             status: 'completed',
             source: 'manual',
           });
+          if (insertError) {
+            console.error('Failed to create changelog entry:', insertError);
+          }
         }
       } else {
         // Update changelog entry status to match (if it exists)
@@ -204,6 +208,11 @@ export function TaskKanbanBoard({
         onTaskUpdated(task);
       } else {
         // Update changelog for all assigned agents
+        console.log('Task agents for changelog:', {
+          assistant_id: task.assistant_id,
+          chatbot_id: task.chatbot_id,
+          whatsapp_agent_id: task.whatsapp_agent_id,
+        });
         await Promise.all([
           updateChangelogForAgent('voice_assistant', task.assistant_id),
           updateChangelogForAgent('chatbot', task.chatbot_id),
