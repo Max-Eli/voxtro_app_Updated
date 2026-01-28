@@ -144,6 +144,53 @@ export function TaskKanbanBoard({
     const updatedTask = { ...task, status: newStatus };
     onTaskUpdated(updatedTask);
 
+    // Helper to create/update changelog entries for each agent type
+    const updateChangelogForAgent = async (
+      entityType: 'voice_assistant' | 'chatbot' | 'whatsapp_agent',
+      entityId: string | null
+    ) => {
+      if (!entityId) return;
+
+      if (newStatus === 'completed') {
+        // First try to find existing entry
+        const { data: existingEntry } = await supabase
+          .from('changelog_entries')
+          .select('id')
+          .eq('entity_id', entityId)
+          .eq('title', task.title)
+          .eq('entity_type', entityType)
+          .single();
+
+        if (existingEntry) {
+          // Update existing entry
+          await supabase
+            .from('changelog_entries')
+            .update({ change_type: 'update', status: 'completed' })
+            .eq('id', existingEntry.id);
+        } else {
+          // Create new changelog entry for completed task
+          await supabase.from('changelog_entries').insert({
+            user_id: task.user_id,
+            entity_type: entityType,
+            entity_id: entityId,
+            change_type: 'update',
+            title: task.title,
+            description: task.description,
+            status: 'completed',
+            source: 'manual',
+          });
+        }
+      } else {
+        // Update changelog entry status to match (if it exists)
+        await supabase
+          .from('changelog_entries')
+          .update({ status: newStatus })
+          .eq('entity_id', entityId)
+          .eq('title', task.title)
+          .eq('entity_type', entityType);
+      }
+    };
+
     // Update in database
     try {
       const { error } = await supabase
@@ -156,6 +203,13 @@ export function TaskKanbanBoard({
         // Revert on error
         onTaskUpdated(task);
       } else {
+        // Update changelog for all assigned agents
+        await Promise.all([
+          updateChangelogForAgent('voice_assistant', task.assistant_id),
+          updateChangelogForAgent('chatbot', task.chatbot_id),
+          updateChangelogForAgent('whatsapp_agent', task.whatsapp_agent_id),
+        ]);
+
         toast.success(`Moved to ${COLUMNS.find(c => c.id === newStatus)?.title}`);
       }
     } catch (error) {

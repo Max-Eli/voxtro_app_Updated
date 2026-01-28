@@ -85,23 +85,59 @@ export const TaskCard = ({ task, assistantName, orgName, onUpdate, onDelete, onH
 
       if (error) throw error;
 
-      // If completed, convert the changelog entry from 'task' to 'update'
-      if (newStatus === 'completed') {
-        await supabase
-          .from('changelog_entries')
-          .update({ change_type: 'update', status: 'completed' })
-          .eq('entity_id', task.assistant_id)
-          .eq('title', task.title)
-          .eq('change_type', 'task');
-      } else {
-        // Update changelog entry status to match
-        await supabase
-          .from('changelog_entries')
-          .update({ status: newStatus })
-          .eq('entity_id', task.assistant_id)
-          .eq('title', task.title)
-          .eq('change_type', 'task');
-      }
+      // Helper to create/update changelog entries for each agent type
+      const updateChangelogForAgent = async (
+        entityType: 'voice_assistant' | 'chatbot' | 'whatsapp_agent',
+        entityId: string | null
+      ) => {
+        if (!entityId) return;
+
+        if (newStatus === 'completed') {
+          // First try to find existing entry
+          const { data: existingEntry } = await supabase
+            .from('changelog_entries')
+            .select('id')
+            .eq('entity_id', entityId)
+            .eq('title', task.title)
+            .eq('entity_type', entityType)
+            .single();
+
+          if (existingEntry) {
+            // Update existing entry
+            await supabase
+              .from('changelog_entries')
+              .update({ change_type: 'update', status: 'completed' })
+              .eq('id', existingEntry.id);
+          } else {
+            // Create new changelog entry for completed task
+            await supabase.from('changelog_entries').insert({
+              user_id: task.user_id,
+              entity_type: entityType,
+              entity_id: entityId,
+              change_type: 'update',
+              title: task.title,
+              description: task.description,
+              status: 'completed',
+              source: 'manual',
+            });
+          }
+        } else {
+          // Update changelog entry status to match (if it exists)
+          await supabase
+            .from('changelog_entries')
+            .update({ status: newStatus })
+            .eq('entity_id', entityId)
+            .eq('title', task.title)
+            .eq('entity_type', entityType);
+        }
+      };
+
+      // Update changelog for all assigned agents
+      await Promise.all([
+        updateChangelogForAgent('voice_assistant', task.assistant_id),
+        updateChangelogForAgent('chatbot', task.chatbot_id),
+        updateChangelogForAgent('whatsapp_agent', task.whatsapp_agent_id),
+      ]);
 
       onUpdate(data);
       toast.success("Status updated");
