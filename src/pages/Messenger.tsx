@@ -5,8 +5,8 @@ import { ChatForm } from '@/components/ChatForm';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 
-// Widget API base URL - use environment variable with fallback
-const WIDGET_API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://api.voxtro.io';
+// Widget API base URL - use environment variable with fallback (strip trailing slash)
+const WIDGET_API_BASE = (import.meta.env.VITE_API_BASE_URL || 'https://api.voxtro.io').replace(/\/$/, '');
 
 interface Message {
   role: 'user' | 'assistant';

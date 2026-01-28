@@ -249,7 +249,7 @@ const Teams = () => {
       const inviteUrl = `${window.location.origin}/invite/${data.token}`;
 
       // Send invitation email via backend API
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.voxtro.io';
+      const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'https://api.voxtro.io').replace(/\/$/, '');
       console.log("[Teams] Sending invitation email to:", normalizedEmail);
       console.log("[Teams] API URL:", `${apiBaseUrl}/api/notifications/team-invite`);
       try {
