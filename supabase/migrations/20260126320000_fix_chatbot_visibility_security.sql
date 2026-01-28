@@ -48,6 +48,7 @@ GRANT EXECUTE ON FUNCTION get_direct_teammates(UUID) TO authenticated;
 
 -- Create secure SELECT policies for chatbots
 -- Users can see chatbots if: they own it OR the owner is a direct teammate
+DROP POLICY IF EXISTS "chatbots_select_policy" ON chatbots;
 CREATE POLICY "chatbots_select_policy" ON chatbots
 FOR SELECT USING (
   user_id = auth.uid()
@@ -55,6 +56,7 @@ FOR SELECT USING (
 );
 
 -- Create secure SELECT policies for whatsapp_agents
+DROP POLICY IF EXISTS "whatsapp_agents_select_policy" ON whatsapp_agents;
 CREATE POLICY "whatsapp_agents_select_policy" ON whatsapp_agents
 FOR SELECT USING (
   user_id = auth.uid()
@@ -62,6 +64,7 @@ FOR SELECT USING (
 );
 
 -- Create secure SELECT policies for voice_assistants
+DROP POLICY IF EXISTS "voice_assistants_select_policy" ON voice_assistants;
 CREATE POLICY "voice_assistants_select_policy" ON voice_assistants
 FOR SELECT USING (
   user_id = auth.uid()
@@ -71,12 +74,14 @@ FOR SELECT USING (
 -- Create secure policies for tasks
 -- Users can ONLY see/update tasks they created OR tasks assigned to them
 -- (NO automatic team visibility - tasks are private unless explicitly assigned)
+DROP POLICY IF EXISTS "tasks_select_policy" ON voice_assistant_tasks;
 CREATE POLICY "tasks_select_policy" ON voice_assistant_tasks
 FOR SELECT USING (
   user_id = auth.uid()
   OR assigned_to = auth.uid()
 );
 
+DROP POLICY IF EXISTS "tasks_update_policy" ON voice_assistant_tasks;
 CREATE POLICY "tasks_update_policy" ON voice_assistant_tasks
 FOR UPDATE USING (
   user_id = auth.uid()
@@ -103,6 +108,7 @@ DROP POLICY IF EXISTS "Allow customer sign-in verification" ON customers;
 
 -- CUSTOMERS: Self-access for customer sign-in
 -- Customers can view their own record (for authentication purposes)
+DROP POLICY IF EXISTS "customers_self_access" ON customers;
 CREATE POLICY "customers_self_access" ON customers
 FOR SELECT USING (
   user_id = auth.uid()
@@ -110,6 +116,7 @@ FOR SELECT USING (
 
 -- CUSTOMERS: Self-update for customer portal
 -- Customers can update their own record (for last_login, profile updates)
+DROP POLICY IF EXISTS "customers_self_update" ON customers;
 CREATE POLICY "customers_self_update" ON customers
 FOR UPDATE USING (
   user_id = auth.uid()
@@ -120,6 +127,7 @@ FOR UPDATE USING (
 -- 1. They created the customer
 -- 2. The creator is a direct teammate
 -- 3. The customer belongs to their team (via team_org_id)
+DROP POLICY IF EXISTS "customers_team_select_policy" ON customers;
 CREATE POLICY "customers_team_select_policy" ON customers
 FOR SELECT USING (
   created_by_user_id = auth.uid()
@@ -132,6 +140,7 @@ FOR SELECT USING (
 -- 1. They own the ticket
 -- 2. The ticket owner is a direct teammate
 -- 3. The ticket belongs to their team (via team_org_id)
+DROP POLICY IF EXISTS "support_tickets_team_select_policy" ON support_tickets;
 CREATE POLICY "support_tickets_team_select_policy" ON support_tickets
 FOR SELECT USING (
   user_id = auth.uid()
@@ -139,6 +148,7 @@ FOR SELECT USING (
   OR team_org_id IN (SELECT get_user_team_ids())
 );
 
+DROP POLICY IF EXISTS "support_tickets_team_update_policy" ON support_tickets;
 CREATE POLICY "support_tickets_team_update_policy" ON support_tickets
 FOR UPDATE USING (
   user_id = auth.uid()
@@ -147,6 +157,7 @@ FOR UPDATE USING (
 );
 
 -- SUPPORT TICKET MESSAGES: Team-based visibility
+DROP POLICY IF EXISTS "team_messages_select_policy" ON support_ticket_messages;
 CREATE POLICY "team_messages_select_policy" ON support_ticket_messages
 FOR SELECT USING (
   ticket_id IN (
@@ -157,6 +168,7 @@ FOR SELECT USING (
   )
 );
 
+DROP POLICY IF EXISTS "team_messages_insert_policy" ON support_ticket_messages;
 CREATE POLICY "team_messages_insert_policy" ON support_ticket_messages
 FOR INSERT WITH CHECK (
   ticket_id IN (
