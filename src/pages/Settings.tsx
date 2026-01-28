@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Settings as SettingsIcon, User, Bell, Shield, Save, Users, Bot, Plus, Trash2, MessageCircle, Sun, Moon, Palette } from "lucide-react";
+import { User, Bell, Shield, Save, Users, Bot, Plus, Trash2, MessageCircle, Sun, Moon, Palette, Link2, ChevronRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { BrandingSettings } from "@/components/BrandingSettings";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/ThemeProvider";
 import { validateVoiceConnection, validateElevenLabsConnection } from "@/integrations/api/endpoints";
+import { cn } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -826,756 +826,583 @@ const Settings = () => {
     fetchData();
   }, [user]);
 
+  const [activeSection, setActiveSection] = useState("profile");
+
+  const navItems = [
+    { id: "profile", label: "Profile", icon: User },
+    { id: "appearance", label: "Appearance", icon: Palette },
+    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "security", label: "Security", icon: Shield },
+    { id: "team", label: "Team", icon: Users },
+    { id: "integrations", label: "Integrations", icon: Link2 },
+  ];
+
   if (!user) {
     return <div>Please log in to view settings.</div>;
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and application preferences</p>
+    <div className="flex h-[calc(100vh-4rem)]">
+      {/* Sidebar Navigation */}
+      <div className="w-56 border-r bg-muted/30 p-4">
+        <h1 className="text-lg font-semibold mb-4 px-2">Settings</h1>
+        <nav className="space-y-1">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveSection(item.id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors",
+                activeSection === item.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <item.icon className="w-4 h-4" />
+              {item.label}
+            </button>
+          ))}
+        </nav>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" />
-              <CardTitle>Profile Settings</CardTitle>
+      {/* Main Content */}
+      <ScrollArea className="flex-1">
+        <div className="max-w-2xl p-6">
+          {/* Profile Section */}
+          {activeSection === "profile" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold">Profile</h2>
+                <p className="text-sm text-muted-foreground">Manage your account details</p>
+              </div>
+
+              {loading ? (
+                <p className="text-sm text-muted-foreground">Loading...</p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Display Name</Label>
+                      <Input
+                        id="fullName"
+                        type="text"
+                        placeholder="Your name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Email changes require confirmation from both old and new addresses.
+                  </p>
+                  <Button onClick={handleSaveProfile} disabled={saving} size="sm">
+                    <Save className="w-4 h-4 mr-2" />
+                    {saving ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              )}
             </div>
-            <CardDescription>
-              Update your personal information and account details
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Loading profile...</p>
-            ) : (
+          )}
+
+          {/* Appearance Section */}
+          {activeSection === "appearance" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold">Appearance</h2>
+                <p className="text-sm text-muted-foreground">Customize the look and feel</p>
+              </div>
+
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Changing your email will require confirmation from both your old and new email addresses
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Display Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Enter your display name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    This name will be displayed in the header
-                  </p>
-                </div>
-
-                <Button 
-                  onClick={handleSaveProfile}
-                  disabled={saving}
-                  className="w-full"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Palette className="w-5 h-5 text-primary" />
-              <CardTitle>Appearance</CardTitle>
-            </div>
-            <CardDescription>
-              Customize the look and feel of the application
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Theme</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Switch between light and dark mode
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={theme === "light" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("light")}
-                    className="gap-2"
-                  >
-                    <Sun className="h-4 w-4" />
-                    Light
-                  </Button>
-                  <Button
-                    variant={theme === "dark" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("dark")}
-                    className="gap-2"
-                  >
-                    <Moon className="h-4 w-4" />
-                    Dark
-                  </Button>
+                <div className="flex items-center justify-between py-3 border-b">
+                  <div>
+                    <Label>Theme</Label>
+                    <p className="text-sm text-muted-foreground">Light or dark mode</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={theme === "light" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTheme("light")}
+                    >
+                      <Sun className="h-4 w-4 mr-1" />
+                      Light
+                    </Button>
+                    <Button
+                      variant={theme === "dark" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTheme("dark")}
+                    >
+                      <Moon className="h-4 w-4 mr-1" />
+                      Dark
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {user && <BrandingSettings userId={user.id} />}
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-primary" />
-              <CardTitle>Notifications</CardTitle>
+              {/* Branding Settings */}
+              <div className="pt-4">
+                <BrandingSettings userId={user.id} />
+              </div>
             </div>
-            <CardDescription>
-              Configure how you receive notifications and alerts
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Loading preferences...</p>
-            ) : (
-              <div className="space-y-6">
+          )}
+
+          {/* Notifications Section */}
+          {activeSection === "notifications" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold">Notifications</h2>
+                <p className="text-sm text-muted-foreground">Configure alerts and notifications</p>
+              </div>
+
+              {loading ? (
+                <p className="text-sm text-muted-foreground">Loading...</p>
+              ) : (
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="notification-email">Notification Email</Label>
                     <Input
                       id="notification-email"
                       type="email"
-                      placeholder="Enter email address for notifications"
+                      placeholder="notifications@example.com"
                       value={notificationPrefs.notification_email || user?.email || ''}
                       onChange={(e) =>
                         setNotificationPrefs(prev => ({ ...prev, notification_email: e.target.value }))
                       }
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Email address where notifications will be sent. Defaults to your account email.
-                    </p>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="chat-started">New chat started</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Get notified when a user starts a new conversation with your chatbot
-                      </p>
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <div>
+                        <Label htmlFor="chat-started">New chat started</Label>
+                        <p className="text-xs text-muted-foreground">When users start conversations</p>
+                      </div>
+                      <Switch
+                        id="chat-started"
+                        checked={notificationPrefs.chat_started}
+                        onCheckedChange={(checked) =>
+                          setNotificationPrefs(prev => ({ ...prev, chat_started: checked }))
+                        }
+                      />
                     </div>
-                    <Switch
-                      id="chat-started"
-                      checked={notificationPrefs.chat_started}
-                      onCheckedChange={(checked) =>
-                        setNotificationPrefs(prev => ({ ...prev, chat_started: checked }))
-                      }
-                    />
-                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="chat-ended">Chat ended</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Get notified when a conversation with your chatbot ends
-                      </p>
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <div>
+                        <Label htmlFor="chat-ended">Chat ended</Label>
+                        <p className="text-xs text-muted-foreground">When conversations complete</p>
+                      </div>
+                      <Switch
+                        id="chat-ended"
+                        checked={notificationPrefs.chat_ended}
+                        onCheckedChange={(checked) =>
+                          setNotificationPrefs(prev => ({ ...prev, chat_ended: checked }))
+                        }
+                      />
                     </div>
-                    <Switch
-                      id="chat-ended"
-                      checked={notificationPrefs.chat_ended}
-                      onCheckedChange={(checked) =>
-                        setNotificationPrefs(prev => ({ ...prev, chat_ended: checked }))
-                      }
-                    />
-                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="chat-error">Chat errors</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Get notified when there's an error in your chatbot conversations
-                      </p>
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <div>
+                        <Label htmlFor="chat-error">Chat errors</Label>
+                        <p className="text-xs text-muted-foreground">When errors occur</p>
+                      </div>
+                      <Switch
+                        id="chat-error"
+                        checked={notificationPrefs.chat_error}
+                        onCheckedChange={(checked) =>
+                          setNotificationPrefs(prev => ({ ...prev, chat_error: checked }))
+                        }
+                      />
                     </div>
-                    <Switch
-                      id="chat-error"
-                      checked={notificationPrefs.chat_error}
-                      onCheckedChange={(checked) =>
-                        setNotificationPrefs(prev => ({ ...prev, chat_error: checked }))
-                      }
-                    />
                   </div>
-                </div>
 
-                <Button 
-                  onClick={handleSaveNotifications}
-                  disabled={saving}
-                  className="w-full"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {saving ? "Saving..." : "Save Notification Preferences"}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
-              <CardTitle>Security</CardTitle>
-            </div>
-            <CardDescription>
-              Manage your password and security preferences
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="current-password">Current Password</Label>
-                <Input
-                  id="current-password"
-                  type="password"
-                  placeholder="Enter your current password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="new-password">New Password</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  placeholder="Enter your new password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Password must be at least 6 characters long
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  placeholder="Confirm your new password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
-
-              <Button 
-                onClick={handleChangePassword}
-                disabled={saving}
-                className="w-full"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {saving ? "Updating..." : "Update Password"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              <CardTitle>Members</CardTitle>
-            </div>
-            <CardDescription>
-              Manage team members and access permissions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="invite-email">Invite New Member</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="invite-email"
-                    type="email"
-                    placeholder="Enter email address to invite"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button 
-                    onClick={handleInviteMember}
-                    disabled={saving || !inviteEmail.trim()}
-                  >
-                    {saving ? "Sending..." : "Invite"}
+                  <Button onClick={handleSaveNotifications} disabled={saving} size="sm">
+                    <Save className="w-4 h-4 mr-2" />
+                    {saving ? "Saving..." : "Save Preferences"}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Send an invitation to add a new team member to your account
-                </p>
+              )}
+            </div>
+          )}
+
+          {/* Security Section */}
+          {activeSection === "security" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold">Security</h2>
+                <p className="text-sm text-muted-foreground">Manage your password</p>
               </div>
 
-              <div className="space-y-2">
-                <Label>Current Members</Label>
-                <div className="border rounded-lg p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{profile?.full_name || "You"}</p>
-                        <p className="text-xs text-muted-foreground">{user?.email}</p>
-                      </div>
-                    </div>
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Owner</span>
+              <div className="space-y-4 max-w-sm">
+                <div className="space-y-2">
+                  <Label htmlFor="current-password">Current Password</Label>
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+
+                <Button onClick={handleChangePassword} disabled={saving} size="sm">
+                  <Save className="w-4 h-4 mr-2" />
+                  {saving ? "Updating..." : "Update Password"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Team Section */}
+          {activeSection === "team" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold">Team</h2>
+                <p className="text-sm text-muted-foreground">Manage team members</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="invite-email">Invite Member</Label>
+                  <div className="flex gap-2 max-w-md">
+                    <Input
+                      id="invite-email"
+                      type="email"
+                      placeholder="email@example.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                    <Button onClick={handleInviteMember} disabled={saving || !inviteEmail.trim()} size="sm">
+                      Invite
+                    </Button>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Team member management coming soon
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-primary" />
-                <CardTitle>Voice Organizations</CardTitle>
-              </div>
-              {voiceConnections.length > 0 && !showAddForm && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddForm(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Organization
-                </Button>
-              )}
-            </div>
-            <CardDescription>
-              Connect multiple Vapi organizations and switch between them
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {voiceConnections.length === 0 && !showAddForm ? (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  No voice organizations connected. Add your first Vapi organization to get started.
-                </p>
-                <Button onClick={() => setShowAddForm(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Organization
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Connected Organizations List */}
-                {voiceConnections.length > 0 && (
-                  <div className="space-y-3">
-                    <Label>Connected Organizations</Label>
-                    <ScrollArea className={voiceConnections.length > 3 ? "h-[280px]" : ""}>
-                      <div className="space-y-3 pr-4">
-                        {voiceConnections.map((connection) => (
-                          <div
-                            key={connection.id}
-                            className="p-4 border rounded-lg border-border hover:border-primary/50 transition-colors"
-                          >
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="font-medium">{connection.org_name || 'Unnamed Organization'}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveConnection(connection.id)}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                            
-                            {/* Public Key Management for each org */}
-                            <div className="space-y-2">
-                              <Label className="text-xs text-muted-foreground">Public Key (for Web SDK)</Label>
-                              <div className="flex gap-2">
-                                <Input
-                                  type="text"
-                                  placeholder="Enter public key for browser testing"
-                                  defaultValue={connection.public_key || ''}
-                                  className="text-sm"
-                                  onBlur={(e) => {
-                                    if (e.target.value !== (connection.public_key || '')) {
-                                      handleUpdatePublicKey(connection.id, e.target.value);
-                                    }
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                <div className="pt-4">
+                  <Label className="text-sm font-medium">Members</Label>
+                  <div className="mt-2 border rounded-lg divide-y">
+                    <div className="flex items-center justify-between p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{profile?.full_name || "You"}</p>
+                          <p className="text-xs text-muted-foreground">{user?.email}</p>
+                        </div>
                       </div>
-                    </ScrollArea>
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Owner</span>
+                    </div>
                   </div>
-                )}
-
-                {/* Add New Organization Form */}
-                {showAddForm && (
-                  <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-base font-medium">Add New Organization</Label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowAddForm(false);
-                          setNewVoiceApiKey("");
-                          setNewVoicePublicKey("");
-                          setNewOrgName("");
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="new-org-name">Organization Name</Label>
-                      <Input
-                        id="new-org-name"
-                        type="text"
-                        placeholder="e.g., My Company Production"
-                        value={newOrgName}
-                        onChange={(e) => setNewOrgName(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        A friendly name to identify this organization
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="new-voice-api-key">Private API Key</Label>
-                      <Input
-                        id="new-voice-api-key"
-                        type="password"
-                        placeholder="Enter your Vapi private API key"
-                        value={newVoiceApiKey}
-                        onChange={(e) => setNewVoiceApiKey(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Your Vapi private API key for server-side operations
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="new-voice-public-key">Public Key (Optional)</Label>
-                      <Input
-                        id="new-voice-public-key"
-                        type="text"
-                        placeholder="Enter your Vapi public key"
-                        value={newVoicePublicKey}
-                        onChange={(e) => setNewVoicePublicKey(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Add your public key to enable testing voice assistants in the browser
-                      </p>
-                    </div>
-                    
-                    <Button
-                      onClick={handleAddVoiceConnection}
-                      disabled={validatingVoice || !newVoiceApiKey.trim() || !newOrgName.trim()}
-                      className="w-full"
-                    >
-                      {validatingVoice ? "Validating..." : "Connect Organization"}
-                    </Button>
-                  </div>
-                )}
-
-                {voiceConnections.length > 0 && !showAddForm && (
-                  <p className="text-xs text-muted-foreground">
-                    Switch between organizations on the Voice Assistants or Changelog pages.
-                  </p>
-                )}
+                  <p className="text-xs text-muted-foreground mt-2">Team management coming soon</p>
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-primary" />
-                <CardTitle>ElevenLabs Connection</CardTitle>
-              </div>
-              {elevenLabsConnections.length > 0 && !showElevenLabsAddForm && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowElevenLabsAddForm(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Connection
-                </Button>
-              )}
             </div>
-            <CardDescription>
-              Connect your ElevenLabs account to manage WhatsApp agents
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {elevenLabsConnections.length === 0 && !showElevenLabsAddForm ? (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  No ElevenLabs account connected. Add your API key to get started with WhatsApp agents.
-                </p>
-                <Button onClick={() => setShowElevenLabsAddForm(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Connection
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {elevenLabsConnections.length > 0 && (
-                  <div className="space-y-3">
-                    <Label>Connected Accounts</Label>
-                    <ScrollArea className={elevenLabsConnections.length > 3 ? "h-[200px]" : ""}>
-                      <div className="space-y-3 pr-4">
-                        {elevenLabsConnections.map((connection) => (
-                          <div
-                            key={connection.id}
-                            className="p-4 border rounded-lg border-border hover:border-primary/50 transition-colors"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium">{connection.org_name || 'Unnamed Connection'}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveElevenLabsConnection(connection.id)}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                )}
+          )}
 
-                {showElevenLabsAddForm && (
-                  <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-base font-medium">Add ElevenLabs Connection</Label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowElevenLabsAddForm(false);
-                          setNewElevenLabsApiKey("");
-                          setNewElevenLabsOrgName("");
-                        }}
-                      >
-                        Cancel
-                      </Button>
+          {/* Integrations Section */}
+          {activeSection === "integrations" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold">Integrations</h2>
+                <p className="text-sm text-muted-foreground">Connect external services</p>
+              </div>
+
+              {/* VAPI Voice */}
+              <div className="border rounded-lg">
+                <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center">
+                      <Bot className="w-4 h-4 text-blue-500" />
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="new-elevenlabs-org-name">Connection Name</Label>
-                      <Input
-                        id="new-elevenlabs-org-name"
-                        type="text"
-                        placeholder="e.g., My ElevenLabs Account"
-                        value={newElevenLabsOrgName}
-                        onChange={(e) => setNewElevenLabsOrgName(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        A friendly name to identify this connection
-                      </p>
+                    <div>
+                      <p className="font-medium text-sm">VAPI Voice</p>
+                      <p className="text-xs text-muted-foreground">Voice assistants</p>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="new-elevenlabs-api-key">API Key</Label>
-                      <Input
-                        id="new-elevenlabs-api-key"
-                        type="password"
-                        placeholder="Enter your ElevenLabs API key"
-                        value={newElevenLabsApiKey}
-                        onChange={(e) => setNewElevenLabsApiKey(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Find your API key at elevenlabs.io/settings/api-keys
-                      </p>
-                    </div>
-                    
-                    <Button
-                      onClick={handleAddElevenLabsConnection}
-                      disabled={validatingElevenLabs || !newElevenLabsApiKey.trim() || !newElevenLabsOrgName.trim()}
-                      className="w-full"
-                    >
-                      {validatingElevenLabs ? "Validating..." : "Connect Account"}
+                  </div>
+                  {voiceConnections.length > 0 && !showAddForm && (
+                    <Button variant="outline" size="sm" onClick={() => setShowAddForm(true)}>
+                      <Plus className="w-4 h-4" />
                     </Button>
-                  </div>
-                )}
-
-                {elevenLabsConnections.length > 0 && !showElevenLabsAddForm && (
-                  <p className="text-xs text-muted-foreground">
-                    View your WhatsApp agents on the WhatsApp Agents page.
-                  </p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-primary" />
-                <CardTitle>OpenAI Connection</CardTitle>
-              </div>
-              {openAIConnections.length > 0 && !showOpenAIAddForm && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowOpenAIAddForm(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Connection
-                </Button>
-              )}
-            </div>
-            <CardDescription>
-              Connect your OpenAI API key to power chatbot conversations and AI-powered features
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {openAIConnections.length === 0 && !showOpenAIAddForm ? (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  No OpenAI account connected. Add your API key to enable chatbot creation and AI-powered features.
-                </p>
-                <Button onClick={() => setShowOpenAIAddForm(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add OpenAI API Key
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {openAIConnections.map((connection) => (
-                  <Card key={connection.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
+                  )}
+                </div>
+                <div className="p-4">
+                  {voiceConnections.length === 0 && !showAddForm ? (
+                    <Button variant="outline" size="sm" onClick={() => setShowAddForm(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Connect VAPI
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      {voiceConnections.map((connection) => (
+                        <div key={connection.id} className="flex items-center justify-between py-2 border-b last:border-0">
                           <div className="flex items-center gap-2">
-                            <p className="font-medium">{connection.org_name}</p>
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">{connection.org_name || 'Unnamed'}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveConnection(connection.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+
+                      {showAddForm && (
+                        <div className="space-y-3 pt-3 border-t">
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <Input
+                              placeholder="Organization name"
+                              value={newOrgName}
+                              onChange={(e) => setNewOrgName(e.target.value)}
+                            />
+                            <Input
+                              type="password"
+                              placeholder="Private API key"
+                              value={newVoiceApiKey}
+                              onChange={(e) => setNewVoiceApiKey(e.target.value)}
+                            />
+                          </div>
+                          <Input
+                            placeholder="Public key (optional)"
+                            value={newVoicePublicKey}
+                            onChange={(e) => setNewVoicePublicKey(e.target.value)}
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setShowAddForm(false);
+                                setNewVoiceApiKey("");
+                                setNewVoicePublicKey("");
+                                setNewOrgName("");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleAddVoiceConnection}
+                              disabled={validatingVoice || !newVoiceApiKey.trim() || !newOrgName.trim()}
+                            >
+                              {validatingVoice ? "Validating..." : "Connect"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ElevenLabs */}
+              <div className="border rounded-lg">
+                <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded bg-green-500/10 flex items-center justify-center">
+                      <MessageCircle className="w-4 h-4 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">ElevenLabs</p>
+                      <p className="text-xs text-muted-foreground">WhatsApp agents</p>
+                    </div>
+                  </div>
+                  {elevenLabsConnections.length > 0 && !showElevenLabsAddForm && (
+                    <Button variant="outline" size="sm" onClick={() => setShowElevenLabsAddForm(true)}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                <div className="p-4">
+                  {elevenLabsConnections.length === 0 && !showElevenLabsAddForm ? (
+                    <Button variant="outline" size="sm" onClick={() => setShowElevenLabsAddForm(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Connect ElevenLabs
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      {elevenLabsConnections.map((connection) => (
+                        <div key={connection.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                          <div className="flex items-center gap-2">
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">{connection.org_name || 'Unnamed'}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveElevenLabsConnection(connection.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+
+                      {showElevenLabsAddForm && (
+                        <div className="space-y-3 pt-3 border-t">
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <Input
+                              placeholder="Connection name"
+                              value={newElevenLabsOrgName}
+                              onChange={(e) => setNewElevenLabsOrgName(e.target.value)}
+                            />
+                            <Input
+                              type="password"
+                              placeholder="API key"
+                              value={newElevenLabsApiKey}
+                              onChange={(e) => setNewElevenLabsApiKey(e.target.value)}
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setShowElevenLabsAddForm(false);
+                                setNewElevenLabsApiKey("");
+                                setNewElevenLabsOrgName("");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleAddElevenLabsConnection}
+                              disabled={validatingElevenLabs || !newElevenLabsApiKey.trim() || !newElevenLabsOrgName.trim()}
+                            >
+                              {validatingElevenLabs ? "Validating..." : "Connect"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* OpenAI */}
+              <div className="border rounded-lg">
+                <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded bg-purple-500/10 flex items-center justify-center">
+                      <Bot className="w-4 h-4 text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">OpenAI</p>
+                      <p className="text-xs text-muted-foreground">Chatbots & AI features</p>
+                    </div>
+                  </div>
+                  {openAIConnections.length > 0 && !showOpenAIAddForm && (
+                    <Button variant="outline" size="sm" onClick={() => setShowOpenAIAddForm(true)}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                <div className="p-4">
+                  {openAIConnections.length === 0 && !showOpenAIAddForm ? (
+                    <Button variant="outline" size="sm" onClick={() => setShowOpenAIAddForm(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Connect OpenAI
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      {openAIConnections.map((connection) => (
+                        <div key={connection.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                          <div className="flex items-center gap-2">
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">{connection.org_name}</span>
                             {connection.is_active && (
-                              <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded">
-                                Active
-                              </span>
+                              <span className="px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded">Active</span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            API Key: {connection.api_key.substring(0, 7)}...{connection.api_key.substring(connection.api_key.length - 4)}
-                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveOpenAIConnection(connection.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveOpenAIConnection(connection.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      ))}
 
-                {showOpenAIAddForm && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Add OpenAI Connection</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="new-openai-org-name">Organization Name</Label>
-                        <Input
-                          id="new-openai-org-name"
-                          type="text"
-                          placeholder="e.g., Main Account, Production, Testing"
-                          value={newOpenAIOrgName}
-                          onChange={(e) => setNewOpenAIOrgName(e.target.value)}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          A friendly name to identify this connection
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="new-openai-api-key">API Key</Label>
-                        <Input
-                          id="new-openai-api-key"
-                          type="password"
-                          placeholder="sk-proj-..."
-                          value={newOpenAIApiKey}
-                          onChange={(e) => setNewOpenAIApiKey(e.target.value)}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Find your API key at platform.openai.com/api-keys
-                        </p>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setShowOpenAIAddForm(false);
-                            setNewOpenAIApiKey("");
-                            setNewOpenAIOrgName("");
-                          }}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleAddOpenAIConnection}
-                          disabled={validatingOpenAI || !newOpenAIApiKey.trim() || !newOpenAIOrgName.trim()}
-                          className="flex-1"
-                        >
-                          {validatingOpenAI ? "Connecting..." : "Connect OpenAI"}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {openAIConnections.length > 0 && !showOpenAIAddForm && (
-                  <p className="text-xs text-muted-foreground">
-                    This API key will be used for chatbot conversations, website crawling, and AI-powered features.
-                  </p>
-                )}
+                      {showOpenAIAddForm && (
+                        <div className="space-y-3 pt-3 border-t">
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <Input
+                              placeholder="Organization name"
+                              value={newOpenAIOrgName}
+                              onChange={(e) => setNewOpenAIOrgName(e.target.value)}
+                            />
+                            <Input
+                              type="password"
+                              placeholder="sk-proj-..."
+                              value={newOpenAIApiKey}
+                              onChange={(e) => setNewOpenAIApiKey(e.target.value)}
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setShowOpenAIAddForm(false);
+                                setNewOpenAIApiKey("");
+                                setNewOpenAIOrgName("");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleAddOpenAIConnection}
+                              disabled={validatingOpenAI || !newOpenAIApiKey.trim() || !newOpenAIOrgName.trim()}
+                            >
+                              {validatingOpenAI ? "Connecting..." : "Connect"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 };
