@@ -353,7 +353,7 @@ export default function EmbedChat() {
                 {faqs.map((faq) => (
                   <button
                     key={faq.id}
-                    className="text-left px-4 py-2 bg-white hover:bg-gray-50 transition-all duration-200 rounded-xl text-sm text-gray-700 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow"
+                    className="text-right px-4 py-2 bg-white hover:bg-gray-50 transition-all duration-200 rounded-xl text-sm text-gray-700 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow"
                     style={{
                       borderColor: `${chatbot.theme_color}20`,
                     }}

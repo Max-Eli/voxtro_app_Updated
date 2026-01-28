@@ -451,7 +451,7 @@ export default function Messenger() {
                 <button
                   key={index}
                   onClick={() => handleFAQClick(faq.question)}
-                  className="px-4 py-2 rounded-xl bg-white border text-gray-700 text-sm shadow-sm hover:shadow transition-all"
+                  className="text-right px-4 py-2 rounded-xl bg-white border text-gray-700 text-sm shadow-sm hover:shadow transition-all"
                   style={{
                     borderColor: `${themeColor}20`,
                   }}
