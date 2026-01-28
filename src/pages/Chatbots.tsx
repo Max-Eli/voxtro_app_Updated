@@ -571,7 +571,7 @@ export default function Chatbots() {
   const copyEmbedCode = (botId: string, type: 'widget' | 'inline' | 'messenger' = 'widget') => {
     let embedCode;
     let description;
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://voxtro-backend.onrender.com';
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.voxtro.io';
 
     if (type === 'inline') {
       embedCode = `<script>

@@ -412,7 +412,7 @@ export default function EditChatbot() {
         { role: 'user', content: userMessage.content }
       ];
 
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://voxtro-backend.onrender.com';
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.voxtro.io';
       const response = await fetch(`${apiBaseUrl}/api/chat/message`, {
         method: 'POST',
         headers: {

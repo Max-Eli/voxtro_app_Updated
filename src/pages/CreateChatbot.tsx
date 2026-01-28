@@ -70,7 +70,7 @@ export default function CreateChatbot() {
     try {
       // Generate embed codes - using FastAPI backend
       const tempId = crypto.randomUUID();
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://voxtro-backend.onrender.com';
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.voxtro.io';
       const embedCode = `<script>
   (function() {
     var script = document.createElement('script');
