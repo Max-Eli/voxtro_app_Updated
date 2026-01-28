@@ -258,7 +258,7 @@ export default function Auth() {
                     type="button"
                     variant="outline"
                     onClick={() => handleProviderSignIn('google')}
-                    className="w-full h-12 border-gray-300 hover:bg-gray-50"
+                    className="w-full h-12 border-gray-300 hover:bg-gray-50 text-gray-700 bg-white"
                   >
                     <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                       <path
@@ -392,7 +392,7 @@ export default function Auth() {
                   type="button"
                   variant="outline"
                   onClick={() => handleProviderSignIn('google')}
-                  className="w-full h-12 border-gray-300 hover:bg-gray-50"
+                  className="w-full h-12 border-gray-300 hover:bg-gray-50 text-gray-700 bg-white"
                 >
                   <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                     <path
