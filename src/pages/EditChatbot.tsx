@@ -147,11 +147,11 @@ export default function EditChatbot() {
 
   const fetchChatbot = async () => {
     try {
+      // RLS policies handle access control - allow team members to access teammate's chatbots
       const { data, error } = await supabase
         .from('chatbots')
         .select('*')
         .eq('id', chatbotId)
-        .eq('user_id', user.id)
         .single();
 
       if (error || !data) {
@@ -306,14 +306,14 @@ export default function EditChatbot() {
         }
       }
 
+      // RLS policies handle access control - allow team members to update teammate's chatbots
       const { error } = await supabase
         .from('chatbots')
         .update({
           ...formData,
           temperature: formData.temperature[0],
         })
-        .eq('id', chatbotId)
-        .eq('user_id', user.id);
+        .eq('id', chatbotId);
 
       if (error) throw error;
 
@@ -357,11 +357,11 @@ export default function EditChatbot() {
     setLoading(true);
 
     try {
+      // RLS policies handle access control - allow team members to delete teammate's chatbots
       const { error } = await supabase
         .from('chatbots')
         .delete()
-        .eq('id', chatbotId)
-        .eq('user_id', user.id);
+        .eq('id', chatbotId);
 
       if (error) throw error;
 

@@ -126,11 +126,11 @@ export function ChatbotEditor({ chatbotId, onSave }: ChatbotEditorProps) {
 
   const fetchChatbot = async () => {
     try {
+      // RLS policies handle access control - allow team members to access teammate's chatbots
       const { data, error } = await supabase
         .from('chatbots')
         .select('*')
         .eq('id', chatbotId)
-        .eq('user_id', user?.id)
         .single();
 
       if (error || !data) {
@@ -278,14 +278,14 @@ export function ChatbotEditor({ chatbotId, onSave }: ChatbotEditorProps) {
         }
       }
 
+      // RLS policies handle access control - allow team members to update teammate's chatbots
       const { error } = await supabase
         .from('chatbots')
         .update({
           ...formData,
           temperature: formData.temperature[0],
         })
-        .eq('id', chatbotId)
-        .eq('user_id', user?.id);
+        .eq('id', chatbotId);
 
       if (error) throw error;
 

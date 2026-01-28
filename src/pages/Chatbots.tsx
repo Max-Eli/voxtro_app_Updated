@@ -157,25 +157,23 @@ export default function Chatbots() {
     try {
       const allCustomers: Customer[] = [];
 
-      // Get chatbot IDs for this user
+      // RLS policies handle team visibility for all agent types
+      // Get chatbot IDs
       const { data: chatbotsData } = await supabase
         .from('chatbots')
-        .select('id')
-        .eq('user_id', user.id);
+        .select('id');
       const chatbotIds = chatbotsData?.map(c => c.id) || [];
 
-      // Get voice assistant IDs for this user
+      // Get voice assistant IDs
       const { data: assistantsData } = await supabase
         .from('voice_assistants')
-        .select('id')
-        .eq('user_id', user.id);
+        .select('id');
       const assistantIds = assistantsData?.map(a => a.id) || [];
 
-      // Get WhatsApp agent IDs for this user
+      // Get WhatsApp agent IDs
       const { data: agentsData } = await supabase
         .from('whatsapp_agents')
-        .select('id')
-        .eq('user_id', user.id);
+        .select('id');
       const agentIds = agentsData?.map(a => a.id) || [];
 
       // Fetch customers from chatbot assignments

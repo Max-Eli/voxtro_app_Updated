@@ -137,12 +137,11 @@ export default function VoiceAssistants() {
     try {
       setLoading(true);
 
-      // Fetch ALL assistants for this user first
+      // RLS policies handle access control - allow team members to see teammate's assistants
       // We'll filter in-memory to include those with matching org_id OR null org_id (for backwards compat)
       const { data: allAssistantsData, error: assistantsError } = await supabase
         .from('voice_assistants')
         .select('*')
-        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (assistantsError) throw assistantsError;
@@ -158,23 +157,22 @@ export default function VoiceAssistants() {
       setAssistants(assistantsData);
 
       // Fetch customers from all assignment types (chatbots, voice assistants, WhatsApp agents)
+      // RLS policies handle visibility for all agent types
       const allCustomers: Customer[] = [];
 
-      // Get chatbot IDs for this user
+      // Get chatbot IDs (RLS handles team visibility)
       const { data: chatbotsData } = await supabase
         .from('chatbots')
-        .select('id')
-        .eq('user_id', user?.id);
+        .select('id');
       const chatbotIds = chatbotsData?.map(c => c.id) || [];
 
-      // Get voice assistant IDs for this user (already fetched above)
+      // Get voice assistant IDs (already fetched above with RLS)
       const assistantIds = assistantsData?.map(a => a.id) || [];
 
-      // Get WhatsApp agent IDs for this user
+      // Get WhatsApp agent IDs (RLS handles team visibility)
       const { data: agentsData } = await supabase
         .from('whatsapp_agents')
-        .select('id')
-        .eq('user_id', user?.id);
+        .select('id');
       const agentIds = agentsData?.map(a => a.id) || [];
 
       // Fetch customers from chatbot assignments
