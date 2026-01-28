@@ -7,7 +7,7 @@ import { Calendar, GripVertical, Trash2, Edit, ChevronDown, ChevronUp, Save, X, 
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface Assistant {
   id: string;
@@ -121,6 +122,43 @@ export function TaskKanbanCard({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  // Memoized options for searchable selects
+  const assistantOptions = useMemo(() => [
+    { value: "__unassigned__", label: "Unassigned", icon: <Bot className="h-4 w-4 text-muted-foreground" /> },
+    ...assistants.filter(a => a.id).map((assistant) => ({
+      value: assistant.id,
+      label: assistant.name || "Unnamed Assistant",
+      icon: <Bot className="h-4 w-4" />,
+    })),
+  ], [assistants]);
+
+  const teamMemberOptions = useMemo(() => [
+    { value: "__unassigned__", label: "Unassigned", icon: <User className="h-4 w-4 text-muted-foreground" /> },
+    ...teamMembers.filter(m => m.user_id).map((member) => ({
+      value: member.user_id,
+      label: member.user_name || member.email || member.user_id,
+      icon: <User className="h-4 w-4" />,
+    })),
+  ], [teamMembers]);
+
+  const chatbotOptions = useMemo(() => [
+    { value: "__unassigned__", label: "Unassigned", icon: <Bot className="h-4 w-4 text-muted-foreground" /> },
+    ...chatbots.filter(c => c.id).map((chatbot) => ({
+      value: chatbot.id,
+      label: chatbot.name || "Unnamed Chatbot",
+      icon: <Bot className="h-4 w-4" />,
+    })),
+  ], [chatbots]);
+
+  const whatsappAgentOptions = useMemo(() => [
+    { value: "__unassigned__", label: "Unassigned", icon: <MessageSquare className="h-4 w-4 text-muted-foreground" /> },
+    ...whatsappAgents.filter(a => a.id).map((agent) => ({
+      value: agent.id,
+      label: agent.name || agent.phone_number || "Unnamed Agent",
+      icon: <MessageSquare className="h-4 w-4" />,
+    })),
+  ], [whatsappAgents]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -339,70 +377,54 @@ export function TaskKanbanCard({
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Assistant</Label>
-                  <Select value={assistantId || "__unassigned__"} onValueChange={(val) => setAssistantId(val === "__unassigned__" ? "" : val)}>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder="Unassigned" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__unassigned__">Unassigned</SelectItem>
-                      {assistants.filter(a => a.id).map((assistant) => (
-                        <SelectItem key={assistant.id} value={assistant.id}>
-                          {assistant.name || "Unnamed Assistant"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={assistantOptions}
+                    value={assistantId || "__unassigned__"}
+                    onValueChange={(val) => setAssistantId(val === "__unassigned__" ? "" : val)}
+                    placeholder="Select assistant"
+                    searchPlaceholder="Search assistants..."
+                    emptyMessage="No assistants found."
+                    className="h-8 text-sm"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Assign to Team Member</Label>
-                  <Select value={assignedTo || "__unassigned__"} onValueChange={(val) => setAssignedTo(val === "__unassigned__" ? "" : val)}>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder="Unassigned" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__unassigned__">Unassigned</SelectItem>
-                      {teamMembers.filter(m => m.user_id).map((member) => (
-                        <SelectItem key={member.user_id} value={member.user_id}>
-                          {member.user_name || member.email || member.user_id}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={teamMemberOptions}
+                    value={assignedTo || "__unassigned__"}
+                    onValueChange={(val) => setAssignedTo(val === "__unassigned__" ? "" : val)}
+                    placeholder="Select team member"
+                    searchPlaceholder="Search team members..."
+                    emptyMessage="No team members found."
+                    className="h-8 text-sm"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Chatbot</Label>
-                  <Select value={chatbotId || "__unassigned__"} onValueChange={(val) => setChatbotId(val === "__unassigned__" ? "" : val)}>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder="Unassigned" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__unassigned__">Unassigned</SelectItem>
-                      {chatbots.filter(c => c.id).map((chatbot) => (
-                        <SelectItem key={chatbot.id} value={chatbot.id}>
-                          {chatbot.name || "Unnamed Chatbot"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={chatbotOptions}
+                    value={chatbotId || "__unassigned__"}
+                    onValueChange={(val) => setChatbotId(val === "__unassigned__" ? "" : val)}
+                    placeholder="Select chatbot"
+                    searchPlaceholder="Search chatbots..."
+                    emptyMessage="No chatbots found."
+                    className="h-8 text-sm"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">WhatsApp Agent</Label>
-                  <Select value={whatsappAgentId || "__unassigned__"} onValueChange={(val) => setWhatsappAgentId(val === "__unassigned__" ? "" : val)}>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder="Unassigned" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__unassigned__">Unassigned</SelectItem>
-                      {whatsappAgents.filter(a => a.id).map((agent) => (
-                        <SelectItem key={agent.id} value={agent.id}>
-                          {agent.name || agent.phone_number || "Unnamed Agent"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={whatsappAgentOptions}
+                    value={whatsappAgentId || "__unassigned__"}
+                    onValueChange={(val) => setWhatsappAgentId(val === "__unassigned__" ? "" : val)}
+                    placeholder="Select WhatsApp agent"
+                    searchPlaceholder="Search WhatsApp agents..."
+                    emptyMessage="No WhatsApp agents found."
+                    className="h-8 text-sm"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
