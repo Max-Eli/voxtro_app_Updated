@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Task } from "@/pages/VoiceAssistantTasks";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface VoiceAssistant {
   id: string;
@@ -93,6 +94,15 @@ export const CreateTaskDialog = ({
     return acc;
   }, {} as Record<string, VoiceAssistant[]>);
 
+  // Memoized options for searchable select (with org name in label)
+  const assistantOptions = useMemo(() =>
+    assistants.filter(a => a.id).map((assistant) => ({
+      value: assistant.id,
+      label: `${assistant.name || "Unnamed Assistant"} (${getOrgName(assistant.org_id)})`,
+      icon: <Bot className="h-4 w-4" />,
+    })),
+  [assistants, connections]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !assistantId) {
@@ -148,25 +158,14 @@ export const CreateTaskDialog = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="assistant">Voice Assistant *</Label>
-            <Select value={assistantId} onValueChange={setAssistantId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select an assistant" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(groupedAssistants).map(([orgName, orgAssistants]) => (
-                  <div key={orgName}>
-                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                      {orgName}
-                    </div>
-                    {orgAssistants.map((assistant) => (
-                      <SelectItem key={assistant.id} value={assistant.id}>
-                        {assistant.name || "Unnamed Assistant"}
-                      </SelectItem>
-                    ))}
-                  </div>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={assistantOptions}
+              value={assistantId}
+              onValueChange={setAssistantId}
+              placeholder="Select an assistant"
+              searchPlaceholder="Search assistants..."
+              emptyMessage="No assistants found."
+            />
           </div>
 
           <div className="space-y-2">

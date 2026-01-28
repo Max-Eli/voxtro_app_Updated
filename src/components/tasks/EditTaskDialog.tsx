@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2, Bot, User, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Task } from "@/pages/VoiceAssistantTasks";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface VoiceAssistant {
   id: string;
@@ -165,6 +166,43 @@ export const EditTaskDialog = ({
     }
   };
 
+  // Memoized options for searchable selects
+  const assistantOptions = useMemo(() => [
+    { value: "__unassigned__", label: "Unassigned", icon: <Bot className="h-4 w-4 text-muted-foreground" /> },
+    ...assistants.filter(a => a.id).map((assistant) => ({
+      value: assistant.id,
+      label: assistant.name,
+      icon: <Bot className="h-4 w-4" />,
+    })),
+  ], [assistants]);
+
+  const teamMemberOptions = useMemo(() => [
+    { value: "__unassigned__", label: "Unassigned", icon: <User className="h-4 w-4 text-muted-foreground" /> },
+    ...teamMembers.filter(m => m.user_id).map((member) => ({
+      value: member.user_id,
+      label: member.user_name || member.email || member.user_id,
+      icon: <User className="h-4 w-4" />,
+    })),
+  ], [teamMembers]);
+
+  const chatbotOptions = useMemo(() => [
+    { value: "__unassigned__", label: "Unassigned", icon: <Bot className="h-4 w-4 text-muted-foreground" /> },
+    ...chatbots.filter(c => c.id).map((chatbot) => ({
+      value: chatbot.id,
+      label: chatbot.name,
+      icon: <Bot className="h-4 w-4" />,
+    })),
+  ], [chatbots]);
+
+  const whatsappAgentOptions = useMemo(() => [
+    { value: "__unassigned__", label: "Unassigned", icon: <MessageSquare className="h-4 w-4 text-muted-foreground" /> },
+    ...whatsappAgents.filter(a => a.id).map((agent) => ({
+      value: agent.id,
+      label: agent.name || agent.phone_number || "Unnamed Agent",
+      icon: <MessageSquare className="h-4 w-4" />,
+    })),
+  ], [whatsappAgents]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
@@ -270,102 +308,54 @@ export const EditTaskDialog = ({
 
           <div className="space-y-2">
             <Label htmlFor="edit-assistant">Voice Assistant</Label>
-            <Select value={assistantId} onValueChange={setAssistantId}>
-              <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Loading..." : "Select assistant"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__unassigned__">
-                  <div className="flex items-center gap-2">
-                    <Bot className="h-4 w-4 text-muted-foreground" />
-                    <span>Unassigned</span>
-                  </div>
-                </SelectItem>
-                {assistants.filter(a => a.id).map((assistant) => (
-                  <SelectItem key={assistant.id} value={assistant.id}>
-                    <div className="flex items-center gap-2">
-                      <Bot className="h-4 w-4" />
-                      <span>{assistant.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={assistantOptions}
+              value={assistantId}
+              onValueChange={setAssistantId}
+              placeholder={loadingData ? "Loading..." : "Select assistant"}
+              searchPlaceholder="Search assistants..."
+              emptyMessage="No assistants found."
+              disabled={loadingData}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit-assigned-to">Assign to Team Member</Label>
-            <Select value={assignedTo} onValueChange={setAssignedTo}>
-              <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Loading..." : "Select team member"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__unassigned__">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span>Unassigned</span>
-                  </div>
-                </SelectItem>
-                {teamMembers.filter(m => m.user_id).map((member) => (
-                  <SelectItem key={member.user_id} value={member.user_id}>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      <span>{member.user_name || member.email || member.user_id}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={teamMemberOptions}
+              value={assignedTo}
+              onValueChange={setAssignedTo}
+              placeholder={loadingData ? "Loading..." : "Select team member"}
+              searchPlaceholder="Search team members..."
+              emptyMessage="No team members found."
+              disabled={loadingData}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit-chatbot">Chatbot</Label>
-            <Select value={chatbotId} onValueChange={setChatbotId}>
-              <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Loading..." : "Select chatbot"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__unassigned__">
-                  <div className="flex items-center gap-2">
-                    <Bot className="h-4 w-4 text-muted-foreground" />
-                    <span>Unassigned</span>
-                  </div>
-                </SelectItem>
-                {chatbots.filter(c => c.id).map((chatbot) => (
-                  <SelectItem key={chatbot.id} value={chatbot.id}>
-                    <div className="flex items-center gap-2">
-                      <Bot className="h-4 w-4" />
-                      <span>{chatbot.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={chatbotOptions}
+              value={chatbotId}
+              onValueChange={setChatbotId}
+              placeholder={loadingData ? "Loading..." : "Select chatbot"}
+              searchPlaceholder="Search chatbots..."
+              emptyMessage="No chatbots found."
+              disabled={loadingData}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit-whatsapp-agent">WhatsApp Agent</Label>
-            <Select value={whatsappAgentId} onValueChange={setWhatsappAgentId}>
-              <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Loading..." : "Select WhatsApp agent"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__unassigned__">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    <span>Unassigned</span>
-                  </div>
-                </SelectItem>
-                {whatsappAgents.filter(a => a.id).map((agent) => (
-                  <SelectItem key={agent.id} value={agent.id}>
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      <span>{agent.name || agent.phone_number || "Unnamed Agent"}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={whatsappAgentOptions}
+              value={whatsappAgentId}
+              onValueChange={setWhatsappAgentId}
+              placeholder={loadingData ? "Loading..." : "Select WhatsApp agent"}
+              searchPlaceholder="Search WhatsApp agents..."
+              emptyMessage="No WhatsApp agents found."
+              disabled={loadingData}
+            />
           </div>
 
           <div className="space-y-2">
