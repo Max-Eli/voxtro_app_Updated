@@ -341,7 +341,7 @@ const Settings = () => {
   };
 
   const handleChangePassword = async () => {
-    if (!user) return;
+    if (!user || !user.email) return;
 
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast({
@@ -370,13 +370,38 @@ const Settings = () => {
       return;
     }
 
+    if (currentPassword === newPassword) {
+      toast({
+        title: "Error",
+        description: "New password must be different from your current password",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
-      const { error } = await supabase.auth.updateUser({
+      // First, verify the current password by re-authenticating
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        toast({
+          title: "Error",
+          description: "Current password is incorrect",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Current password verified, now update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword
       });
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       setCurrentPassword("");
       setNewPassword("");
@@ -389,13 +414,13 @@ const Settings = () => {
     } catch (error: any) {
       console.error('Error changing password:', error);
       let errorMessage = "Failed to update password";
-      
+
       if (error.message?.includes('weak')) {
         errorMessage = "Password is too weak. Please choose a stronger password.";
       } else if (error.message?.includes('same')) {
         errorMessage = "New password must be different from your current password.";
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
