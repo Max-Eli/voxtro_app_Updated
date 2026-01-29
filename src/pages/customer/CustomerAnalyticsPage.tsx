@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { getCustomerPortalAnalytics, CustomerAnalyticsResponse } from '@/integrations/api/endpoints/customers';
 import {
@@ -56,12 +55,6 @@ export function CustomerAnalyticsPage() {
     return `${percentage.toFixed(0)}%`;
   };
 
-  // Get percentage value for progress bar (0-100)
-  const getProgressValue = (value: number) => {
-    if (value === null || value === undefined || isNaN(value)) return 0;
-    const percentage = value > 1 ? Math.min(value, 100) : Math.min(value * 100, 100);
-    return percentage;
-  };
 
   if (loading) {
     return (
@@ -164,81 +157,91 @@ export function CustomerAnalyticsPage() {
           </div>
 
           {/* Channel Performance */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Channel Performance</CardTitle>
-              <CardDescription>Conversion rates and activity by communication channel</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Chatbots */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                        <Bot className="h-5 w-5 text-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Chatbots</p>
-                        <p className="text-sm text-muted-foreground">
-                          {analytics.chatbots.total_conversations} conversations · {analytics.chatbots.total_messages} messages
-                        </p>
-                      </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Chatbots */}
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+                      <Bot className="h-4 w-4" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold">{formatPercentage(analytics.leads.conversion_rates.chatbot)}</p>
-                      <p className="text-xs text-muted-foreground">conversion</p>
+                    <span className="font-medium">Chatbots</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-sm text-muted-foreground">Conversion</span>
+                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads.conversion_rates.chatbot)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Conversations</span>
+                      <span>{analytics.chatbots.total_conversations}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Messages</span>
+                      <span>{analytics.chatbots.total_messages}</span>
                     </div>
                   </div>
-                  <Progress value={getProgressValue(analytics.leads.conversion_rates.chatbot)} className="h-2" />
                 </div>
+              </CardContent>
+            </Card>
 
-                {/* Voice */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                        <Phone className="h-5 w-5 text-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Voice Assistants</p>
-                        <p className="text-sm text-muted-foreground">
-                          {analytics.voice_assistants.total_calls} calls · {formatDuration(analytics.voice_assistants.total_duration)} total
-                        </p>
-                      </div>
+            {/* Voice */}
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+                      <Phone className="h-4 w-4" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold">{formatPercentage(analytics.leads.conversion_rates.voice)}</p>
-                      <p className="text-xs text-muted-foreground">conversion</p>
+                    <span className="font-medium">Voice</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-sm text-muted-foreground">Conversion</span>
+                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads.conversion_rates.voice)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Calls</span>
+                      <span>{analytics.voice_assistants.total_calls}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Duration</span>
+                      <span>{formatDuration(analytics.voice_assistants.total_duration)}</span>
                     </div>
                   </div>
-                  <Progress value={getProgressValue(analytics.leads.conversion_rates.voice)} className="h-2" />
                 </div>
+              </CardContent>
+            </Card>
 
-                {/* WhatsApp */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                        <MessageCircle className="h-5 w-5 text-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-medium">WhatsApp</p>
-                        <p className="text-sm text-muted-foreground">
-                          {analytics.whatsapp_agents.total_conversations} conversations · {analytics.whatsapp_agents.total_messages} messages
-                        </p>
-                      </div>
+            {/* WhatsApp */}
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+                      <MessageCircle className="h-4 w-4" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold">{formatPercentage(analytics.leads.conversion_rates.whatsapp)}</p>
-                      <p className="text-xs text-muted-foreground">conversion</p>
+                    <span className="font-medium">WhatsApp</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-sm text-muted-foreground">Conversion</span>
+                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads.conversion_rates.whatsapp)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Conversations</span>
+                      <span>{analytics.whatsapp_agents.total_conversations}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Messages</span>
+                      <span>{analytics.whatsapp_agents.total_messages}</span>
                     </div>
                   </div>
-                  <Progress value={getProgressValue(analytics.leads.conversion_rates.whatsapp)} className="h-2" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Tabs for Details */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
