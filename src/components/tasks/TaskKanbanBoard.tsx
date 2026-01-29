@@ -44,7 +44,7 @@ interface WhatsAppAgent {
 interface TaskKanbanBoardProps {
   tasks: Task[];
   getAssistantName: (assistantId: string | null) => string;
-  getOrgName: (orgId: string | null) => string;
+  getOrgName: (orgId: string | null, teamOrgId?: string | null) => string;
   getAssignedToName?: (userId: string | null) => string;
   getChatbotName?: (chatbotId: string | null) => string;
   getWhatsappAgentName?: (agentId: string | null) => string;
@@ -266,7 +266,7 @@ export function TaskKanbanBoard({
                   key={task.id}
                   task={task}
                   assistantName={getAssistantName(task.assistant_id)}
-                  orgName={getOrgName(task.org_id)}
+                  orgName={getOrgName(task.org_id, task.team_org_id)}
                   assignedToName={getAssignedToName?.(task.assigned_to)}
                   chatbotName={getChatbotName?.(task.chatbot_id)}
                   whatsappAgentName={getWhatsappAgentName?.(task.whatsapp_agent_id)}
@@ -296,7 +296,7 @@ export function TaskKanbanBoard({
               <TaskKanbanCard
                 task={activeTask}
                 assistantName={getAssistantName(activeTask.assistant_id)}
-                orgName={getOrgName(activeTask.org_id)}
+                orgName={getOrgName(activeTask.org_id, activeTask.team_org_id)}
                 assignedToName={getAssignedToName?.(activeTask.assigned_to)}
                 chatbotName={getChatbotName?.(activeTask.chatbot_id)}
                 whatsappAgentName={getWhatsappAgentName?.(activeTask.whatsapp_agent_id)}

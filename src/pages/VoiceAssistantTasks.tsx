@@ -40,6 +40,11 @@ interface WhatsAppAgent {
   phone_number: string | null;
 }
 
+interface TeamOrganization {
+  id: string;
+  name: string;
+}
+
 export interface Task {
   id: string;
   user_id: string;
@@ -68,6 +73,7 @@ const VoiceAssistantTasks = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [chatbots, setChatbots] = useState<Chatbot[]>([]);
   const [whatsappAgents, setWhatsappAgents] = useState<WhatsAppAgent[]>([]);
+  const [teamOrganizations, setTeamOrganizations] = useState<TeamOrganization[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -140,6 +146,14 @@ const VoiceAssistantTasks = () => {
         .order("name");
 
       setWhatsappAgents(whatsappData || []);
+
+      // Fetch team organizations (RLS policies handle team visibility)
+      const { data: teamOrgsData } = await supabase
+        .from("team_organizations")
+        .select("id, name")
+        .order("name");
+
+      setTeamOrganizations(teamOrgsData || []);
 
       // Fetch hidden task IDs for current user
       const { data: hiddenData } = await supabase
@@ -228,10 +242,21 @@ const VoiceAssistantTasks = () => {
     return assistant?.name || "Unknown Assistant";
   };
 
-  const getOrgName = (orgId: string | null) => {
-    if (!orgId) return "No Organization";
-    const connection = connections.find((c) => c.org_id === orgId);
-    return connection?.org_name || orgId;
+  const getOrgName = (orgId: string | null, teamOrgId?: string | null) => {
+    // First check team organization (for team-shared tasks)
+    if (teamOrgId) {
+      const teamOrg = teamOrganizations.find((t) => t.id === teamOrgId);
+      if (teamOrg) return teamOrg.name;
+    }
+    // Then check VAPI connections
+    if (orgId) {
+      const connection = connections.find((c) => c.org_id === orgId);
+      if (connection?.org_name) return connection.org_name;
+      // Also check team organizations in case orgId is a team org
+      const teamOrg = teamOrganizations.find((t) => t.id === orgId);
+      if (teamOrg) return teamOrg.name;
+    }
+    return "No Organization";
   };
 
   const getAssignedToName = (userId: string | null) => {
@@ -522,7 +547,7 @@ const VoiceAssistantTasks = () => {
                   key={task.id}
                   task={task}
                   assistantName={getAssistantName(task.assistant_id)}
-                  orgName={getOrgName(task.org_id)}
+                  orgName={getOrgName(task.org_id, task.team_org_id)}
                   chatbotName={getChatbotName(task.chatbot_id)}
                   whatsappAgentName={getWhatsappAgentName(task.whatsapp_agent_id)}
                   assignedToName={getAssignedToName(task.assigned_to)}
