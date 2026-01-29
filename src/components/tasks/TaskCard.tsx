@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, isPast, isToday } from "date-fns";
-import { Calendar, Pencil, Trash2, MoreVertical, Clock, AlertTriangle } from "lucide-react";
+import { Calendar, Pencil, Trash2, MoreVertical, Clock, AlertTriangle, Bot, MessageSquare, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +41,9 @@ interface TaskCardProps {
   onDelete: (taskId: string) => void;
   onHide?: (taskId: string) => void;
   currentUserId?: string;
+  chatbotName?: string;
+  whatsappAgentName?: string;
+  assignedToName?: string;
 }
 
 const priorityColors: Record<string, string> = {
@@ -64,7 +67,7 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
-export const TaskCard = ({ task, assistantName, orgName, onUpdate, onDelete, onHide, currentUserId }: TaskCardProps) => {
+export const TaskCard = ({ task, assistantName, orgName, onUpdate, onDelete, onHide, currentUserId, chatbotName, whatsappAgentName, assignedToName }: TaskCardProps) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -224,14 +227,36 @@ export const TaskCard = ({ task, assistantName, orgName, onUpdate, onDelete, onH
 
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="text-xs">
-                  {assistantName}
-                </Badge>
-                <Badge variant="outline" className="text-xs bg-muted/50">
-                  {orgName}
-                </Badge>
                 <Badge className={`text-xs ${priorityColors[task.priority]}`}>
                   {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                </Badge>
+                {/* Assigned Agents */}
+                {task.assistant_id && assistantName && (
+                  <Badge variant="outline" className="text-xs flex items-center gap-1 bg-purple-500/10 text-purple-400 border-purple-500/30">
+                    <Bot className="h-3 w-3" />
+                    {assistantName}
+                  </Badge>
+                )}
+                {task.chatbot_id && chatbotName && (
+                  <Badge variant="outline" className="text-xs flex items-center gap-1 bg-blue-500/10 text-blue-400 border-blue-500/30">
+                    <Bot className="h-3 w-3" />
+                    {chatbotName}
+                  </Badge>
+                )}
+                {task.whatsapp_agent_id && whatsappAgentName && (
+                  <Badge variant="outline" className="text-xs flex items-center gap-1 bg-green-500/10 text-green-400 border-green-500/30">
+                    <MessageSquare className="h-3 w-3" />
+                    {whatsappAgentName}
+                  </Badge>
+                )}
+                {task.assigned_to && assignedToName && (
+                  <Badge variant="outline" className="text-xs flex items-center gap-1 bg-orange-500/10 text-orange-400 border-orange-500/30">
+                    <User className="h-3 w-3" />
+                    {assignedToName}
+                  </Badge>
+                )}
+                <Badge variant="outline" className="text-xs bg-muted/50">
+                  {orgName}
                 </Badge>
                 {task.due_date && (
                   <Badge

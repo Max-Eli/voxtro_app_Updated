@@ -523,6 +523,9 @@ const VoiceAssistantTasks = () => {
                   task={task}
                   assistantName={getAssistantName(task.assistant_id)}
                   orgName={getOrgName(task.org_id)}
+                  chatbotName={getChatbotName(task.chatbot_id)}
+                  whatsappAgentName={getWhatsappAgentName(task.whatsapp_agent_id)}
+                  assignedToName={getAssignedToName(task.assigned_to)}
                   onUpdate={handleTaskUpdated}
                   onDelete={handleTaskDeleted}
                   onHide={handleTaskHidden}
