@@ -117,11 +117,15 @@ export function CustomerAnalyticsPage() {
     }
   };
 
-  const formatDuration = (seconds: number) => {
-    if (!seconds || seconds === 0) return '0s';
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
+  const formatDuration = (seconds: number | null | undefined) => {
+    // Handle null, undefined, NaN, and 0
+    const sec = typeof seconds === 'number' && !isNaN(seconds) ? Math.floor(seconds) : 0;
+    if (sec <= 0) return '0s';
+
+    const hours = Math.floor(sec / 3600);
+    const minutes = Math.floor((sec % 3600) / 60);
+    const secs = sec % 60;
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
