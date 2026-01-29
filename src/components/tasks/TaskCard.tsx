@@ -113,8 +113,9 @@ export const TaskCard = ({ task, assistantName, orgName, onUpdate, onDelete, onH
               .eq('id', existingEntry.id);
           } else {
             // Create new changelog entry for completed task
+            // Use currentUserId so any team member can create changelog entries
             await supabase.from('changelog_entries').insert({
-              user_id: task.user_id,
+              user_id: currentUserId || task.user_id,
               entity_type: entityType,
               entity_id: entityId,
               change_type: 'update',

@@ -169,9 +169,11 @@ export function TaskKanbanBoard({
             .eq('id', existingEntry.id);
         } else {
           // Create new changelog entry for completed task
-          console.log('Creating changelog entry:', { entityType, entityId, title: task.title });
+          // Use currentUserId so any team member can create changelog entries
+          const userId = currentUserId || task.user_id;
+          console.log('Creating changelog entry:', { entityType, entityId, title: task.title, userId });
           const { error: insertError } = await supabase.from('changelog_entries').insert({
-            user_id: task.user_id,
+            user_id: userId,
             entity_type: entityType,
             entity_id: entityId,
             change_type: 'update',
