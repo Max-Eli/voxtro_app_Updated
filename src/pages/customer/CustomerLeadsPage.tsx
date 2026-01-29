@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Bot, Phone, MessageCircle, Search, Mail, User, Calendar, RefreshCw } from 'lucide-react';
+import { Users, Bot, Phone, MessageCircle, Search, Mail, User, Calendar, RefreshCw, PhoneIncoming } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { getCustomerPortalLeads, CustomerLead } from '@/integrations/api/endpoints';
@@ -241,7 +241,13 @@ export default function CustomerLeadsPage() {
                               <span>{lead.phone_number}</span>
                             </div>
                           )}
-                          {!lead.email && !lead.phone_number && (
+                          {lead.additional_data?.caller_id && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <PhoneIncoming className="h-3 w-3" />
+                              <span>Called from: {lead.additional_data.caller_id}</span>
+                            </div>
+                          )}
+                          {!lead.email && !lead.phone_number && !lead.additional_data?.caller_id && (
                             <span className="text-muted-foreground">-</span>
                           )}
                         </div>
