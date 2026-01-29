@@ -243,18 +243,19 @@ const VoiceAssistantTasks = () => {
   };
 
   const getOrgName = (orgId: string | null, teamOrgId?: string | null) => {
-    // First check team organization (for team-shared tasks)
+    // First check team organization by team_org_id
     if (teamOrgId) {
       const teamOrg = teamOrganizations.find((t) => t.id === teamOrgId);
       if (teamOrg) return teamOrg.name;
     }
-    // Then check VAPI connections
+    // Check if orgId matches a team organization
     if (orgId) {
-      const connection = connections.find((c) => c.org_id === orgId);
-      if (connection?.org_name) return connection.org_name;
-      // Also check team organizations in case orgId is a team org
       const teamOrg = teamOrganizations.find((t) => t.id === orgId);
       if (teamOrg) return teamOrg.name;
+    }
+    // If user belongs to a team, show that team's name
+    if (teamOrganizations.length > 0) {
+      return teamOrganizations[0].name;
     }
     return "No Organization";
   };
