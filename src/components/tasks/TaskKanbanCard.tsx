@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Task } from "@/pages/VoiceAssistantTasks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, GripVertical, Trash2, Edit, ChevronDown, ChevronUp, Save, X, User, Building2, MoreVertical, Bot, MessageSquare } from "lucide-react";
+import { Calendar, GripVertical, Trash2, Edit, ChevronDown, ChevronUp, Save, X, User, Building2, MoreVertical, Bot, MessageSquare, Maximize2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -99,6 +105,7 @@ export function TaskKanbanCard({
 }: TaskKanbanCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || "");
   const [priority, setPriority] = useState(task.priority);
@@ -391,7 +398,19 @@ export function TaskKanbanCard({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Description</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Description</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => setDescriptionDialogOpen(true)}
+                      title="Expand editor"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -506,8 +525,21 @@ export function TaskKanbanCard({
               <div className="space-y-3">
                 {/* Description */}
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Description</Label>
-                  <p className="text-sm whitespace-pre-wrap">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">Description</Label>
+                    {task.description && task.description.length > 100 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setDescriptionDialogOpen(true)}
+                        title="Expand description"
+                      >
+                        <Maximize2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap max-h-32 overflow-y-auto">
                     {task.description || <span className="text-muted-foreground italic">No description</span>}
                   </p>
                 </div>
@@ -617,6 +649,29 @@ export function TaskKanbanCard({
             )}
           </div>
         )}
+
+        {/* Description Expand Dialog */}
+        <Dialog open={descriptionDialogOpen} onOpenChange={setDescriptionDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Task Description</DialogTitle>
+            </DialogHeader>
+            {isEditing ? (
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Task description..."
+                className="min-h-[50vh] text-sm"
+              />
+            ) : (
+              <div className="min-h-[30vh] max-h-[60vh] overflow-y-auto">
+                <p className="text-sm whitespace-pre-wrap">
+                  {task.description || <span className="text-muted-foreground italic">No description</span>}
+                </p>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
