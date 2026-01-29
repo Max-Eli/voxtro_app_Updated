@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Entity {
@@ -27,6 +28,11 @@ export function AddChangelogEntry({ open, onOpenChange, entityType, entities, on
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+
+  // Use persisted state for user-typed content to prevent data loss on tab switches
+  const [persistedTitle, setPersistedTitle, clearPersistedTitle] = usePersistedState('addChangelogEntry_title', '');
+  const [persistedDescription, setPersistedDescription, clearPersistedDescription] = usePersistedState('addChangelogEntry_description', '');
+
   const [formData, setFormData] = useState({
     entity_id: '',
     change_type: 'note' as 'note' | 'update',
@@ -35,6 +41,17 @@ export function AddChangelogEntry({ open, onOpenChange, entityType, entities, on
     status: 'pending' as 'pending' | 'in_progress' | 'completed',
   });
 
+  // Sync persisted state with formData when dialog opens
+  useEffect(() => {
+    if (open) {
+      setFormData(prev => ({
+        ...prev,
+        title: persistedTitle,
+        description: persistedDescription,
+      }));
+    }
+  }, [open]);
+
   // Pre-select entity when dialog opens with a pre-selected ID
   useEffect(() => {
     if (open && preSelectedEntityId) {
@@ -42,10 +59,12 @@ export function AddChangelogEntry({ open, onOpenChange, entityType, entities, on
     }
   }, [open, preSelectedEntityId]);
 
-  // Reset form when dialog closes
+  // Reset form and clear persisted state when dialog closes
   useEffect(() => {
     if (!open) {
       setFormData({ entity_id: '', change_type: 'note', title: '', description: '', status: 'pending' });
+      clearPersistedTitle();
+      clearPersistedDescription();
     }
   }, [open]);
 
@@ -125,7 +144,11 @@ export function AddChangelogEntry({ open, onOpenChange, entityType, entities, on
             <Label>Title</Label>
             <Input
               value={formData.title}
-              onChange={(e) => setFormData(p => ({ ...p, title: e.target.value }))}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData(p => ({ ...p, title: value }));
+                setPersistedTitle(value);
+              }}
               placeholder="Brief title for this entry"
               required
             />
@@ -135,7 +158,11 @@ export function AddChangelogEntry({ open, onOpenChange, entityType, entities, on
             <Label>Description (Optional)</Label>
             <Textarea
               value={formData.description}
-              onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData(p => ({ ...p, description: value }));
+                setPersistedDescription(value);
+              }}
               placeholder="Add more details..."
               rows={4}
             />

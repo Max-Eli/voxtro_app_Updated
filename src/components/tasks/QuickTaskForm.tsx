@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -22,7 +23,8 @@ export const QuickTaskForm = ({
   placeholder = "Add a task and press Enter..."
 }: QuickTaskFormProps) => {
   const { user } = useAuth();
-  const [title, setTitle] = useState("");
+  // Use persisted state to prevent data loss on tab switches
+  const [title, setTitle, clearTitle] = usePersistedState("quickTaskForm_title", "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -61,7 +63,7 @@ export const QuickTaskForm = ({
       }
 
       onTaskCreated?.(tasksResult.data);
-      setTitle("");
+      clearTitle(); // Clear persisted state on successful submission
       toast.success(assistantId ? `Task added for ${assistantName}` : "Task added (unassigned)");
     } catch (error) {
       console.error("Error creating task:", error);

@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { CalendarIcon, Loader2, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import {
   Dialog,
   DialogContent,
@@ -63,11 +64,12 @@ export const CreateTaskDialog = ({
 }: CreateTaskDialogProps) => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [assistantId, setAssistantId] = useState("");
-  const [priority, setPriority] = useState("medium");
-  const [status, setStatus] = useState("pending");
+  // Use persisted state to prevent data loss on tab switches
+  const [title, setTitle, clearTitle] = usePersistedState("createTaskDialog_title", "");
+  const [description, setDescription, clearDescription] = usePersistedState("createTaskDialog_description", "");
+  const [assistantId, setAssistantId, clearAssistantId] = usePersistedState("createTaskDialog_assistantId", "");
+  const [priority, setPriority, clearPriority] = usePersistedState("createTaskDialog_priority", "medium");
+  const [status, setStatus, clearStatus] = usePersistedState("createTaskDialog_status", "pending");
   const [dueDate, setDueDate] = useState<Date | undefined>();
 
   // Set pre-selected assistant when dialog opens
@@ -141,11 +143,11 @@ export const CreateTaskDialog = ({
   };
 
   const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setAssistantId("");
-    setPriority("medium");
-    setStatus("pending");
+    clearTitle();
+    clearDescription();
+    clearAssistantId();
+    clearPriority();
+    clearStatus();
     setDueDate(undefined);
   };
 

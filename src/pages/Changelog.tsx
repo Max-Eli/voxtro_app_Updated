@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -51,7 +52,8 @@ const QuickAddEntry = ({
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [title, setTitle] = useState("");
+  // Use persisted state to prevent data loss on tab switches
+  const [title, setTitle, clearTitle] = usePersistedState(`changelog_quickAdd_${entityId}`, "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -97,7 +99,7 @@ const QuickAddEntry = ({
         if (error) throw error;
       }
       
-      setTitle("");
+      clearTitle(); // Clear persisted state on successful submission
       toast({ title: `Task added for ${entityName}` });
       onEntryAdded();
     } catch (error) {

@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { BrandingSettings } from "@/components/BrandingSettings";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/ThemeProvider";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { validateVoiceConnection, validateElevenLabsConnection } from "@/integrations/api/endpoints";
 import { cn } from "@/lib/utils";
 
@@ -79,23 +80,24 @@ const Settings = () => {
   
   // Multi-organization voice connection state
   const [voiceConnections, setVoiceConnections] = useState<VoiceConnection[]>([]);
-  const [newVoiceApiKey, setNewVoiceApiKey] = useState("");
-  const [newVoicePublicKey, setNewVoicePublicKey] = useState("");
-  const [newOrgName, setNewOrgName] = useState("");
+  // Use persisted state to prevent data loss on tab switches
+  const [newVoiceApiKey, setNewVoiceApiKey, clearNewVoiceApiKey] = usePersistedState("settings_newVoiceApiKey", "");
+  const [newVoicePublicKey, setNewVoicePublicKey, clearNewVoicePublicKey] = usePersistedState("settings_newVoicePublicKey", "");
+  const [newOrgName, setNewOrgName, clearNewOrgName] = usePersistedState("settings_newOrgName", "");
   const [validatingVoice, setValidatingVoice] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  
+
   // ElevenLabs connection state
   const [elevenLabsConnections, setElevenLabsConnections] = useState<ElevenLabsConnection[]>([]);
-  const [newElevenLabsApiKey, setNewElevenLabsApiKey] = useState("");
-  const [newElevenLabsOrgName, setNewElevenLabsOrgName] = useState("");
+  const [newElevenLabsApiKey, setNewElevenLabsApiKey, clearNewElevenLabsApiKey] = usePersistedState("settings_newElevenLabsApiKey", "");
+  const [newElevenLabsOrgName, setNewElevenLabsOrgName, clearNewElevenLabsOrgName] = usePersistedState("settings_newElevenLabsOrgName", "");
   const [validatingElevenLabs, setValidatingElevenLabs] = useState(false);
   const [showElevenLabsAddForm, setShowElevenLabsAddForm] = useState(false);
 
   // OpenAI connection state
   const [openAIConnections, setOpenAIConnections] = useState<OpenAIConnection[]>([]);
-  const [newOpenAIApiKey, setNewOpenAIApiKey] = useState("");
-  const [newOpenAIOrgName, setNewOpenAIOrgName] = useState("");
+  const [newOpenAIApiKey, setNewOpenAIApiKey, clearNewOpenAIApiKey] = usePersistedState("settings_newOpenAIApiKey", "");
+  const [newOpenAIOrgName, setNewOpenAIOrgName, clearNewOpenAIOrgName] = usePersistedState("settings_newOpenAIOrgName", "");
   const [validatingOpenAI, setValidatingOpenAI] = useState(false);
   const [showOpenAIAddForm, setShowOpenAIAddForm] = useState(false);
 
@@ -507,9 +509,10 @@ const Settings = () => {
         description: `Organization "${newOrgName}" connected successfully`,
       });
 
-      setNewVoiceApiKey("");
-      setNewVoicePublicKey("");
-      setNewOrgName("");
+      // Clear persisted state on successful submission
+      clearNewVoiceApiKey();
+      clearNewVoicePublicKey();
+      clearNewOrgName();
       setShowAddForm(false);
       await fetchVoiceConnections();
     } catch (error: any) {
@@ -648,8 +651,9 @@ const Settings = () => {
         description: `"${newElevenLabsOrgName}" connected successfully`,
       });
 
-      setNewElevenLabsApiKey("");
-      setNewElevenLabsOrgName("");
+      // Clear persisted state on successful submission
+      clearNewElevenLabsApiKey();
+      clearNewElevenLabsOrgName();
       setShowElevenLabsAddForm(false);
       await fetchElevenLabsConnections();
     } catch (error: any) {
@@ -752,8 +756,9 @@ const Settings = () => {
         description: "OpenAI connected successfully",
       });
 
-      setNewOpenAIApiKey("");
-      setNewOpenAIOrgName("");
+      // Clear persisted state on successful submission
+      clearNewOpenAIApiKey();
+      clearNewOpenAIOrgName();
       setShowOpenAIAddForm(false);
       await fetchOpenAIConnections();
     } catch (error: any) {
@@ -1230,9 +1235,9 @@ const Settings = () => {
                               size="sm"
                               onClick={() => {
                                 setShowAddForm(false);
-                                setNewVoiceApiKey("");
-                                setNewVoicePublicKey("");
-                                setNewOrgName("");
+                                clearNewVoiceApiKey();
+                                clearNewVoicePublicKey();
+                                clearNewOrgName();
                               }}
                             >
                               Cancel
@@ -1316,8 +1321,8 @@ const Settings = () => {
                               size="sm"
                               onClick={() => {
                                 setShowElevenLabsAddForm(false);
-                                setNewElevenLabsApiKey("");
-                                setNewElevenLabsOrgName("");
+                                clearNewElevenLabsApiKey();
+                                clearNewElevenLabsOrgName();
                               }}
                             >
                               Cancel
@@ -1404,8 +1409,8 @@ const Settings = () => {
                               size="sm"
                               onClick={() => {
                                 setShowOpenAIAddForm(false);
-                                setNewOpenAIApiKey("");
-                                setNewOpenAIOrgName("");
+                                clearNewOpenAIApiKey();
+                                clearNewOpenAIOrgName();
                               }}
                             >
                               Cancel

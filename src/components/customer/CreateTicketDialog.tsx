@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Plus, Send } from 'lucide-react';
 import { createCustomerPortalTicket } from '@/integrations/api/endpoints/customers';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 interface CreateTicketDialogProps {
   customerId: string;
@@ -25,9 +26,10 @@ export function CreateTicketDialog({
   trigger 
 }: CreateTicketDialogProps) {
   const [open, setOpen] = useState(false);
-  const [subject, setSubject] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<string>('medium');
+  // Use persisted state to prevent data loss on tab switches
+  const [subject, setSubject, clearSubject] = usePersistedState('createTicketDialog_subject', '');
+  const [description, setDescription, clearDescription] = usePersistedState('createTicketDialog_description', '');
+  const [priority, setPriority, clearPriority] = usePersistedState('createTicketDialog_priority', 'medium');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,9 +50,10 @@ export function CreateTicketDialog({
       });
 
       toast.success('Support ticket created successfully');
-      setSubject('');
-      setDescription('');
-      setPriority('medium');
+      // Clear persisted state on successful submission
+      clearSubject();
+      clearDescription();
+      clearPriority();
       setOpen(false);
       onTicketCreated?.();
     } catch (error) {
