@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { getCustomerPortalAnalytics, CustomerAnalyticsResponse } from '@/integrations/api/endpoints/customers';
 import {
   BarChart3,
-  MessageSquare,
   Phone,
   Clock,
   Bot,
   MessageCircle,
   Users,
-  TrendingUp
+  TrendingUp,
+  ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -51,10 +52,15 @@ export function CustomerAnalyticsPage() {
   // Format percentage - cap at 100% and handle edge cases
   const formatPercentage = (value: number) => {
     if (value === null || value === undefined || isNaN(value)) return '0%';
-    // If value is already a percentage (> 1), cap at 100
-    // If value is decimal (0-1), multiply by 100
     const percentage = value > 1 ? Math.min(value, 100) : Math.min(value * 100, 100);
     return `${percentage.toFixed(0)}%`;
+  };
+
+  // Get percentage value for progress bar (0-100)
+  const getProgressValue = (value: number) => {
+    if (value === null || value === undefined || isNaN(value)) return 0;
+    const percentage = value > 1 ? Math.min(value, 100) : Math.min(value * 100, 100);
+    return percentage;
   };
 
   if (loading) {
@@ -62,10 +68,10 @@ export function CustomerAnalyticsPage() {
       <div className="space-y-6 p-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-24 bg-muted/50 rounded-lg animate-pulse" />
+            <div key={i} className="h-28 bg-muted/30 rounded-xl animate-pulse" />
           ))}
         </div>
-        <div className="h-64 bg-muted/50 rounded-lg animate-pulse" />
+        <div className="h-80 bg-muted/30 rounded-xl animate-pulse" />
       </div>
     );
   }
@@ -79,164 +85,217 @@ export function CustomerAnalyticsPage() {
                       (analytics?.whatsapp_agents.assigned.length || 0);
 
   return (
-    <div className="space-y-8 p-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Performance metrics for your AI agents
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track performance across all your AI agents
+          </p>
+        </div>
       </div>
 
       {analytics && (
         <>
           {/* Key Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="border-0 shadow-sm">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
               <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Total Leads</p>
-                <p className="text-3xl font-semibold mt-1">{analytics.leads.total_count}</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
+                    <p className="text-3xl font-bold mt-2">{analytics.leads.total_count}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Captured from agents</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm">
+            <Card>
               <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Conversion Rate</p>
-                <p className="text-3xl font-semibold mt-1">
-                  {formatPercentage(analytics.leads.conversion_rates.overall)}
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
+                    <p className="text-3xl font-bold mt-2">
+                      {formatPercentage(analytics.leads.conversion_rates.overall)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Lead conversion</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm">
+            <Card>
               <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Interactions</p>
-                <p className="text-3xl font-semibold mt-1">{totalInteractions}</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Interactions</p>
+                    <p className="text-3xl font-bold mt-2">{totalInteractions}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Total conversations & calls</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <MessageCircle className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm">
+            <Card>
               <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Active Agents</p>
-                <p className="text-3xl font-semibold mt-1">{totalAgents}</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Active Agents</p>
+                    <p className="text-3xl font-bold mt-2">{totalAgents}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Connected agents</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Bot className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Channel Performance */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-medium">Performance by Channel</CardTitle>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Channel Performance</CardTitle>
+              <CardDescription>Conversion rates and activity by communication channel</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="space-y-6">
                 {/* Chatbots */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Bot className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Chatbots</span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                        <Bot className="h-5 w-5 text-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Chatbots</p>
+                        <p className="text-sm text-muted-foreground">
+                          {analytics.chatbots.total_conversations} conversations · {analytics.chatbots.total_messages} messages
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold">{formatPercentage(analytics.leads.conversion_rates.chatbot)}</p>
+                      <p className="text-xs text-muted-foreground">conversion</p>
+                    </div>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Conversations</span>
-                      <span className="font-medium">{analytics.chatbots.total_conversations}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Messages</span>
-                      <span className="font-medium">{analytics.chatbots.total_messages}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Conversion</span>
-                      <span className="font-medium">{formatPercentage(analytics.leads.conversion_rates.chatbot)}</span>
-                    </div>
-                  </div>
+                  <Progress value={getProgressValue(analytics.leads.conversion_rates.chatbot)} className="h-2" />
                 </div>
 
                 {/* Voice */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Voice Assistants</span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                        <Phone className="h-5 w-5 text-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Voice Assistants</p>
+                        <p className="text-sm text-muted-foreground">
+                          {analytics.voice_assistants.total_calls} calls · {formatDuration(analytics.voice_assistants.total_duration)} total
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold">{formatPercentage(analytics.leads.conversion_rates.voice)}</p>
+                      <p className="text-xs text-muted-foreground">conversion</p>
+                    </div>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Calls</span>
-                      <span className="font-medium">{analytics.voice_assistants.total_calls}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Duration</span>
-                      <span className="font-medium">{formatDuration(analytics.voice_assistants.total_duration)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Conversion</span>
-                      <span className="font-medium">{formatPercentage(analytics.leads.conversion_rates.voice)}</span>
-                    </div>
-                  </div>
+                  <Progress value={getProgressValue(analytics.leads.conversion_rates.voice)} className="h-2" />
                 </div>
 
                 {/* WhatsApp */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">WhatsApp</span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                        <MessageCircle className="h-5 w-5 text-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-medium">WhatsApp</p>
+                        <p className="text-sm text-muted-foreground">
+                          {analytics.whatsapp_agents.total_conversations} conversations · {analytics.whatsapp_agents.total_messages} messages
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold">{formatPercentage(analytics.leads.conversion_rates.whatsapp)}</p>
+                      <p className="text-xs text-muted-foreground">conversion</p>
+                    </div>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Conversations</span>
-                      <span className="font-medium">{analytics.whatsapp_agents.total_conversations}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Messages</span>
-                      <span className="font-medium">{analytics.whatsapp_agents.total_messages}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Conversion</span>
-                      <span className="font-medium">{formatPercentage(analytics.leads.conversion_rates.whatsapp)}</span>
-                    </div>
-                  </div>
+                  <Progress value={getProgressValue(analytics.leads.conversion_rates.whatsapp)} className="h-2" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Agent Details */}
+          {/* Tabs for Details */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="bg-muted/50">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsList>
+              <TabsTrigger value="overview">Recent Leads</TabsTrigger>
               <TabsTrigger value="chatbots">Chatbots</TabsTrigger>
               <TabsTrigger value="voice">Voice</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="mt-6">
-              {/* Recent Leads */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-base font-medium">Recent Leads</CardTitle>
+            <TabsContent value="overview" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Recent Leads</CardTitle>
+                  <CardDescription>Latest leads captured by your AI agents</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {analytics.leads.recent.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No leads captured yet
-                    </p>
+                    <div className="text-center py-12">
+                      <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                      <p className="text-muted-foreground">No leads captured yet</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Leads will appear here as your agents interact with visitors
+                      </p>
+                    </div>
                   ) : (
-                    <div className="space-y-3">
-                      {analytics.leads.recent.slice(0, 5).map((lead) => (
+                    <div className="space-y-1">
+                      {analytics.leads.recent.slice(0, 6).map((lead, index) => (
                         <div
                           key={lead.id}
-                          className="flex items-center justify-between py-3 border-b last:border-0"
+                          className={`flex items-center justify-between p-4 rounded-lg hover:bg-muted/50 transition-colors ${
+                            index !== analytics.leads.recent.slice(0, 6).length - 1 ? 'border-b' : ''
+                          }`}
                         >
-                          <div>
-                            <p className="text-sm font-medium">
-                              {lead.name || lead.email || lead.phone_number || 'Anonymous'}
-                            </p>
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <span className="text-sm font-medium text-primary">
+                                {(lead.name || lead.email || '?')[0].toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {lead.name || lead.email || lead.phone_number || 'Anonymous'}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {lead.email && lead.phone_number
+                                  ? `${lead.email} · ${lead.phone_number}`
+                                  : lead.email || lead.phone_number || 'No contact info'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">{lead.source_name || lead.source_type}</p>
                             <p className="text-xs text-muted-foreground">
-                              {lead.source_name || lead.source_type}
+                              {new Date(lead.extracted_at).toLocaleDateString()}
                             </p>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(lead.extracted_at).toLocaleDateString()}
-                          </p>
                         </div>
                       ))}
                     </div>
@@ -245,37 +304,61 @@ export function CustomerAnalyticsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="chatbots" className="mt-6">
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-base font-medium">Chatbot Performance</CardTitle>
+            <TabsContent value="chatbots" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Chatbot Performance</CardTitle>
+                  <CardDescription>Individual metrics for each chatbot</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {analytics.chatbots.assigned.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No chatbots connected
-                    </p>
+                    <div className="text-center py-12">
+                      <Bot className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                      <p className="text-muted-foreground">No chatbots connected</p>
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       {analytics.chatbots.assigned.map((chatbot) => (
                         <div
                           key={chatbot.id}
-                          className="flex items-center justify-between py-3 border-b last:border-0"
+                          className="flex items-center justify-between p-4 rounded-lg border hover:border-primary/50 transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                              <Bot className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex items-center gap-4">
+                            <div
+                              className="h-12 w-12 rounded-lg flex items-center justify-center"
+                              style={{
+                                backgroundColor: chatbot.theme_color ? `${chatbot.theme_color}15` : 'hsl(var(--muted))'
+                              }}
+                            >
+                              <Bot
+                                className="h-6 w-6"
+                                style={{ color: chatbot.theme_color || 'hsl(var(--foreground))' }}
+                              />
                             </div>
                             <div>
-                              <p className="text-sm font-medium">{chatbot.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {chatbot.conversation_count} conversations
+                              <p className="font-medium">{chatbot.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {chatbot.description || 'AI Chatbot'}
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">{chatbot.message_count}</p>
-                            <p className="text-xs text-muted-foreground">messages</p>
+                          <div className="flex items-center gap-8">
+                            <div className="text-center">
+                              <p className="text-xl font-bold">{chatbot.conversation_count}</p>
+                              <p className="text-xs text-muted-foreground">conversations</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xl font-bold">{chatbot.message_count}</p>
+                              <p className="text-xs text-muted-foreground">messages</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xl font-bold">
+                                {chatbot.conversation_count > 0
+                                  ? Math.round(chatbot.message_count / chatbot.conversation_count)
+                                  : 0}
+                              </p>
+                              <p className="text-xs text-muted-foreground">avg/conv</p>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -285,39 +368,53 @@ export function CustomerAnalyticsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="voice" className="mt-6">
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-base font-medium">Voice Assistant Performance</CardTitle>
+            <TabsContent value="voice" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Voice Assistant Performance</CardTitle>
+                  <CardDescription>Call statistics for each assistant</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {analytics.voice_assistants.assigned.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No voice assistants connected
-                    </p>
+                    <div className="text-center py-12">
+                      <Phone className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                      <p className="text-muted-foreground">No voice assistants connected</p>
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       {analytics.voice_assistants.assigned.map((assistant) => (
                         <div
                           key={assistant.id}
-                          className="flex items-center justify-between py-3 border-b last:border-0"
+                          className="flex items-center justify-between p-4 rounded-lg border hover:border-primary/50 transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                              <Phone className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+                              <Phone className="h-6 w-6 text-foreground" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium">{assistant.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {assistant.phone_number || 'No phone'}
+                              <p className="font-medium">{assistant.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {assistant.phone_number || 'No phone assigned'}
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">{assistant.call_count} calls</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatDuration(assistant.total_duration)}
-                            </p>
+                          <div className="flex items-center gap-8">
+                            <div className="text-center">
+                              <p className="text-xl font-bold">{assistant.call_count}</p>
+                              <p className="text-xs text-muted-foreground">calls</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xl font-bold">{formatDuration(assistant.total_duration)}</p>
+                              <p className="text-xs text-muted-foreground">total time</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xl font-bold">
+                                {assistant.call_count > 0
+                                  ? formatDuration(Math.round(assistant.total_duration / assistant.call_count))
+                                  : '0m'}
+                              </p>
+                              <p className="text-xs text-muted-foreground">avg call</p>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -327,37 +424,41 @@ export function CustomerAnalyticsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="whatsapp" className="mt-6">
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-base font-medium">WhatsApp Agent Performance</CardTitle>
+            <TabsContent value="whatsapp" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">WhatsApp Agent Performance</CardTitle>
+                  <CardDescription>Conversation metrics for each agent</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {analytics.whatsapp_agents.assigned.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No WhatsApp agents connected
-                    </p>
+                    <div className="text-center py-12">
+                      <MessageCircle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                      <p className="text-muted-foreground">No WhatsApp agents connected</p>
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       {analytics.whatsapp_agents.assigned.map((agent) => (
                         <div
                           key={agent.id}
-                          className="flex items-center justify-between py-3 border-b last:border-0"
+                          className="flex items-center justify-between p-4 rounded-lg border hover:border-primary/50 transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                              <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+                              <MessageCircle className="h-6 w-6 text-foreground" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium">{agent.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {agent.phone_number || 'No phone'}
+                              <p className="font-medium">{agent.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {agent.phone_number || 'No phone assigned'}
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">{agent.conversation_count}</p>
-                            <p className="text-xs text-muted-foreground">conversations</p>
+                          <div className="flex items-center gap-8">
+                            <div className="text-center">
+                              <p className="text-xl font-bold">{agent.conversation_count}</p>
+                              <p className="text-xs text-muted-foreground">conversations</p>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -371,11 +472,12 @@ export function CustomerAnalyticsPage() {
       )}
 
       {!analytics && !loading && (
-        <Card className="border-0 shadow-sm">
-          <CardContent className="text-center py-12">
-            <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground">
-              No analytics available yet
+        <Card>
+          <CardContent className="text-center py-16">
+            <BarChart3 className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">No Analytics Available</h3>
+            <p className="text-muted-foreground">
+              Analytics will appear here once your agents start receiving interactions
             </p>
           </CardContent>
         </Card>
