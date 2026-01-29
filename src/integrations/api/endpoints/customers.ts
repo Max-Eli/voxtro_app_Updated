@@ -200,3 +200,104 @@ export async function syncCustomerVoiceCalls() {
   return apiClient.post('/api/customers/portal/sync-voice-calls');
 }
 
+// ==================== Conversation/Call Logs with Analysis ====================
+
+export interface ChatbotConversationLog {
+  id: string;
+  chatbot_id: string;
+  chatbot_name: string;
+  created_at: string;
+  updated_at: string;
+  lead_info: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    interest_level?: string;
+  } | null;
+  summary: string | null;
+  message_count: number;
+  last_message: {
+    content: string;
+    role: string;
+    created_at: string;
+  } | null;
+}
+
+export interface VoiceCallLog {
+  id: string;
+  assistant_id: string;
+  assistant_name: string;
+  assistant_phone: string | null;
+  caller_phone: string | null;
+  status: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number;
+  analysis: {
+    summary: string | null;
+    key_points: string[] | null;
+    action_items: string[] | null;
+    sentiment: string | null;
+    sentiment_notes: string | null;
+    call_outcome: string | null;
+    topics_discussed: string[] | null;
+    lead_info: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      company?: string;
+      interest_level?: string;
+    } | null;
+  };
+}
+
+export interface WhatsAppConversationLog {
+  id: string;
+  agent_id: string;
+  agent_name: string;
+  agent_phone: string | null;
+  customer_phone: string | null;
+  status: string;
+  started_at: string;
+  ended_at: string | null;
+  message_count: number;
+  analysis: {
+    summary: string | null;
+    key_points: string[] | null;
+    action_items: string[] | null;
+    sentiment: string | null;
+    sentiment_notes: string | null;
+    conversation_outcome: string | null;
+    topics_discussed: string[] | null;
+    lead_info: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      company?: string;
+      interest_level?: string;
+    } | null;
+  };
+}
+
+/**
+ * Get recent chatbot conversations with AI analysis
+ */
+export async function getCustomerChatbotConversations(): Promise<{ conversations: ChatbotConversationLog[] }> {
+  return apiClient.get('/api/customers/portal/chatbot-conversations');
+}
+
+/**
+ * Get recent voice calls with AI analysis
+ */
+export async function getCustomerVoiceCallLogs(): Promise<{ calls: VoiceCallLog[] }> {
+  return apiClient.get('/api/customers/portal/voice-call-logs');
+}
+
+/**
+ * Get recent WhatsApp conversations with AI analysis
+ */
+export async function getCustomerWhatsAppConversationLogs(): Promise<{ conversations: WhatsAppConversationLog[] }> {
+  return apiClient.get('/api/customers/portal/whatsapp-conversation-logs');
+}
+
