@@ -12,7 +12,7 @@ interface CreateCustomerRequest {
   full_name: string;
   company_name?: string;
   password: string;
-  assigned_chatbots: string[];
+  assigned_chatbots?: string[];  // Made optional - customer can be created without chatbot assignment
   assigned_by: string;
 }
 
@@ -37,11 +37,11 @@ const handler = async (req: Request): Promise<Response> => {
       assigned_by 
     }: CreateCustomerRequest = requestBody;
 
-    // Validate required fields
-    if (!email || !full_name || !password || !assigned_chatbots || assigned_chatbots.length === 0) {
+    // Validate required fields (chatbot assignment is optional)
+    if (!email || !full_name || !password) {
       console.log("Missing required fields");
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ error: "Missing required fields: email, full_name, and password are required" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -144,24 +144,28 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("Auth user created successfully:", authUser.user?.id);
     }
 
-    console.log("Creating chatbot assignments...");
-    // Create chatbot assignments
-    const assignments = assigned_chatbots.map(chatbotId => ({
-      customer_id: customer.id,
-      chatbot_id: chatbotId,
-      assigned_by
-    }));
+    // Create chatbot assignments only if chatbots are provided
+    if (assigned_chatbots && assigned_chatbots.length > 0) {
+      console.log("Creating chatbot assignments...");
+      const assignments = assigned_chatbots.map(chatbotId => ({
+        customer_id: customer.id,
+        chatbot_id: chatbotId,
+        assigned_by
+      }));
 
-    const { error: assignmentError } = await supabase
-      .from('customer_chatbot_assignments')
-      .insert(assignments);
+      const { error: assignmentError } = await supabase
+        .from('customer_chatbot_assignments')
+        .insert(assignments);
 
-    if (assignmentError) {
-      console.error("Assignment creation error:", assignmentError);
-      throw new Error(`Failed to create assignments: ${assignmentError.message}`);
+      if (assignmentError) {
+        console.error("Assignment creation error:", assignmentError);
+        throw new Error(`Failed to create assignments: ${assignmentError.message}`);
+      }
+
+      console.log("Assignments created successfully");
+    } else {
+      console.log("No chatbot assignments to create - customer created without chatbot");
     }
-
-    console.log("Assignments created successfully");
 
     return new Response(
       JSON.stringify({ 
