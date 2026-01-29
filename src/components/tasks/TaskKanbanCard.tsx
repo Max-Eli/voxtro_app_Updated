@@ -332,12 +332,38 @@ export function TaskKanbanCard({
           </DropdownMenu>
         </div>
 
-        {/* Collapsed view - Priority and due date */}
+        {/* Collapsed view - Priority, agents, and due date */}
         {!isExpanded && (
           <div className="flex items-center gap-2 flex-wrap pl-6">
             <Badge variant="secondary" className={cn("text-xs", PRIORITY_BADGES[task.priority as keyof typeof PRIORITY_BADGES])}>
               {task.priority}
             </Badge>
+
+            {/* Assigned Agents */}
+            {task.assistant_id && assistantName && (
+              <Badge variant="outline" className="text-xs flex items-center gap-1 bg-purple-500/10 text-purple-400 border-purple-500/30">
+                <Bot className="h-3 w-3" />
+                {assistantName}
+              </Badge>
+            )}
+            {task.chatbot_id && chatbotName && (
+              <Badge variant="outline" className="text-xs flex items-center gap-1 bg-blue-500/10 text-blue-400 border-blue-500/30">
+                <Bot className="h-3 w-3" />
+                {chatbotName}
+              </Badge>
+            )}
+            {task.whatsapp_agent_id && whatsappAgentName && (
+              <Badge variant="outline" className="text-xs flex items-center gap-1 bg-green-500/10 text-green-400 border-green-500/30">
+                <MessageSquare className="h-3 w-3" />
+                {whatsappAgentName}
+              </Badge>
+            )}
+            {task.assigned_to && assignedToName && (
+              <Badge variant="outline" className="text-xs flex items-center gap-1 bg-orange-500/10 text-orange-400 border-orange-500/30">
+                <User className="h-3 w-3" />
+                {assignedToName}
+              </Badge>
+            )}
 
             {task.due_date && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
