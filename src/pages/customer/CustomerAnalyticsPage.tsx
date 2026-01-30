@@ -192,13 +192,13 @@ export function CustomerAnalyticsPage() {
     );
   }
 
-  const totalInteractions = (analytics?.chatbots.total_conversations || 0) +
-                           (analytics?.voice_assistants.total_calls || 0) +
-                           (analytics?.whatsapp_agents.total_conversations || 0);
+  const totalInteractions = (analytics?.chatbots?.total_conversations ?? 0) +
+                           (analytics?.voice_assistants?.total_calls ?? 0) +
+                           (analytics?.whatsapp_agents?.total_conversations ?? 0);
 
-  const totalAgents = (analytics?.chatbots.assigned.length || 0) +
-                      (analytics?.voice_assistants.assigned.length || 0) +
-                      (analytics?.whatsapp_agents.assigned.length || 0);
+  const totalAgents = (analytics?.chatbots?.assigned?.length ?? 0) +
+                      (analytics?.voice_assistants?.assigned?.length ?? 0) +
+                      (analytics?.whatsapp_agents?.assigned?.length ?? 0);
 
   return (
     <div className="space-y-6 p-6">
@@ -221,7 +221,7 @@ export function CustomerAnalyticsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
-                    <p className="text-3xl font-bold mt-2">{analytics.leads.total_count}</p>
+                    <p className="text-3xl font-bold mt-2">{analytics.leads?.total_count ?? 0}</p>
                     <p className="text-xs text-muted-foreground mt-1">Captured from agents</p>
                   </div>
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -237,7 +237,7 @@ export function CustomerAnalyticsPage() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
                     <p className="text-3xl font-bold mt-2">
-                      {formatPercentage(analytics.leads.conversion_rates.overall)}
+                      {formatPercentage(analytics.leads?.conversion_rates?.overall ?? 0)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">Lead conversion</p>
                   </div>
@@ -294,15 +294,15 @@ export function CustomerAnalyticsPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-baseline">
                       <span className="text-sm text-muted-foreground">Conversion</span>
-                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads.conversion_rates.chatbot)}</span>
+                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads?.conversion_rates?.chatbot ?? 0)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Conversations</span>
-                      <span>{analytics.chatbots.total_conversations}</span>
+                      <span>{analytics.chatbots?.total_conversations ?? 0}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Messages</span>
-                      <span>{analytics.chatbots.total_messages}</span>
+                      <span>{analytics.chatbots?.total_messages ?? 0}</span>
                     </div>
                   </div>
                 </div>
@@ -322,15 +322,15 @@ export function CustomerAnalyticsPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-baseline">
                       <span className="text-sm text-muted-foreground">Conversion</span>
-                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads.conversion_rates.voice)}</span>
+                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads?.conversion_rates?.voice ?? 0)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Calls</span>
-                      <span>{analytics.voice_assistants.total_calls}</span>
+                      <span>{analytics.voice_assistants?.total_calls ?? 0}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Duration</span>
-                      <span>{formatDuration(analytics.voice_assistants.total_duration)}</span>
+                      <span>{formatDuration(analytics.voice_assistants?.total_duration ?? 0)}</span>
                     </div>
                   </div>
                 </div>
@@ -350,15 +350,15 @@ export function CustomerAnalyticsPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-baseline">
                       <span className="text-sm text-muted-foreground">Conversion</span>
-                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads.conversion_rates.whatsapp)}</span>
+                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads?.conversion_rates?.whatsapp ?? 0)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Conversations</span>
-                      <span>{analytics.whatsapp_agents.total_conversations}</span>
+                      <span>{analytics.whatsapp_agents?.total_conversations ?? 0}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Messages</span>
-                      <span>{analytics.whatsapp_agents.total_messages}</span>
+                      <span>{analytics.whatsapp_agents?.total_messages ?? 0}</span>
                     </div>
                   </div>
                 </div>
@@ -382,7 +382,7 @@ export function CustomerAnalyticsPage() {
                   <CardDescription>Latest leads captured by your AI agents</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {analytics.leads.recent.length === 0 ? (
+                  {(analytics.leads?.recent?.length ?? 0) === 0 ? (
                     <div className="text-center py-12">
                       <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                       <p className="text-muted-foreground">No leads captured yet</p>
@@ -392,11 +392,11 @@ export function CustomerAnalyticsPage() {
                     </div>
                   ) : (
                     <div className="space-y-1">
-                      {analytics.leads.recent.slice(0, 6).map((lead, index) => (
+                      {(analytics.leads?.recent ?? []).slice(0, 6).map((lead, index) => (
                         <div
                           key={lead.id}
                           className={`flex items-center justify-between p-4 rounded-lg hover:bg-muted/50 transition-colors ${
-                            index !== analytics.leads.recent.slice(0, 6).length - 1 ? 'border-b' : ''
+                            index !== (analytics.leads?.recent ?? []).slice(0, 6).length - 1 ? 'border-b' : ''
                           }`}
                         >
                           <div className="flex items-center gap-4">
@@ -437,14 +437,14 @@ export function CustomerAnalyticsPage() {
                   <CardDescription>Individual metrics for each chatbot</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {analytics.chatbots.assigned.length === 0 ? (
+                  {(analytics.chatbots?.assigned?.length ?? 0) === 0 ? (
                     <div className="text-center py-12">
                       <Bot className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                       <p className="text-muted-foreground">No chatbots connected</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {analytics.chatbots.assigned.map((chatbot) => (
+                      {(analytics.chatbots?.assigned ?? []).map((chatbot) => (
                         <div
                           key={chatbot.id}
                           className="flex items-center justify-between p-4 rounded-lg border hover:border-primary/50 transition-colors"
@@ -577,14 +577,14 @@ export function CustomerAnalyticsPage() {
                   <CardDescription>Call statistics for each assistant</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {analytics.voice_assistants.assigned.length === 0 ? (
+                  {(analytics.voice_assistants?.assigned?.length ?? 0) === 0 ? (
                     <div className="text-center py-12">
                       <Phone className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                       <p className="text-muted-foreground">No voice assistants connected</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {analytics.voice_assistants.assigned.map((assistant) => (
+                      {(analytics.voice_assistants?.assigned ?? []).map((assistant) => (
                         <div
                           key={assistant.id}
                           className="flex items-center justify-between p-4 rounded-lg border hover:border-primary/50 transition-colors"
@@ -754,14 +754,14 @@ export function CustomerAnalyticsPage() {
                   <CardDescription>Conversation metrics for each agent</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {analytics.whatsapp_agents.assigned.length === 0 ? (
+                  {(analytics.whatsapp_agents?.assigned?.length ?? 0) === 0 ? (
                     <div className="text-center py-12">
                       <MessageCircle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                       <p className="text-muted-foreground">No WhatsApp agents connected</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {analytics.whatsapp_agents.assigned.map((agent) => (
+                      {(analytics.whatsapp_agents?.assigned ?? []).map((agent) => (
                         <div
                           key={agent.id}
                           className="flex items-center justify-between p-4 rounded-lg border hover:border-primary/50 transition-colors"
