@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
+import { supabase } from '@/integrations/supabase/client';
 import {
   getCustomerPortalAnalytics,
   CustomerAnalyticsResponse,
@@ -81,6 +82,8 @@ export function CustomerAnalyticsPage() {
   }, [activeTab]);
 
   const fetchAnalytics = async () => {
+    if (!customer) return;
+
     try {
       // Fetch analytics and leads in parallel
       const [analyticsData, leadsResponse] = await Promise.all([
@@ -95,14 +98,61 @@ export function CustomerAnalyticsPage() {
       setLeads(allLeads);
       setTotalLeadsCount(allLeads.length);
 
+      // Fetch interaction counts directly from Supabase (same as dashboard does)
+      // This ensures we get accurate counts for conversion rate calculation
+
+      // Get chatbot conversation count
+      const { data: chatbotAssignments } = await supabase
+        .from('customer_chatbot_assignments')
+        .select('chatbot_id')
+        .eq('customer_id', customer.id);
+
+      const chatbotIds = chatbotAssignments?.map(a => a.chatbot_id) || [];
+      let totalConversations = 0;
+      if (chatbotIds.length > 0) {
+        const { data: conversations } = await supabase
+          .from('conversations')
+          .select('id')
+          .in('chatbot_id', chatbotIds);
+        totalConversations = conversations?.length || 0;
+      }
+
+      // Get voice call count
+      const { data: voiceAssignments } = await supabase
+        .from('customer_assistant_assignments')
+        .select('assistant_id')
+        .eq('customer_id', customer.id);
+
+      const assistantIds = voiceAssignments?.map(a => a.assistant_id).filter(Boolean) || [];
+      let totalCalls = 0;
+      if (assistantIds.length > 0) {
+        const { data: calls } = await supabase
+          .from('voice_assistant_calls')
+          .select('id')
+          .in('assistant_id', assistantIds);
+        totalCalls = calls?.length || 0;
+      }
+
+      // Get WhatsApp conversation count
+      const { data: waAssignments } = await supabase
+        .from('customer_whatsapp_agent_assignments')
+        .select('agent_id')
+        .eq('customer_id', customer.id);
+
+      const waAgentIds = waAssignments?.map(a => a.agent_id).filter(Boolean) || [];
+      let totalWaConversations = 0;
+      if (waAgentIds.length > 0) {
+        const { data: waConvs } = await supabase
+          .from('whatsapp_conversations')
+          .select('id')
+          .in('agent_id', waAgentIds);
+        totalWaConversations = waConvs?.length || 0;
+      }
+
       // Calculate conversion rates from leads (same logic as CustomerOverview dashboard)
       const chatbotLeads = allLeads.filter(l => l.source_type === 'chatbot').length;
       const voiceLeads = allLeads.filter(l => l.source_type === 'voice').length;
       const waLeads = allLeads.filter(l => l.source_type === 'whatsapp').length;
-
-      const totalConversations = analyticsData?.chatbots?.total_conversations ?? 0;
-      const totalCalls = analyticsData?.voice_assistants?.total_calls ?? 0;
-      const totalWaConversations = analyticsData?.whatsapp_agents?.total_conversations ?? 0;
 
       const chatbotConvRate = totalConversations > 0 ? Math.round((chatbotLeads / totalConversations) * 100) : 0;
       const voiceConvRate = totalCalls > 0 ? Math.round((voiceLeads / totalCalls) * 100) : 0;
