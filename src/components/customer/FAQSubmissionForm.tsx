@@ -53,6 +53,11 @@ export function FAQSubmissionForm() {
       name: p.agent_name,
     }));
 
+  // Debug logging
+  console.log('[FAQSubmissionForm] Permissions received:', permissions);
+  console.log('[FAQSubmissionForm] Voice permissions:', permissions.filter(p => p.agent_type === 'voice'));
+  console.log('[FAQSubmissionForm] Allowed assistants:', allowedAssistants);
+
   useEffect(() => {
     fetchContent();
   }, []);

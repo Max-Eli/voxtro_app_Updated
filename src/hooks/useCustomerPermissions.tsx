@@ -24,12 +24,18 @@ interface CustomerPermissionsContextType {
 const CustomerPermissionsContext = createContext<CustomerPermissionsContextType | null>(null);
 
 export function CustomerPermissionsProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useCustomerAuth();
+  const { customer, loading: authLoading } = useCustomerAuth();
+  const isAuthenticated = !!customer;
   const [permissions, setPermissions] = useState<AgentPermissions[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPermissions = useCallback(async () => {
+    // Wait for auth to finish loading before checking
+    if (authLoading) {
+      return;
+    }
+
     if (!isAuthenticated) {
       setPermissions([]);
       setLoading(false);
@@ -39,16 +45,18 @@ export function CustomerPermissionsProvider({ children }: { children: ReactNode 
     try {
       setLoading(true);
       setError(null);
+      console.log('[useCustomerPermissions] Fetching permissions...');
       const response = await getMyPermissions();
+      console.log('[useCustomerPermissions] API response:', response);
       setPermissions(response.permissions || []);
     } catch (err) {
-      console.error('Failed to fetch customer permissions:', err);
+      console.error('[useCustomerPermissions] Failed to fetch:', err);
       setError(err instanceof Error ? err.message : 'Failed to load permissions');
       // Don't clear permissions on error - keep stale data
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authLoading]);
 
   useEffect(() => {
     fetchPermissions();
