@@ -12,8 +12,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserPlus, Mail, Trash2, Settings, Users } from 'lucide-react';
+import { UserPlus, Mail, Trash2, Settings, Users, Shield } from 'lucide-react';
 import { createCustomerWithAuth, sendCustomerLoginLink } from '@/integrations/api/endpoints';
+import { CustomerPermissionConfig } from '@/components/CustomerPermissionConfig';
 
 interface Customer {
   id: string;
@@ -69,6 +70,7 @@ export function CustomerManagement() {
     password: '',
     assigned_chatbots: [] as string[]
   });
+  const [permissionsCustomer, setPermissionsCustomer] = useState<CustomerWithAssignments | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -199,11 +201,6 @@ export function CustomerManagement() {
 
     if (newCustomer.password.length < 6) {
       toast.error('Password must be at least 6 characters long');
-      return;
-    }
-
-    if (newCustomer.assigned_chatbots.length === 0) {
-      toast.error('Please assign at least one chatbot to the customer');
       return;
     }
 
@@ -364,7 +361,7 @@ export function CustomerManagement() {
               </div>
               
               <div className="space-y-2">
-                <Label>Assign Chatbots *</Label>
+                <Label>Assign Chatbots (Optional)</Label>
                 <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
                   {chatbots.map((chatbot) => (
                     <div key={chatbot.id} className="flex items-center space-x-2">
@@ -487,7 +484,16 @@ export function CustomerManagement() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => setPermissionsCustomer(customer)}
+                            title="Manage Permissions"
+                          >
+                            <Shield className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => sendLoginLink(customer)}
+                            title="Send Login Link"
                           >
                             <Mail className="w-4 h-4" />
                           </Button>
@@ -496,6 +502,7 @@ export function CustomerManagement() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleDeleteCustomer(customer.id)}
+                              title="Delete Customer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -510,6 +517,28 @@ export function CustomerManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Permissions Dialog */}
+      <Dialog open={!!permissionsCustomer} onOpenChange={(open) => !open && setPermissionsCustomer(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Customer Permissions
+            </DialogTitle>
+            <DialogDescription>
+              Configure what {permissionsCustomer?.full_name} can access in their portal
+            </DialogDescription>
+          </DialogHeader>
+          {permissionsCustomer && (
+            <CustomerPermissionConfig
+              customerId={permissionsCustomer.id}
+              customerName={permissionsCustomer.full_name}
+              onClose={() => setPermissionsCustomer(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
