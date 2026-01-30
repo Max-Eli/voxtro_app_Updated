@@ -164,28 +164,38 @@ export default function Dashboard() {
       const assistantIds = voiceAssistants?.map((a) => a.id) || [];
       setAssistants(voiceAssistants || []);
 
-      // Voice calls
+      // Voice calls - use count: 'exact' for accurate count (Supabase defaults to 1000 limit)
       let totalVoiceCalls = 0;
       let avgCallDuration = 0;
       let totalCallMinutes = 0;
 
       if (assistantIds.length > 0) {
+        // Get exact count first
+        const { count: callCount, error: countError } = await supabase
+          .from('voice_assistant_calls')
+          .select('*', { count: 'exact', head: true })
+          .in('assistant_id', assistantIds);
+
+        if (countError) throw countError;
+        totalVoiceCalls = callCount || 0;
+
+        // Fetch duration data with high limit to calculate totals
         const { data: calls, error: callsError } = await supabase
           .from('voice_assistant_calls')
-          .select('duration_seconds, status')
-          .in('assistant_id', assistantIds);
+          .select('duration_seconds')
+          .in('assistant_id', assistantIds)
+          .not('duration_seconds', 'is', null)
+          .gt('duration_seconds', 0)
+          .limit(50000);
 
         if (callsError) throw callsError;
 
-        totalVoiceCalls = calls?.length || 0;
-
         if (calls && calls.length > 0) {
-          const callsWithDuration = calls.filter(c => c.duration_seconds != null && c.duration_seconds > 0);
-          const totalDuration = callsWithDuration.reduce(
+          const totalDuration = calls.reduce(
             (sum, call) => sum + (call.duration_seconds || 0),
             0
           );
-          avgCallDuration = callsWithDuration.length > 0 ? Math.round(totalDuration / callsWithDuration.length) : 0;
+          avgCallDuration = calls.length > 0 ? Math.round(totalDuration / calls.length) : 0;
           totalCallMinutes = Math.round(totalDuration / 60);
         }
       }
