@@ -9,9 +9,11 @@ import {
   getCustomerChatbotConversations,
   getCustomerVoiceCallLogs,
   getCustomerWhatsAppConversationLogs,
+  getCustomerPortalLeads,
   ChatbotConversationLog,
   VoiceCallLog,
-  WhatsAppConversationLog
+  WhatsAppConversationLog,
+  CustomerLead
 } from '@/integrations/api/endpoints/customers';
 import {
   BarChart3,
@@ -32,11 +34,23 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface ConversionRates {
+  chatbot: number;
+  voice: number;
+  whatsapp: number;
+  overall: number;
+}
+
 export function CustomerAnalyticsPage() {
   const { customer } = useCustomerAuth();
   const [analytics, setAnalytics] = useState<CustomerAnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Leads state - fetched separately for reliability
+  const [leads, setLeads] = useState<CustomerLead[]>([]);
+  const [totalLeadsCount, setTotalLeadsCount] = useState(0);
+  const [conversionRates, setConversionRates] = useState<ConversionRates>({ chatbot: 0, voice: 0, whatsapp: 0, overall: 0 });
 
   // Conversation logs state
   const [chatbotLogs, setChatbotLogs] = useState<ChatbotConversationLog[]>([]);
@@ -68,8 +82,41 @@ export function CustomerAnalyticsPage() {
 
   const fetchAnalytics = async () => {
     try {
-      const data = await getCustomerPortalAnalytics();
-      setAnalytics(data);
+      // Fetch analytics and leads in parallel
+      const [analyticsData, leadsResponse] = await Promise.all([
+        getCustomerPortalAnalytics(),
+        getCustomerPortalLeads()
+      ]);
+
+      setAnalytics(analyticsData);
+
+      // Process leads data (same approach as dashboard)
+      const allLeads = leadsResponse.leads || [];
+      setLeads(allLeads);
+      setTotalLeadsCount(allLeads.length);
+
+      // Calculate conversion rates from leads (same logic as CustomerOverview dashboard)
+      const chatbotLeads = allLeads.filter(l => l.source_type === 'chatbot').length;
+      const voiceLeads = allLeads.filter(l => l.source_type === 'voice').length;
+      const waLeads = allLeads.filter(l => l.source_type === 'whatsapp').length;
+
+      const totalConversations = analyticsData?.chatbots?.total_conversations ?? 0;
+      const totalCalls = analyticsData?.voice_assistants?.total_calls ?? 0;
+      const totalWaConversations = analyticsData?.whatsapp_agents?.total_conversations ?? 0;
+
+      const chatbotConvRate = totalConversations > 0 ? Math.round((chatbotLeads / totalConversations) * 100) : 0;
+      const voiceConvRate = totalCalls > 0 ? Math.round((voiceLeads / totalCalls) * 100) : 0;
+      const waConvRate = totalWaConversations > 0 ? Math.round((waLeads / totalWaConversations) * 100) : 0;
+
+      const totalInteractions = totalConversations + totalCalls + totalWaConversations;
+      const overallConvRate = totalInteractions > 0 ? Math.round((allLeads.length / totalInteractions) * 100) : 0;
+
+      setConversionRates({
+        chatbot: chatbotConvRate,
+        voice: voiceConvRate,
+        whatsapp: waConvRate,
+        overall: overallConvRate
+      });
     } catch (error) {
       console.error('Error fetching analytics:', error);
       toast.error('Failed to load analytics data');
@@ -221,7 +268,7 @@ export function CustomerAnalyticsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
-                    <p className="text-3xl font-bold mt-2">{analytics.leads?.total_count ?? 0}</p>
+                    <p className="text-3xl font-bold mt-2">{totalLeadsCount}</p>
                     <p className="text-xs text-muted-foreground mt-1">Captured from agents</p>
                   </div>
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -237,7 +284,7 @@ export function CustomerAnalyticsPage() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
                     <p className="text-3xl font-bold mt-2">
-                      {formatPercentage(analytics.leads?.conversion_rates?.overall ?? 0)}
+                      {conversionRates.overall}%
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">Lead conversion</p>
                   </div>
@@ -294,7 +341,7 @@ export function CustomerAnalyticsPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-baseline">
                       <span className="text-sm text-muted-foreground">Conversion</span>
-                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads?.conversion_rates?.chatbot ?? 0)}</span>
+                      <span className="text-2xl font-semibold">{conversionRates.chatbot}%</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Conversations</span>
@@ -322,7 +369,7 @@ export function CustomerAnalyticsPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-baseline">
                       <span className="text-sm text-muted-foreground">Conversion</span>
-                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads?.conversion_rates?.voice ?? 0)}</span>
+                      <span className="text-2xl font-semibold">{conversionRates.voice}%</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Calls</span>
@@ -350,7 +397,7 @@ export function CustomerAnalyticsPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-baseline">
                       <span className="text-sm text-muted-foreground">Conversion</span>
-                      <span className="text-2xl font-semibold">{formatPercentage(analytics.leads?.conversion_rates?.whatsapp ?? 0)}</span>
+                      <span className="text-2xl font-semibold">{conversionRates.whatsapp}%</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Conversations</span>
@@ -382,7 +429,7 @@ export function CustomerAnalyticsPage() {
                   <CardDescription>Latest leads captured by your AI agents</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {(analytics.leads?.recent?.length ?? 0) === 0 ? (
+                  {leads.length === 0 ? (
                     <div className="text-center py-12">
                       <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                       <p className="text-muted-foreground">No leads captured yet</p>
@@ -392,11 +439,11 @@ export function CustomerAnalyticsPage() {
                     </div>
                   ) : (
                     <div className="space-y-1">
-                      {(analytics.leads?.recent ?? []).slice(0, 6).map((lead, index) => (
+                      {leads.slice(0, 6).map((lead, index) => (
                         <div
                           key={lead.id}
                           className={`flex items-center justify-between p-4 rounded-lg hover:bg-muted/50 transition-colors ${
-                            index !== (analytics.leads?.recent ?? []).slice(0, 6).length - 1 ? 'border-b' : ''
+                            index !== leads.slice(0, 6).length - 1 ? 'border-b' : ''
                           }`}
                         >
                           <div className="flex items-center gap-4">
