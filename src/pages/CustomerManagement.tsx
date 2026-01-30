@@ -12,9 +12,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserPlus, Mail, Trash2, Settings, Users, Shield } from 'lucide-react';
+import { UserPlus, Mail, Trash2, Settings, Users, Shield, FileCheck } from 'lucide-react';
 import { createCustomerWithAuth, sendCustomerLoginLink } from '@/integrations/api/endpoints';
 import { CustomerPermissionConfig } from '@/components/CustomerPermissionConfig';
+import { PendingContentReview } from '@/components/PendingContentReview';
 
 interface Customer {
   id: string;
@@ -515,6 +516,24 @@ export function CustomerManagement() {
               </TableBody>
             </Table>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Customer Content Reviews */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <FileCheck className="h-5 w-5 text-amber-500" />
+            <div>
+              <CardTitle>Customer Content Reviews</CardTitle>
+              <CardDescription>
+                Review and approve customer-submitted FAQs and content changes
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <PendingContentReview />
         </CardContent>
       </Card>
 

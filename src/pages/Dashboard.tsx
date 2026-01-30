@@ -24,8 +24,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Zap,
-  BarChart3
+  BarChart3,
+  FileCheck
 } from 'lucide-react';
+import { PendingContentReview } from '@/components/PendingContentReview';
 
 interface DashboardStats {
   totalChatbots: number;
@@ -860,6 +862,22 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Pending Content Reviews */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <FileCheck className="h-4 w-4 text-amber-500" />
+                <CardTitle className="text-base">Customer Content Reviews</CardTitle>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Review and approve customer-submitted FAQs and content
+              </p>
+            </CardHeader>
+            <CardContent>
+              <PendingContentReview />
+            </CardContent>
+          </Card>
 
           {/* Upcoming Tasks */}
           {upcomingTasks.length > 0 && (
