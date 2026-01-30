@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { EmptyAgentState } from "@/components/customer/EmptyAgentState";
+import { FAQSubmissionForm } from "@/components/customer/FAQSubmissionForm";
 
 interface AssistantWithDetails {
   id: string;
@@ -398,6 +399,9 @@ export default function CustomerVoiceAssistantsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* FAQ Contribution Section - only shows if customer has contribute_faq permission */}
+      <FAQSubmissionForm />
 
       <Card>
         <CardHeader>

@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { CustomerSidebar } from '@/components/CustomerSidebar';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { BrandingProvider, useBranding, hexToHsl } from '@/hooks/useBranding';
+import { CustomerPermissionsProvider } from '@/hooks/useCustomerPermissions';
 
 function CustomerDashboardContent() {
   const { customer, loading } = useCustomerAuth();
@@ -66,28 +67,30 @@ function CustomerDashboardContent() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-muted/10">
-        <CustomerSidebar customLogo={branding?.logo_url} />
-        
-        <div className="flex-1 flex flex-col">
-          {/* Header with trigger */}
-          <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center px-6 sticky top-0 z-50 shadow-sm">
-            <SidebarTrigger className="hover:bg-muted/50 transition-colors" />
-            <div className="ml-4 flex-1">
-              <h1 className="font-semibold text-lg bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                Welcome back, <span className="text-primary">{customer.full_name}</span>
-              </h1>
-            </div>
-          </header>
+    <CustomerPermissionsProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-muted/10">
+          <CustomerSidebar customLogo={branding?.logo_url} />
 
-          {/* Main content */}
-          <main className="flex-1 p-8">
-            <Outlet />
-          </main>
+          <div className="flex-1 flex flex-col">
+            {/* Header with trigger */}
+            <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center px-6 sticky top-0 z-50 shadow-sm">
+              <SidebarTrigger className="hover:bg-muted/50 transition-colors" />
+              <div className="ml-4 flex-1">
+                <h1 className="font-semibold text-lg bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  Welcome back, <span className="text-primary">{customer.full_name}</span>
+                </h1>
+              </div>
+            </header>
+
+            {/* Main content */}
+            <main className="flex-1 p-8">
+              <Outlet />
+            </main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </CustomerPermissionsProvider>
   );
 }
 
