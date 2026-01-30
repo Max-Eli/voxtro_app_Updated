@@ -667,9 +667,6 @@ serve(async (req) => {
   const createFAQBubbles = function() {
     let faqHtml = '<div id="voxtro-faq-container" style="padding: 0 16px 16px 16px; display: flex; flex-direction: column; gap: 12px;">';
     
-    // Section title
-    faqHtml += '<div style="font-weight: 600; font-size: 16px; color: #111827; margin-bottom: 4px;">Frequently Asked Questions:</div>';
-    
     // Scrollable FAQ list
     faqHtml += '<div style="display: flex; flex-direction: column; gap: 0; max-height: 200px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: white;">';
     
