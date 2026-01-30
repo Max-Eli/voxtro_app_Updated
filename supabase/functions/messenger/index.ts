@@ -86,7 +86,6 @@ serve(async (req) => {
       
       faqsHTML = \`
         <div class="faq-section">
-          <div class="faq-title">Quick Questions:</div>
           <div class="faq-questions">$\{faqButtons}</div>
         </div>\`;
     }
