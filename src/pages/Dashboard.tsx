@@ -152,11 +152,11 @@ export default function Dashboard() {
         totalMessages = count || 0;
       }
 
-      // Voice assistants
+      // Voice assistants - fetch all accessible (RLS handles access control)
+      // This matches how VoiceAssistants page works - includes org-based assistants
       const { data: voiceAssistants, error: vaError } = await supabase
         .from('voice_assistants')
-        .select('id, name, org_id')
-        .eq('user_id', user.id);
+        .select('id, name, org_id');
 
       if (vaError) throw vaError;
 
