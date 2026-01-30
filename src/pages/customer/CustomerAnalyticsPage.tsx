@@ -53,6 +53,9 @@ export function CustomerAnalyticsPage() {
   const [totalLeadsCount, setTotalLeadsCount] = useState(0);
   const [conversionRates, setConversionRates] = useState<ConversionRates>({ chatbot: 0, voice: 0, whatsapp: 0, overall: 0 });
 
+  // Interaction counts fetched from Supabase (same as dashboard)
+  const [interactionCounts, setInteractionCounts] = useState({ conversations: 0, calls: 0, waConversations: 0, totalDuration: 0 });
+
   // Conversation logs state
   const [chatbotLogs, setChatbotLogs] = useState<ChatbotConversationLog[]>([]);
   const [voiceLogs, setVoiceLogs] = useState<VoiceCallLog[]>([]);
@@ -117,7 +120,7 @@ export function CustomerAnalyticsPage() {
         totalConversations = conversations?.length || 0;
       }
 
-      // Get voice call count
+      // Get voice call count and duration
       const { data: voiceAssignments } = await supabase
         .from('customer_assistant_assignments')
         .select('assistant_id')
@@ -125,12 +128,14 @@ export function CustomerAnalyticsPage() {
 
       const assistantIds = voiceAssignments?.map(a => a.assistant_id).filter(Boolean) || [];
       let totalCalls = 0;
+      let totalDuration = 0;
       if (assistantIds.length > 0) {
         const { data: calls } = await supabase
           .from('voice_assistant_calls')
-          .select('id')
+          .select('id, duration_seconds')
           .in('assistant_id', assistantIds);
         totalCalls = calls?.length || 0;
+        totalDuration = calls?.reduce((sum, call) => sum + (call.duration_seconds || 0), 0) || 0;
       }
 
       // Get WhatsApp conversation count
@@ -166,6 +171,14 @@ export function CustomerAnalyticsPage() {
         voice: voiceConvRate,
         whatsapp: waConvRate,
         overall: overallConvRate
+      });
+
+      // Store interaction counts for display
+      setInteractionCounts({
+        conversations: totalConversations,
+        calls: totalCalls,
+        waConversations: totalWaConversations,
+        totalDuration: totalDuration
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -289,9 +302,7 @@ export function CustomerAnalyticsPage() {
     );
   }
 
-  const totalInteractions = (analytics?.chatbots?.total_conversations ?? 0) +
-                           (analytics?.voice_assistants?.total_calls ?? 0) +
-                           (analytics?.whatsapp_agents?.total_conversations ?? 0);
+  const totalInteractions = interactionCounts.conversations + interactionCounts.calls + interactionCounts.waConversations;
 
   const totalAgents = (analytics?.chatbots?.assigned?.length ?? 0) +
                       (analytics?.voice_assistants?.assigned?.length ?? 0) +
@@ -395,7 +406,7 @@ export function CustomerAnalyticsPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Conversations</span>
-                      <span>{analytics.chatbots?.total_conversations ?? 0}</span>
+                      <span>{interactionCounts.conversations}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Messages</span>
@@ -423,11 +434,11 @@ export function CustomerAnalyticsPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Calls</span>
-                      <span>{analytics.voice_assistants?.total_calls ?? 0}</span>
+                      <span>{interactionCounts.calls}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Duration</span>
-                      <span>{formatDuration(analytics.voice_assistants?.total_duration ?? 0)}</span>
+                      <span>{formatDuration(interactionCounts.totalDuration)}</span>
                     </div>
                   </div>
                 </div>
@@ -451,7 +462,7 @@ export function CustomerAnalyticsPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Conversations</span>
-                      <span>{analytics.whatsapp_agents?.total_conversations ?? 0}</span>
+                      <span>{interactionCounts.waConversations}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Messages</span>
