@@ -57,27 +57,59 @@ serve(async (req) => {
       );
     }
 
-    // Fetch calls from VAPI API for this assistant
-    // VAPI API endpoint: GET /call with assistantId filter
-    const vapiResponse = await fetch(`https://api.vapi.ai/call?assistantId=${assistantId}&limit=100`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${connection.api_key}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    // Fetch ALL calls from VAPI API for this assistant with pagination
+    // The database ID IS the VAPI assistant ID
+    const vapiCalls: any[] = [];
+    let cursor: string | null = null;
+    let hasMore = true;
+    const batchLimit = 100;
 
-    if (!vapiResponse.ok) {
-      const errorText = await vapiResponse.text();
-      console.error('VAPI API error:', vapiResponse.status, errorText);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch calls from voice service' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    while (hasMore) {
+      const url = cursor
+        ? `https://api.vapi.ai/call?assistantId=${assistantId}&limit=${batchLimit}&cursor=${cursor}`
+        : `https://api.vapi.ai/call?assistantId=${assistantId}&limit=${batchLimit}`;
+
+      const vapiResponse = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${connection.api_key}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!vapiResponse.ok) {
+        const errorText = await vapiResponse.text();
+        console.error('VAPI API error:', vapiResponse.status, errorText);
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch calls from voice service' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const responseData = await vapiResponse.json();
+
+      // VAPI returns array directly or object with results/cursor
+      if (Array.isArray(responseData)) {
+        vapiCalls.push(...responseData);
+        hasMore = responseData.length === batchLimit;
+        // If VAPI returns just array, use last item ID as cursor
+        if (hasMore && responseData.length > 0) {
+          cursor = responseData[responseData.length - 1].id;
+        }
+      } else if (responseData.results) {
+        vapiCalls.push(...responseData.results);
+        cursor = responseData.nextCursor || null;
+        hasMore = !!cursor;
+      } else {
+        // Single response or unknown format
+        if (responseData.id) {
+          vapiCalls.push(responseData);
+        }
+        hasMore = false;
+      }
     }
 
-    const vapiCalls = await vapiResponse.json();
-    console.log(`Fetched ${vapiCalls.length} calls from VAPI for assistant ${assistantId}`);
+    console.log(`Fetched ${vapiCalls.length} total calls from VAPI for assistant ${assistantId}`);
 
     // Find customer assigned to this assistant
     const { data: assignment } = await supabaseClient
