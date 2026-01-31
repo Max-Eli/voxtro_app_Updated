@@ -57,7 +57,18 @@ import CustomerLeadsPage from "./pages/customer/CustomerLeadsPage";
 import Teams from "./pages/Teams";
 import AcceptInvite from "./pages/AcceptInvite";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Prevent refetching when window regains focus (preserves form state)
+      refetchOnWindowFocus: false,
+      // Prevent refetching when network reconnects
+      refetchOnReconnect: false,
+      // Keep data fresh for 5 minutes before considering it stale
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
