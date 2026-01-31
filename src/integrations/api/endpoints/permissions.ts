@@ -2,6 +2,7 @@
  * Customer Portal Permissions API Endpoints
  */
 import { apiClient } from '../client';
+import { supabase } from '@/integrations/supabase/client';
 
 // Types
 export interface PermissionType {
@@ -51,6 +52,30 @@ export interface ContributedContent {
   updated_at: string;
   agent_type?: string;
   agent_name?: string;
+  customers?: {
+    email: string;
+    full_name: string;
+  };
+}
+
+export interface CrawlUrl {
+  id: string;
+  customer_id: string;
+  assistant_id: string;
+  url: string;
+  crawl_frequency: 'daily' | 'weekly' | 'monthly';
+  description?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'active' | 'paused';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_notes?: string;
+  last_crawled_at?: string;
+  last_crawl_status?: 'success' | 'failed' | 'pending';
+  last_crawl_error?: string;
+  crawl_count: number;
+  created_at: string;
+  updated_at: string;
+  assistant_name?: string;
   customers?: {
     email: string;
     full_name: string;
@@ -191,6 +216,211 @@ export async function deleteSubmittedContent(
 }
 
 // ============================================================================
+// Customer Crawl URL Endpoints (Using Supabase directly with RLS)
+// ============================================================================
+
+/**
+ * Get customer's submitted crawl URLs
+ */
+export async function getMyCrawlUrls(): Promise<{ crawl_urls: CrawlUrl[] }> {
+  const { data, error } = await supabase
+    .from('customer_crawl_urls')
+    .select(`
+      *,
+      voice_assistants!inner(name)
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching crawl URLs:', error);
+    throw new Error(error.message);
+  }
+
+  // Transform data to include assistant_name
+  const crawlUrls = (data || []).map((item: any) => ({
+    ...item,
+    assistant_name: item.voice_assistants?.name,
+  }));
+
+  return { crawl_urls: crawlUrls };
+}
+
+/**
+ * Submit a new crawl URL
+ */
+export async function submitCrawlUrl(data: {
+  assistant_id: string;
+  url: string;
+  description?: string;
+  crawl_frequency: 'daily' | 'weekly' | 'monthly';
+}): Promise<{ crawl_url: CrawlUrl; message: string }> {
+  // First get the customer ID for the current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) {
+    throw new Error('Not authenticated');
+  }
+
+  const { data: customer, error: customerError } = await supabase
+    .from('customers')
+    .select('id')
+    .eq('email', user.email)
+    .single();
+
+  if (customerError || !customer) {
+    throw new Error('Customer not found');
+  }
+
+  const { data: crawlUrl, error } = await supabase
+    .from('customer_crawl_urls')
+    .insert({
+      customer_id: customer.id,
+      assistant_id: data.assistant_id,
+      url: data.url,
+      description: data.description,
+      crawl_frequency: data.crawl_frequency,
+      status: 'pending',
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error submitting crawl URL:', error);
+    throw new Error(error.message);
+  }
+
+  return { crawl_url: crawlUrl, message: 'URL submitted for review' };
+}
+
+/**
+ * Update a pending crawl URL
+ */
+export async function updateCrawlUrl(
+  crawlUrlId: string,
+  data: { url?: string; description?: string; crawl_frequency?: 'daily' | 'weekly' | 'monthly' }
+): Promise<{ crawl_url: CrawlUrl }> {
+  const { data: crawlUrl, error } = await supabase
+    .from('customer_crawl_urls')
+    .update(data)
+    .eq('id', crawlUrlId)
+    .eq('status', 'pending') // Can only update pending URLs
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating crawl URL:', error);
+    throw new Error(error.message);
+  }
+
+  return { crawl_url: crawlUrl };
+}
+
+/**
+ * Delete a pending crawl URL
+ */
+export async function deleteCrawlUrl(
+  crawlUrlId: string
+): Promise<{ success: boolean; message: string }> {
+  const { error } = await supabase
+    .from('customer_crawl_urls')
+    .delete()
+    .eq('id', crawlUrlId)
+    .eq('status', 'pending'); // Can only delete pending URLs (RLS also enforces this)
+
+  if (error) {
+    console.error('Error deleting crawl URL:', error);
+    throw new Error(error.message);
+  }
+
+  return { success: true, message: 'URL deleted' };
+}
+
+// ============================================================================
+// Business Owner Crawl URL Management (Using Supabase directly with RLS)
+// ============================================================================
+
+/**
+ * Get pending crawl URLs for review (business owners see their assistants' URLs)
+ */
+export async function getPendingCrawlUrls(): Promise<{ crawl_urls: CrawlUrl[] }> {
+  const { data, error } = await supabase
+    .from('customer_crawl_urls')
+    .select(`
+      *,
+      voice_assistants!inner(name),
+      customers!inner(email, full_name)
+    `)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching pending crawl URLs:', error);
+    throw new Error(error.message);
+  }
+
+  // Transform data to include assistant_name and customer info
+  const crawlUrls = (data || []).map((item: any) => ({
+    ...item,
+    assistant_name: item.voice_assistants?.name,
+    customers: item.customers,
+  }));
+
+  return { crawl_urls: crawlUrls };
+}
+
+/**
+ * Review (approve/reject) a crawl URL
+ */
+export async function reviewCrawlUrl(
+  crawlUrlId: string,
+  action: 'approve' | 'reject' | 'pause' | 'activate',
+  notes?: string
+): Promise<{ success: boolean; action: string; message?: string }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Not authenticated');
+  }
+
+  let newStatus: string;
+  switch (action) {
+    case 'approve':
+      newStatus = 'active';
+      break;
+    case 'reject':
+      newStatus = 'rejected';
+      break;
+    case 'pause':
+      newStatus = 'paused';
+      break;
+    case 'activate':
+      newStatus = 'active';
+      break;
+    default:
+      throw new Error('Invalid action');
+  }
+
+  const { error } = await supabase
+    .from('customer_crawl_urls')
+    .update({
+      status: newStatus,
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+      review_notes: notes || null,
+    })
+    .eq('id', crawlUrlId);
+
+  if (error) {
+    console.error('Error reviewing crawl URL:', error);
+    throw new Error(error.message);
+  }
+
+  return {
+    success: true,
+    action,
+    message: action === 'approve' ? 'URL approved and set to active' : `URL ${action}ed`,
+  };
+}
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 
@@ -252,4 +482,14 @@ export function canViewLeads(
   agentId: string
 ): boolean {
   return hasPermission(permissions, agentType, agentId, 'view_leads');
+}
+
+/**
+ * Check if customer can contribute crawl URLs to a voice assistant
+ */
+export function canContributeCrawlUrl(
+  permissions: AgentPermissions[],
+  assistantId: string
+): boolean {
+  return hasPermission(permissions, 'voice', assistantId, 'contribute_crawl_url');
 }

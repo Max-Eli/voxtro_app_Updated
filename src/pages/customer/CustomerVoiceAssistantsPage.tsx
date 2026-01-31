@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { EmptyAgentState } from "@/components/customer/EmptyAgentState";
 import { FAQSubmissionForm } from "@/components/customer/FAQSubmissionForm";
+import { WebCrawlSubmissionForm } from "@/components/customer/WebCrawlSubmissionForm";
 
 interface AssistantWithDetails {
   id: string;
@@ -402,6 +403,9 @@ export default function CustomerVoiceAssistantsPage() {
 
       {/* FAQ Contribution Section - only shows if customer has contribute_faq permission */}
       <FAQSubmissionForm />
+
+      {/* Website Crawl URL Section - only shows if customer has contribute_crawl_url permission */}
+      <WebCrawlSubmissionForm />
 
       <Card>
         <CardHeader>

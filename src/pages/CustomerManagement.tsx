@@ -12,10 +12,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserPlus, Mail, Trash2, Settings, Users, Shield, FileCheck } from 'lucide-react';
+import { UserPlus, Mail, Trash2, Settings, Users, Shield, FileCheck, Globe } from 'lucide-react';
 import { createCustomerWithAuth, sendCustomerLoginLink } from '@/integrations/api/endpoints';
 import { CustomerPermissionConfig } from '@/components/CustomerPermissionConfig';
 import { PendingContentReview } from '@/components/PendingContentReview';
+import { PendingCrawlUrlReview } from '@/components/PendingCrawlUrlReview';
 
 interface Customer {
   id: string;
@@ -534,6 +535,24 @@ export function CustomerManagement() {
         </CardHeader>
         <CardContent>
           <PendingContentReview />
+        </CardContent>
+      </Card>
+
+      {/* Customer Crawl URL Reviews */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-blue-500" />
+            <div>
+              <CardTitle>Website Crawl URL Reviews</CardTitle>
+              <CardDescription>
+                Review and approve customer-submitted website URLs for crawling
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <PendingCrawlUrlReview />
         </CardContent>
       </Card>
 
