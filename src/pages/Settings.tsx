@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { User, Bell, Shield, Save, Users, Bot, Plus, Trash2, MessageCircle, Sun, Moon, Palette, Link2, ChevronRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { BrandingSettings } from "@/components/BrandingSettings";
+import { CustomDomainSettings } from "@/components/CustomDomainSettings";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/ThemeProvider";
 import { usePersistedState } from "@/hooks/usePersistedState";
@@ -1429,6 +1430,9 @@ const Settings = () => {
                   )}
                 </div>
               </div>
+
+              {/* Custom Domain */}
+              <CustomDomainSettings />
             </div>
           )}
         </div>

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCustomerAuth } from '@/hooks/useCustomerAuth';
 import { fetchBrandingByEmail, defaultBranding } from '@/integrations/api/endpoints/branding';
+import { isCustomDomain, getCurrentDomain, getBrandingByDomain } from '@/integrations/api/endpoints/domains';
 import { hexToHsl } from '@/hooks/useBranding';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
@@ -23,8 +24,33 @@ export function CustomerAuth() {
   const [loading, setLoading] = useState(false);
   const [branding, setBranding] = useState<BrandingState>(defaultBranding);
   const [brandingLoaded, setBrandingLoaded] = useState(false);
+  const [isOnCustomDomain, setIsOnCustomDomain] = useState(false);
   const { signIn, signInWithGoogle } = useCustomerAuth();
   const navigate = useNavigate();
+
+  // Check for custom domain on mount and load branding
+  useEffect(() => {
+    const checkCustomDomain = async () => {
+      const customDomain = isCustomDomain();
+      setIsOnCustomDomain(customDomain);
+
+      if (customDomain) {
+        const domain = getCurrentDomain();
+        const result = await getBrandingByDomain(domain);
+
+        if (result.found && result.branding) {
+          setBranding({
+            logo_url: result.branding.logo_url || null,
+            primary_color: result.branding.primary_color,
+            secondary_color: result.branding.secondary_color,
+          });
+          setBrandingLoaded(true);
+        }
+      }
+    };
+
+    checkCustomDomain();
+  }, []);
 
   // Apply branding colors to CSS when branding changes
   useEffect(() => {
@@ -39,8 +65,13 @@ export function CustomerAuth() {
     }
   }, [branding]);
 
-  // Fetch branding when email changes (debounced)
+  // Fetch branding when email changes (debounced) - only if not on custom domain
   useEffect(() => {
+    // Skip email-based branding fetch if we're on a custom domain
+    if (isOnCustomDomain) {
+      return;
+    }
+
     if (!email || !email.includes('@')) {
       setBranding(defaultBranding);
       setBrandingLoaded(false);
@@ -54,7 +85,7 @@ export function CustomerAuth() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [email]);
+  }, [email, isOnCustomDomain]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

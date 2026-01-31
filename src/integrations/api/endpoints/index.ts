@@ -12,3 +12,4 @@ export * from './forms';
 export * from './openai';
 export * from './leads';
 export * from './branding';
+export * from './domains';
