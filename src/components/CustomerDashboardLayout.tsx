@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { CustomerSidebar } from '@/components/CustomerSidebar';
@@ -9,6 +9,19 @@ import { CustomerPermissionsProvider } from '@/hooks/useCustomerPermissions';
 function CustomerDashboardContent() {
   const { customer, loading } = useCustomerAuth();
   const { branding, loading: brandingLoading } = useBranding();
+
+  // Track if we've completed initial load - never show loading again after that
+  // This prevents form state from being lost when user switches browser tabs
+  const initialLoadCompleteRef = useRef(false);
+  const [showLoading, setShowLoading] = useState(true);
+
+  useEffect(() => {
+    // Once both auth and branding have loaded, mark initial load as complete
+    if (!loading && !brandingLoading && !initialLoadCompleteRef.current) {
+      initialLoadCompleteRef.current = true;
+      setShowLoading(false);
+    }
+  }, [loading, brandingLoading]);
 
   // Load chatbot widget for customer portal
   useEffect(() => {
@@ -51,7 +64,9 @@ function CustomerDashboardContent() {
     }
   }, [branding]);
 
-  if (loading || brandingLoading) {
+  // Only show loading on initial load, never after that
+  // This prevents form state from being lost when user switches browser tabs
+  if (showLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
