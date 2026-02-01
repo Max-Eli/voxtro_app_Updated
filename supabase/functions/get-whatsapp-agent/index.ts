@@ -40,16 +40,29 @@ serve(async (req) => {
 
     console.log('Fetching agent details for:', agentId);
 
-    // Get user's active ElevenLabs connection
+    // First, get the WhatsApp agent to find the owner's user_id
+    // RLS policies allow team members to see teammate's agents
+    const { data: agentRecord, error: agentError } = await supabaseClient
+      .from('whatsapp_agents')
+      .select('user_id')
+      .eq('id', agentId)
+      .maybeSingle();
+
+    if (agentError || !agentRecord) {
+      throw new Error('WhatsApp agent not found or access denied');
+    }
+
+    // Get the agent owner's active ElevenLabs connection
+    // This allows teammates to view agent details using the owner's connection
     const { data: connection, error: connError } = await supabaseClient
       .from('elevenlabs_connections')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', agentRecord.user_id)
       .eq('is_active', true)
       .maybeSingle();
 
     if (connError || !connection) {
-      throw new Error('No active ElevenLabs connection found');
+      throw new Error('No active ElevenLabs connection found for the agent owner');
     }
 
     // Fetch agent details from ElevenLabs API

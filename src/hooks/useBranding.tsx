@@ -30,10 +30,14 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const [branding, setBranding] = useState<BrandingSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchBranding = async () => {
+  const fetchBranding = async (showLoading = true) => {
     try {
-      setLoading(true);
-      console.log("[Branding] Fetching branding settings...");
+      // Only show loading on initial fetch, not background refreshes
+      // This prevents form state from being lost when user switches browser tabs
+      if (showLoading) {
+        setLoading(true);
+      }
+      console.log("[Branding] Fetching branding settings...", showLoading ? "(initial)" : "(background)");
 
       // Get current user session
       const { data: { session } } = await supabase.auth.getSession();
@@ -41,7 +45,7 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
       if (!session?.user?.email) {
         console.log("[Branding] No user session found");
         setBranding(defaultBranding);
-        setLoading(false);
+        if (showLoading) setLoading(false);
         return;
       }
 
@@ -52,22 +56,25 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
       const fetchedBranding = await fetchBrandingByEmail(userEmail);
       console.log("[Branding] Fetched branding:", fetchedBranding);
       setBranding(fetchedBranding);
-      setLoading(false);
+      if (showLoading) setLoading(false);
     } catch (error) {
       console.error('[Branding] Error:', error);
       setBranding(defaultBranding);
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchBranding();
+    fetchBranding(true); // Initial load - show loading spinner
 
     // Listen for auth state changes to refetch branding
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       console.log("[Branding] Auth state changed:", event);
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        fetchBranding();
+      if (event === 'SIGNED_IN') {
+        fetchBranding(true); // New sign in - show loading
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Token refresh (happens on tab focus) - don't show loading to preserve form state
+        fetchBranding(false);
       }
     });
 
