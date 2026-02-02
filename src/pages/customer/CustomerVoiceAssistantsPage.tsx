@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { syncCustomerVoiceCalls } from "@/integrations/api/endpoints/customers";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,12 +73,68 @@ export default function CustomerVoiceAssistantsPage() {
   const [showCallDetail, setShowCallDetail] = useState(false);
   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
   const [phoneSearch, setPhoneSearch] = useState("");
+  const [recordingBlobUrl, setRecordingBlobUrl] = useState<string | null>(null);
+  const [loadingRecording, setLoadingRecording] = useState(false);
 
   useEffect(() => {
     if (customer) {
       fetchData();
     }
   }, [customer]);
+
+  // Fetch recording through authenticated proxy when call is selected
+  useEffect(() => {
+    // Clean up previous blob URL
+    if (recordingBlobUrl) {
+      URL.revokeObjectURL(recordingBlobUrl);
+      setRecordingBlobUrl(null);
+    }
+
+    if (!selectedCall?.recording_url) {
+      return;
+    }
+
+    const fetchRecording = async () => {
+      setLoadingRecording(true);
+      try {
+        // Use the proxy endpoint that handles authentication
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          console.error('No auth session for recording fetch');
+          return;
+        }
+
+        const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'https://api.voxtro.io').replace(/\/$/, '');
+        const response = await fetch(`${apiBaseUrl}/api/calls/recording/${selectedCall.id}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+
+        if (!response.ok) {
+          console.error('Failed to fetch recording:', response.status);
+          return;
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        setRecordingBlobUrl(blobUrl);
+      } catch (error) {
+        console.error('Error fetching recording:', error);
+      } finally {
+        setLoadingRecording(false);
+      }
+    };
+
+    fetchRecording();
+
+    // Cleanup on unmount
+    return () => {
+      if (recordingBlobUrl) {
+        URL.revokeObjectURL(recordingBlobUrl);
+      }
+    };
+  }, [selectedCall?.id, selectedCall?.recording_url]);
 
   useEffect(() => {
     if (!customer) return;
@@ -491,7 +548,13 @@ export default function CustomerVoiceAssistantsPage() {
         </CardContent>
       </Card>
 
-      <Sheet open={showCallDetail} onOpenChange={setShowCallDetail}>
+      <Sheet open={showCallDetail} onOpenChange={(open) => {
+        setShowCallDetail(open);
+        if (!open && recordingBlobUrl) {
+          URL.revokeObjectURL(recordingBlobUrl);
+          setRecordingBlobUrl(null);
+        }
+      }}>
         <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Call Details</SheetTitle>
@@ -663,10 +726,19 @@ export default function CustomerVoiceAssistantsPage() {
                   <Headphones className="h-4 w-4" />
                   <h3 className="font-semibold">Recording</h3>
                 </div>
-                <audio controls className="w-full" autoPlay>
-                  <source src={selectedCall.recording_url} type="audio/wav" />
-                  Your browser does not support the audio element.
-                </audio>
+                {loadingRecording ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <span className="ml-2 text-sm text-muted-foreground">Loading recording...</span>
+                  </div>
+                ) : recordingBlobUrl ? (
+                  <audio controls className="w-full" autoPlay>
+                    <source src={recordingBlobUrl} type="audio/mpeg" />
+                    Your browser does not support the audio element.
+                  </audio>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Unable to load recording</p>
+                )}
               </div>
             )}
 
