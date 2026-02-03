@@ -47,6 +47,7 @@ export default function Messenger() {
   const [error, setError] = useState<string | null>(null);
   const [showInput, setShowInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Get or create visitor_id from localStorage for session persistence
   const getVisitorId = (): string => {
@@ -79,6 +80,13 @@ export default function Messenger() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Auto-focus input after bot finishes typing
+  useEffect(() => {
+    if (!isTyping && showInput) {
+      inputRef.current?.focus();
+    }
+  }, [isTyping, showInput]);
 
   // Fetch widget config from backend API
   useEffect(() => {
@@ -512,6 +520,7 @@ export default function Messenger() {
         <div className="flex-shrink-0 p-3 border-t bg-white">
           <div className="flex items-center gap-2">
             <input
+              ref={inputRef}
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
