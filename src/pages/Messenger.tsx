@@ -526,7 +526,7 @@ export default function Messenger() {
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Type a message..."
-              className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-0 text-gray-900 placeholder-gray-400"
+              className="flex-1 px-4 py-2.5 text-base border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-0 text-gray-900 placeholder-gray-400"
               style={{ 
                 focusRing: themeColor,
               }}
