@@ -249,9 +249,14 @@ export function CustomerManagement() {
         assigned_chatbots: []
       });
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating customer:', error);
-      toast.error('Failed to create customer');
+      const message = error?.response?.data?.detail || error?.message || '';
+      if (message.includes('already exists') || message.includes('already been registered')) {
+        toast.error('A customer with this email already exists');
+      } else {
+        toast.error('Failed to create customer');
+      }
     }
   };
 
@@ -261,15 +266,21 @@ export function CustomerManagement() {
     }
 
     try {
-      const { error } = await supabase
+      const { error, count } = await supabase
         .from('customers')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('id', customerId);
 
       if (error) throw error;
 
+      if (count === 0) {
+        toast.error('Unable to delete customer. You may not have permission.');
+        return;
+      }
+
+      // Optimistically remove from local state for immediate UI update
+      setCustomers(prev => prev.filter(c => c.id !== customerId));
       toast.success('Customer deleted successfully');
-      fetchData();
     } catch (error) {
       console.error('Error deleting customer:', error);
       toast.error('Failed to delete customer');
