@@ -155,60 +155,14 @@ export default function Chatbots() {
     if (!user?.id) return;
 
     try {
-      const allCustomers: Customer[] = [];
+      // Fetch ALL customers visible to the user (RLS handles visibility)
+      // This includes customers created by the user AND their teammates
+      const { data: customersData, error } = await supabase
+        .from('customers')
+        .select('*');
 
-      // RLS policies handle team visibility for all agent types
-      // Get chatbot IDs
-      const { data: chatbotsData } = await supabase
-        .from('chatbots')
-        .select('id');
-      const chatbotIds = chatbotsData?.map(c => c.id) || [];
-
-      // Get voice assistant IDs
-      const { data: assistantsData } = await supabase
-        .from('voice_assistants')
-        .select('id');
-      const assistantIds = assistantsData?.map(a => a.id) || [];
-
-      // Get WhatsApp agent IDs
-      const { data: agentsData } = await supabase
-        .from('whatsapp_agents')
-        .select('id');
-      const agentIds = agentsData?.map(a => a.id) || [];
-
-      // Fetch customers from chatbot assignments
-      if (chatbotIds.length > 0) {
-        const { data: chatbotCustomers } = await supabase
-          .from('customers')
-          .select(`*, customer_chatbot_assignments!inner(chatbot_id)`)
-          .in('customer_chatbot_assignments.chatbot_id', chatbotIds);
-        if (chatbotCustomers) allCustomers.push(...chatbotCustomers);
-      }
-
-      // Fetch customers from voice assistant assignments
-      if (assistantIds.length > 0) {
-        const { data: assistantCustomers } = await supabase
-          .from('customers')
-          .select(`*, customer_assistant_assignments!inner(assistant_id)`)
-          .in('customer_assistant_assignments.assistant_id', assistantIds);
-        if (assistantCustomers) allCustomers.push(...assistantCustomers);
-      }
-
-      // Fetch customers from WhatsApp agent assignments
-      if (agentIds.length > 0) {
-        const { data: whatsappCustomers } = await supabase
-          .from('customers')
-          .select(`*, customer_whatsapp_agent_assignments!inner(agent_id)`)
-          .in('customer_whatsapp_agent_assignments.agent_id', agentIds);
-        if (whatsappCustomers) allCustomers.push(...whatsappCustomers);
-      }
-
-      // Deduplicate customers by ID
-      const uniqueCustomers = Array.from(
-        new Map(allCustomers.map(c => [c.id, c])).values()
-      ) as Customer[];
-
-      setCustomers(uniqueCustomers);
+      if (error) throw error;
+      setCustomers(customersData || []);
     } catch (error) {
       console.error('Error fetching customers:', error);
     }

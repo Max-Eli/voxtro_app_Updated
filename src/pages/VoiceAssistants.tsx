@@ -156,58 +156,13 @@ export default function VoiceAssistants() {
       }
       setAssistants(assistantsData);
 
-      // Fetch customers from all assignment types (chatbots, voice assistants, WhatsApp agents)
-      // RLS policies handle visibility for all agent types
-      const allCustomers: Customer[] = [];
+      // Fetch ALL customers visible to the user (RLS handles visibility)
+      // This includes customers created by the user AND their teammates
+      const { data: customersData } = await supabase
+        .from('customers')
+        .select('*');
 
-      // Get chatbot IDs (RLS handles team visibility)
-      const { data: chatbotsData } = await supabase
-        .from('chatbots')
-        .select('id');
-      const chatbotIds = chatbotsData?.map(c => c.id) || [];
-
-      // Get voice assistant IDs (already fetched above with RLS)
-      const assistantIds = assistantsData?.map(a => a.id) || [];
-
-      // Get WhatsApp agent IDs (RLS handles team visibility)
-      const { data: agentsData } = await supabase
-        .from('whatsapp_agents')
-        .select('id');
-      const agentIds = agentsData?.map(a => a.id) || [];
-
-      // Fetch customers from chatbot assignments
-      if (chatbotIds.length > 0) {
-        const { data: chatbotCustomers } = await supabase
-          .from('customers')
-          .select(`*, customer_chatbot_assignments!inner(chatbot_id)`)
-          .in('customer_chatbot_assignments.chatbot_id', chatbotIds);
-        if (chatbotCustomers) allCustomers.push(...chatbotCustomers);
-      }
-
-      // Fetch customers from voice assistant assignments
-      if (assistantIds.length > 0) {
-        const { data: assistantCustomers } = await supabase
-          .from('customers')
-          .select(`*, customer_assistant_assignments!inner(assistant_id)`)
-          .in('customer_assistant_assignments.assistant_id', assistantIds);
-        if (assistantCustomers) allCustomers.push(...assistantCustomers);
-      }
-
-      // Fetch customers from WhatsApp agent assignments
-      if (agentIds.length > 0) {
-        const { data: whatsappCustomers } = await supabase
-          .from('customers')
-          .select(`*, customer_whatsapp_agent_assignments!inner(agent_id)`)
-          .in('customer_whatsapp_agent_assignments.agent_id', agentIds);
-        if (whatsappCustomers) allCustomers.push(...whatsappCustomers);
-      }
-
-      // Deduplicate customers by ID
-      const uniqueCustomers = Array.from(
-        new Map(allCustomers.map(c => [c.id, c])).values()
-      ) as Customer[];
-
-      setCustomers(uniqueCustomers);
+      setCustomers(customersData || []);
 
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('customer_assistant_assignments')
@@ -225,12 +180,14 @@ export default function VoiceAssistants() {
 
       if (assignmentsError) throw assignmentsError;
       
-      const formattedAssignments = assignmentsData?.map(a => ({
-        id: a.id,
-        assistant_id: a.assistant_id,
-        customer: a.customers as unknown as Customer
-      })) || [];
-      
+      const formattedAssignments = assignmentsData
+        ?.filter(a => a.customers != null) // Filter out assignments with deleted customers
+        ?.map(a => ({
+          id: a.id,
+          assistant_id: a.assistant_id,
+          customer: a.customers as unknown as Customer
+        })) || [];
+
       setAssignments(formattedAssignments);
 
     } catch (error) {
@@ -580,12 +537,12 @@ export default function VoiceAssistants() {
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
                               <span className="text-sm font-semibold text-primary">
-                                {assignment.customer.full_name.charAt(0).toUpperCase()}
+                                {assignment.customer?.full_name?.charAt(0)?.toUpperCase() || '?'}
                               </span>
                             </div>
                             <div>
-                              <p className="font-medium text-sm">{assignment.customer.full_name}</p>
-                              <p className="text-xs text-muted-foreground">{assignment.customer.email}</p>
+                              <p className="font-medium text-sm">{assignment.customer?.full_name || 'Unknown'}</p>
+                              <p className="text-xs text-muted-foreground">{assignment.customer?.email || 'No email'}</p>
                             </div>
                           </div>
                           <Button
