@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Bot, Send, X, User } from 'lucide-react';
+import { Bot, Send, X, User, Loader2 } from 'lucide-react';
 import { ChatForm } from '@/components/ChatForm';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
@@ -46,6 +46,7 @@ export default function Messenger() {
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInput, setShowInput] = useState(false);
+  const [isEndingConversation, setIsEndingConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -271,6 +272,7 @@ export default function Messenger() {
   const handleNewConversation = async () => {
     // End current conversation to trigger AI summary generation
     if (conversationId) {
+      setIsEndingConversation(true);
       await endConversation(conversationId);
     }
 
@@ -282,6 +284,7 @@ export default function Messenger() {
       content: config?.welcome_message || 'Hi! How can I help you today?'
     }]);
     setShowInput(false);
+    setIsEndingConversation(false);
   };
 
   // End conversation when component unmounts or page closes
@@ -364,13 +367,14 @@ export default function Messenger() {
           <h1 className="font-semibold text-base truncate">{config.name}</h1>
           <p className="text-xs opacity-80">Online</p>
         </div>
-        {conversationId && (
+        {conversationId && !isEndingConversation && (
           <button
             onClick={handleNewConversation}
-            className="p-2 rounded-full hover:bg-white/20 transition-colors"
-            title="New conversation"
+            className="px-3 py-1.5 rounded-full hover:bg-white/20 transition-colors text-xs font-medium bg-white/10 flex items-center gap-1"
+            title="End conversation"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3 h-3" />
+            End Chat
           </button>
         )}
       </div>
@@ -518,29 +522,36 @@ export default function Messenger() {
       {/* Input Area */}
       {showInput && (
         <div className="flex-shrink-0 p-3 border-t bg-white">
-          <div className="flex items-center gap-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Type a message..."
-              className="flex-1 px-4 py-2.5 text-base border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-0 text-gray-900 placeholder-gray-400"
-              style={{ 
-                focusRing: themeColor,
-              }}
-              disabled={isTyping}
-            />
-            <button
-              onClick={() => sendMessage(inputMessage)}
-              disabled={!inputMessage.trim() || isTyping}
-              className="flex-shrink-0 w-10 h-10 rounded-full text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90"
-              style={{ backgroundColor: buttonColor }}
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
+          {isEndingConversation ? (
+            <div className="flex items-center justify-center gap-2 py-2.5">
+              <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+              <span className="text-sm text-gray-500">Ending conversation...</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Type a message..."
+                className="flex-1 px-4 py-2.5 text-base border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-0 text-gray-900 placeholder-gray-400"
+                style={{
+                  focusRing: themeColor,
+                }}
+                disabled={isTyping}
+              />
+              <button
+                onClick={() => sendMessage(inputMessage)}
+                disabled={!inputMessage.trim() || isTyping}
+                className="flex-shrink-0 w-10 h-10 rounded-full text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90"
+                style={{ backgroundColor: buttonColor }}
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <p className="text-center text-[10px] text-gray-400 mt-2">
             Powered by Voxtro
           </p>
