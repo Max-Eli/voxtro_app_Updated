@@ -13,8 +13,23 @@ export async function createCustomerWithAuth(data: {
   full_name: string;
   company_name?: string;
   chatbot_id?: string;
+  chatbot_ids?: string[];
 }) {
   return apiClient.post('/api/customers', data);
+}
+
+/**
+ * Delete a customer (also removes auth user so email can be reused)
+ */
+export async function deleteCustomer(customerId: string) {
+  return apiClient.delete(`/api/customers/${customerId}`);
+}
+
+/**
+ * Update chatbot assignments for a customer
+ */
+export async function updateCustomerChatbots(customerId: string, chatbotIds: string[]) {
+  return apiClient.put(`/api/customers/${customerId}/chatbots`, { chatbot_ids: chatbotIds });
 }
 
 /**

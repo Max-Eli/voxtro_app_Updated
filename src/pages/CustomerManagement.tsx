@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { UserPlus, Mail, Trash2, Settings, Users, Shield, FileCheck, Globe } from 'lucide-react';
-import { createCustomerWithAuth, sendCustomerLoginLink } from '@/integrations/api/endpoints';
+import { createCustomerWithAuth, sendCustomerLoginLink, deleteCustomer, updateCustomerChatbots } from '@/integrations/api/endpoints';
 import { CustomerPermissionConfig } from '@/components/CustomerPermissionConfig';
 import { PendingContentReview } from '@/components/PendingContentReview';
 import { PendingCrawlUrlReview } from '@/components/PendingCrawlUrlReview';
@@ -73,6 +73,9 @@ export function CustomerManagement() {
     assigned_chatbots: [] as string[]
   });
   const [permissionsCustomer, setPermissionsCustomer] = useState<CustomerWithAssignments | null>(null);
+  const [editingChatbotsCustomer, setEditingChatbotsCustomer] = useState<CustomerWithAssignments | null>(null);
+  const [editingChatbotIds, setEditingChatbotIds] = useState<string[]>([]);
+  const [savingChatbots, setSavingChatbots] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -207,33 +210,16 @@ export function CustomerManagement() {
     }
 
     try {
-      // Use API to create customer with auth (pass first chatbot if assigned)
+      // Use API to create customer with auth and all chatbot assignments
       const data = await createCustomerWithAuth({
         email: newCustomer.email,
         full_name: newCustomer.full_name,
         company_name: newCustomer.company_name || undefined,
         password: newCustomer.password,
-        chatbot_id: newCustomer.assigned_chatbots[0] || undefined // Pass first chatbot
+        chatbot_ids: newCustomer.assigned_chatbots.length > 0
+          ? newCustomer.assigned_chatbots
+          : undefined
       });
-
-      const customerId = data?.customer_id;
-
-      // Create additional chatbot assignments if more than one selected
-      if (customerId && newCustomer.assigned_chatbots.length > 0) {
-        for (const chatbotId of newCustomer.assigned_chatbots) {
-          // Use upsert to handle potential duplicates gracefully
-          await supabase
-            .from('customer_chatbot_assignments')
-            .upsert({
-              customer_id: customerId,
-              chatbot_id: chatbotId,
-              assigned_by: user?.id
-            }, {
-              onConflict: 'customer_id,chatbot_id',
-              ignoreDuplicates: true
-            });
-        }
-      }
 
       const successMessage = data?.auth_created
         ? 'Customer created successfully with login credentials'
@@ -261,29 +247,23 @@ export function CustomerManagement() {
   };
 
   const handleDeleteCustomer = async (customerId: string) => {
-    if (!confirm('Are you sure you want to delete this customer? This will also remove all their chatbot assignments.')) {
+    if (!confirm('Are you sure you want to delete this customer? This will also remove all their chatbot assignments and login credentials.')) {
       return;
     }
 
     try {
-      const { error, count } = await supabase
-        .from('customers')
-        .delete({ count: 'exact' })
-        .eq('id', customerId);
-
-      if (error) throw error;
-
-      if (count === 0) {
-        toast.error('Unable to delete customer. You may not have permission.');
-        return;
-      }
-
-      // Optimistically remove from local state for immediate UI update
+      await deleteCustomer(customerId);
+      // Remove from local state for immediate UI update
       setCustomers(prev => prev.filter(c => c.id !== customerId));
       toast.success('Customer deleted successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting customer:', error);
-      toast.error('Failed to delete customer');
+      const message = error?.message || '';
+      if (message.includes('permission') || message.includes('403')) {
+        toast.error('You can only delete customers you created');
+      } else {
+        toast.error('Failed to delete customer');
+      }
     }
   };
 
@@ -295,6 +275,33 @@ export function CustomerManagement() {
     } catch (error) {
       console.error('Error sending login link:', error);
       toast.error('Failed to send login link');
+    }
+  };
+
+  const openChatbotEditor = (customer: CustomerWithAssignments) => {
+    setEditingChatbotsCustomer(customer);
+    setEditingChatbotIds([...customer.assigned_chatbots]);
+  };
+
+  const handleSaveChatbotAssignments = async () => {
+    if (!editingChatbotsCustomer) return;
+
+    setSavingChatbots(true);
+    try {
+      await updateCustomerChatbots(editingChatbotsCustomer.id, editingChatbotIds);
+      // Update local state
+      setCustomers(prev => prev.map(c =>
+        c.id === editingChatbotsCustomer.id
+          ? { ...c, assigned_chatbots: editingChatbotIds }
+          : c
+      ));
+      toast.success('Chatbot assignments updated');
+      setEditingChatbotsCustomer(null);
+    } catch (error: any) {
+      console.error('Error updating chatbot assignments:', error);
+      toast.error(error?.message || 'Failed to update chatbot assignments');
+    } finally {
+      setSavingChatbots(false);
     }
   };
 
@@ -475,15 +482,32 @@ export function CustomerManagement() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {customer.assigned_chatbots.map(chatbotId => {
-                            const chatbot = chatbots.find(c => c.id === chatbotId);
-                            return (
-                              <Badge key={chatbotId} variant="secondary" className="text-xs">
-                                {chatbot?.name || 'Unknown'}
-                              </Badge>
-                            );
-                          })}
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap gap-1">
+                            {customer.assigned_chatbots.length > 0 ? (
+                              customer.assigned_chatbots.map(chatbotId => {
+                                const chatbot = chatbots.find(c => c.id === chatbotId);
+                                return (
+                                  <Badge key={chatbotId} variant="secondary" className="text-xs">
+                                    {chatbot?.name || 'Unknown'}
+                                  </Badge>
+                                );
+                              })
+                            ) : (
+                              <span className="text-xs text-muted-foreground">None</span>
+                            )}
+                          </div>
+                          {ownerInfo.isOwn && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => openChatbotEditor(customer)}
+                              title="Edit chatbot assignments"
+                            >
+                              <Settings className="w-3 h-3" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -586,6 +610,51 @@ export function CustomerManagement() {
               onClose={() => setPermissionsCustomer(null)}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Chatbot Assignments Dialog */}
+      <Dialog open={!!editingChatbotsCustomer} onOpenChange={(open) => !open && setEditingChatbotsCustomer(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Chatbot Assignments</DialogTitle>
+            <DialogDescription>
+              Select which chatbots {editingChatbotsCustomer?.full_name} can access
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-2">
+              {chatbots.map((chatbot) => (
+                <div key={chatbot.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`edit-${chatbot.id}`}
+                    checked={editingChatbotIds.includes(chatbot.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setEditingChatbotIds(prev => [...prev, chatbot.id]);
+                      } else {
+                        setEditingChatbotIds(prev => prev.filter(id => id !== chatbot.id));
+                      }
+                    }}
+                  />
+                  <Label htmlFor={`edit-${chatbot.id}`} className="text-sm">
+                    {chatbot.name}
+                  </Label>
+                </div>
+              ))}
+              {chatbots.length === 0 && (
+                <p className="text-sm text-muted-foreground">No chatbots available</p>
+              )}
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setEditingChatbotsCustomer(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveChatbotAssignments} disabled={savingChatbots}>
+                {savingChatbots ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
