@@ -39,10 +39,10 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
   const fetchChatbots = async () => {
     if (!user) return;
 
+    // RLS handles visibility (own + teammates' chatbots)
     const { data, error } = await supabase
       .from('chatbots')
       .select('id, name')
-      .eq('user_id', user.id)
       .order('name');
 
     if (error) {
@@ -79,7 +79,6 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
           )
         )
       `)
-      .eq('conversations.chatbots.user_id', user.id)
       .order('created_at', { ascending: false });
 
     // Apply chatbot filter

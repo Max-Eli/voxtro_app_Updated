@@ -58,7 +58,6 @@ const ConversationDetail = ({ conversationId, onBack }: ConversationDetailProps)
         )
       `)
       .eq('conversation_id', conversationId)
-      .eq('conversations.chatbots.user_id', user.id)
       .order('created_at', { ascending: true });
 
     if (messagesError) {
