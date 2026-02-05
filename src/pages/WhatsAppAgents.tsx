@@ -183,8 +183,7 @@ const WhatsAppAgents = () => {
             full_name,
             company_name
           )
-        `)
-        .eq('assigned_by', user.id);
+        `);
 
       if (error) throw error;
       

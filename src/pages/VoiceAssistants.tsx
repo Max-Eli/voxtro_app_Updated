@@ -175,8 +175,7 @@ export default function VoiceAssistants() {
             full_name,
             company_name
           )
-        `)
-        .eq('assigned_by', user?.id);
+        `);
 
       if (assignmentsError) throw assignmentsError;
       

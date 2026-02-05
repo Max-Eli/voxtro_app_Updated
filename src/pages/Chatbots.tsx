@@ -172,6 +172,7 @@ export default function Chatbots() {
     if (!user?.id) return;
 
     try {
+      // RLS handles visibility (own + teammates' assignments)
       const { data, error } = await supabase
         .from('customer_chatbot_assignments')
         .select(`
@@ -183,8 +184,7 @@ export default function Chatbots() {
             full_name,
             company_name
           )
-        `)
-        .eq('assigned_by', user.id);
+        `);
 
       if (error) throw error;
       
