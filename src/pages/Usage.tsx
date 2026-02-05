@@ -1,21 +1,15 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BarChart3,
   MessageSquare,
   Bot,
-  TrendingUp,
   Activity,
   Phone,
   MessageCircle,
-  Clock,
   Zap,
-  ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -23,7 +17,6 @@ import {
   Area,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
   BarChart,
@@ -31,8 +24,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
 } from "recharts";
 
 interface ChatbotStats {
@@ -401,30 +392,49 @@ const Usage = () => {
     return <div className="p-6 text-muted-foreground">Please log in to view usage analytics.</div>;
   }
 
+  // Once UI-inspired tooltip style
+  const tooltipStyle = {
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    backdropFilter: 'blur(12px)',
+    border: 'none',
+    borderRadius: '16px',
+    fontSize: '12px',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
+    padding: '12px 16px',
+  };
+
+  // Once UI color palette
+  const colors = {
+    blue: { main: '#4C8BF5', light: '#4C8BF520', gradient: '#4C8BF5' },
+    violet: { main: '#7C5CFC', light: '#7C5CFC20', gradient: '#7C5CFC' },
+    emerald: { main: '#34D399', light: '#34D39920', gradient: '#34D399' },
+    neutral: { main: '#94A3B8', light: '#94A3B810' },
+  };
+
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+    <div className="p-8 max-w-[1400px] mx-auto space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Usage Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Monitor performance across all your AI agents
+          <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Real-time performance metrics across all agents
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 px-3.5 py-2 rounded-2xl">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
             </span>
             Live
           </div>
-          <div className="flex bg-muted rounded-lg p-0.5">
+          <div className="flex bg-muted/60 rounded-2xl p-1">
             {(['7d', '30d', 'all'] as TimeRange[]).map((range) => (
               <button
                 key={range}
                 onClick={() => { setLoading(true); setTimeRange(range); }}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`px-4 py-1.5 text-xs font-medium rounded-xl transition-all duration-200 ${
                   timeRange === range
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
@@ -438,445 +448,450 @@ const Usage = () => {
       </div>
 
       {loading ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="space-y-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-28 bg-muted rounded-xl animate-pulse"></div>
+              <div key={i} className="h-32 bg-muted/40 rounded-2xl animate-pulse"></div>
             ))}
           </div>
-          <div className="h-80 bg-muted rounded-xl animate-pulse"></div>
+          <div className="h-96 bg-muted/40 rounded-2xl animate-pulse"></div>
         </div>
       ) : (
         <>
-          {/* Key Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-5 border-0 bg-gradient-to-br from-primary/5 to-primary/10">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Interactions</p>
-                  <p className="text-3xl font-bold mt-1">{totalInteractions.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{totalAgents} active agents</p>
+          {/* Key Metrics - Once UI glass cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background to-muted/30 p-6 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-primary/8 to-transparent rounded-bl-[60px]" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <Zap className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total</span>
                 </div>
-                <div className="p-2.5 bg-primary/10 rounded-xl">
-                  <Zap className="h-5 w-5 text-primary" />
-                </div>
+                <p className="text-3xl font-bold tracking-tight">{totalInteractions.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1.5">{totalAgents} active agents</p>
               </div>
-            </Card>
+            </div>
 
-            <Card className="p-5 border-0 bg-gradient-to-br from-blue-500/5 to-blue-500/10">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Chat Messages</p>
-                  <p className="text-3xl font-bold mt-1">{totalChatMessages.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{totalChatConversations.toLocaleString()} conversations</p>
+            <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background to-blue-50/30 dark:to-blue-500/5 p-6 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5 hover:-translate-y-0.5">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-blue-500/8 to-transparent rounded-bl-[60px]" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-xl" style={{ backgroundColor: colors.blue.light }}>
+                    <MessageSquare className="h-4 w-4" style={{ color: colors.blue.main }} />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Chat</span>
                 </div>
-                <div className="p-2.5 bg-blue-500/10 rounded-xl">
-                  <MessageSquare className="h-5 w-5 text-blue-500" />
-                </div>
+                <p className="text-3xl font-bold tracking-tight">{totalChatMessages.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1.5">{totalChatConversations.toLocaleString()} conversations</p>
               </div>
-            </Card>
+            </div>
 
-            <Card className="p-5 border-0 bg-gradient-to-br from-violet-500/5 to-violet-500/10">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Voice Minutes</p>
-                  <p className="text-3xl font-bold mt-1">{totalVoiceMinutes.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{totalVoiceCalls.toLocaleString()} calls</p>
+            <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background to-violet-50/30 dark:to-violet-500/5 p-6 transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/5 hover:-translate-y-0.5">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-violet-500/8 to-transparent rounded-bl-[60px]" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-xl" style={{ backgroundColor: colors.violet.light }}>
+                    <Phone className="h-4 w-4" style={{ color: colors.violet.main }} />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Voice</span>
                 </div>
-                <div className="p-2.5 bg-violet-500/10 rounded-xl">
-                  <Phone className="h-5 w-5 text-violet-500" />
-                </div>
+                <p className="text-3xl font-bold tracking-tight">{totalVoiceMinutes.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1.5">{totalVoiceCalls.toLocaleString()} calls</p>
               </div>
-            </Card>
+            </div>
 
-            <Card className="p-5 border-0 bg-gradient-to-br from-green-500/5 to-green-500/10">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">WhatsApp Messages</p>
-                  <p className="text-3xl font-bold mt-1">{totalWhatsAppMessages.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{totalWhatsAppConversations.toLocaleString()} conversations</p>
+            <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background to-emerald-50/30 dark:to-emerald-500/5 p-6 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5 hover:-translate-y-0.5">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-500/8 to-transparent rounded-bl-[60px]" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-xl" style={{ backgroundColor: colors.emerald.light }}>
+                    <MessageCircle className="h-4 w-4" style={{ color: colors.emerald.main }} />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">WhatsApp</span>
                 </div>
-                <div className="p-2.5 bg-green-500/10 rounded-xl">
-                  <MessageCircle className="h-5 w-5 text-green-500" />
-                </div>
+                <p className="text-3xl font-bold tracking-tight">{totalWhatsAppMessages.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1.5">{totalWhatsAppConversations.toLocaleString()} conversations</p>
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Activity Over Time - takes 2 columns */}
-            <Card className="border-border/50 lg:col-span-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Activity Over Time</CardTitle>
-                <CardDescription>Daily interactions across all agents</CardDescription>
-              </CardHeader>
-              <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* Activity Over Time - Line chart, no grid, smooth curves */}
+            <div className="lg:col-span-2 rounded-2xl border border-border/40 bg-gradient-to-br from-background to-muted/20 overflow-hidden">
+              <div className="px-6 pt-6 pb-2">
+                <h3 className="text-sm font-semibold">Activity Over Time</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Daily interactions across all agents</p>
+              </div>
+              <div className="px-4 pb-4">
                 {dailyData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <AreaChart data={dailyData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={dailyData} margin={{ top: 20, right: 16, left: -8, bottom: 0 }}>
                       <defs>
                         <linearGradient id="chatGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                          <stop offset="0%" stopColor={colors.blue.main} stopOpacity={0.25} />
+                          <stop offset="100%" stopColor={colors.blue.main} stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="voiceGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                          <stop offset="0%" stopColor={colors.violet.main} stopOpacity={0.25} />
+                          <stop offset="100%" stopColor={colors.violet.main} stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="waGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                          <stop offset="0%" stopColor={colors.emerald.main} stopOpacity={0.25} />
+                          <stop offset="100%" stopColor={colors.emerald.main} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} interval={timeRange === '7d' ? 0 : 'preserveStartEnd'} />
-                      <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} />
-                      <RechartsTooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                      <Area type="monotone" dataKey="chatMessages" name="Chat Messages" stroke="#3b82f6" strokeWidth={2} fill="url(#chatGrad)" />
-                      <Area type="monotone" dataKey="voiceCalls" name="Voice Calls" stroke="#8b5cf6" strokeWidth={2} fill="url(#voiceGrad)" />
-                      <Area type="monotone" dataKey="whatsappMessages" name="WhatsApp Messages" stroke="#22c55e" strokeWidth={2} fill="url(#waGrad)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} interval={timeRange === '7d' ? 0 : 'preserveStartEnd'} dy={8} />
+                      <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} dx={-4} />
+                      <RechartsTooltip contentStyle={tooltipStyle} cursor={{ stroke: 'hsl(var(--border))', strokeDasharray: '4 4' }} />
+                      <Area type="monotone" dataKey="chatMessages" name="Chat Messages" stroke={colors.blue.main} strokeWidth={2.5} fill="url(#chatGrad)" dot={false} activeDot={{ r: 5, fill: colors.blue.main, stroke: '#fff', strokeWidth: 2 }} />
+                      <Area type="monotone" dataKey="voiceCalls" name="Voice Calls" stroke={colors.violet.main} strokeWidth={2.5} fill="url(#voiceGrad)" dot={false} activeDot={{ r: 5, fill: colors.violet.main, stroke: '#fff', strokeWidth: 2 }} />
+                      <Area type="monotone" dataKey="whatsappMessages" name="WhatsApp Messages" stroke={colors.emerald.main} strokeWidth={2.5} fill="url(#waGrad)" dot={false} activeDot={{ r: 5, fill: colors.emerald.main, stroke: '#fff', strokeWidth: 2 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                     <div className="text-center">
-                      <BarChart3 className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">No activity data yet</p>
+                      <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      <p className="text-sm font-medium">No activity data yet</p>
+                      <p className="text-xs text-muted-foreground mt-1">Data will appear as agents are used</p>
                     </div>
                   </div>
                 )}
-                <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-500" />Chat Messages</div>
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-violet-500" />Voice Calls</div>
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-green-500" />WhatsApp</div>
+                <div className="flex items-center justify-center gap-6 mt-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2"><div className="w-3 h-[3px] rounded-full" style={{ backgroundColor: colors.blue.main }} />Chat</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-[3px] rounded-full" style={{ backgroundColor: colors.violet.main }} />Voice</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-[3px] rounded-full" style={{ backgroundColor: colors.emerald.main }} />WhatsApp</div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Distribution Donut */}
-            <Card className="border-border/50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Distribution</CardTitle>
-                <CardDescription>Interactions by agent type</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center">
+            {/* Distribution Donut - Once UI minimal style */}
+            <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-background to-muted/20 overflow-hidden">
+              <div className="px-6 pt-6 pb-2">
+                <h3 className="text-sm font-semibold">Distribution</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Interactions by agent type</p>
+              </div>
+              <div className="px-6 pb-6 flex flex-col items-center justify-center">
                 {totalInteractions > 0 ? (
                   <>
                     <ResponsiveContainer width="100%" height={200}>
                       <PieChart>
                         <Pie
                           data={[
-                            { name: 'Chatbot', value: totalChatConversations, color: '#3b82f6' },
-                            { name: 'Voice', value: totalVoiceCalls, color: '#8b5cf6' },
-                            { name: 'WhatsApp', value: totalWhatsAppConversations, color: '#22c55e' },
+                            { name: 'Chatbot', value: totalChatConversations, color: colors.blue.main },
+                            { name: 'Voice', value: totalVoiceCalls, color: colors.violet.main },
+                            { name: 'WhatsApp', value: totalWhatsAppConversations, color: colors.emerald.main },
                           ].filter(d => d.value > 0)}
                           cx="50%"
                           cy="50%"
-                          innerRadius={55}
-                          outerRadius={80}
-                          paddingAngle={3}
+                          innerRadius={60}
+                          outerRadius={85}
+                          paddingAngle={4}
                           dataKey="value"
                           strokeWidth={0}
                         >
                           {[
-                            { name: 'Chatbot', value: totalChatConversations, color: '#3b82f6' },
-                            { name: 'Voice', value: totalVoiceCalls, color: '#8b5cf6' },
-                            { name: 'WhatsApp', value: totalWhatsAppConversations, color: '#22c55e' },
+                            { name: 'Chatbot', value: totalChatConversations, color: colors.blue.main },
+                            { name: 'Voice', value: totalVoiceCalls, color: colors.violet.main },
+                            { name: 'WhatsApp', value: totalWhatsAppConversations, color: colors.emerald.main },
                           ].filter(d => d.value > 0).map((entry, index) => (
                             <Cell key={index} fill={entry.color} />
                           ))}
                         </Pie>
-                        <RechartsTooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
+                        <RechartsTooltip contentStyle={tooltipStyle} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="flex flex-col gap-2 w-full mt-2">
+                    <div className="flex flex-col gap-3 w-full mt-3">
                       {[
-                        { label: 'Chatbots', value: totalChatConversations, color: '#3b82f6' },
-                        { label: 'Voice', value: totalVoiceCalls, color: '#8b5cf6' },
-                        { label: 'WhatsApp', value: totalWhatsAppConversations, color: '#22c55e' },
-                      ].map(item => (
-                        <div key={item.label} className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                            <span className="text-muted-foreground">{item.label}</span>
+                        { label: 'Chatbots', value: totalChatConversations, color: colors.blue.main },
+                        { label: 'Voice', value: totalVoiceCalls, color: colors.violet.main },
+                        { label: 'WhatsApp', value: totalWhatsAppConversations, color: colors.emerald.main },
+                      ].map(item => {
+                        const pct = totalInteractions > 0 ? Math.round(item.value / totalInteractions * 100) : 0;
+                        return (
+                          <div key={item.label}>
+                            <div className="flex items-center justify-between text-xs mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                                <span className="font-medium">{item.label}</span>
+                              </div>
+                              <span className="text-muted-foreground">{pct}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-muted/60 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${pct}%`, backgroundColor: item.color }} />
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{item.value.toLocaleString()}</span>
-                            <span className="text-muted-foreground w-10 text-right">
-                              {totalInteractions > 0 ? Math.round(item.value / totalInteractions * 100) : 0}%
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </>
                 ) : (
                   <div className="flex items-center justify-center h-[280px] text-muted-foreground">
                     <div className="text-center">
-                      <Activity className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">No data yet</p>
+                      <Activity className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      <p className="text-sm font-medium">No data yet</p>
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
-          {/* Agent Breakdown Tabs */}
-          <Tabs defaultValue="chatbots" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="chatbots" className="gap-2">
+          {/* Agent Breakdown Tabs - Once UI pill tabs */}
+          <Tabs defaultValue="chatbots" className="space-y-5">
+            <TabsList className="bg-muted/40 rounded-2xl p-1 h-auto">
+              <TabsTrigger value="chatbots" className="gap-2 rounded-xl data-[state=active]:shadow-sm py-2 px-4">
                 <Bot className="w-3.5 h-3.5" />
                 Chatbots
-                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{chatbotStats.length}</Badge>
+                <span className="ml-1 text-[10px] font-semibold bg-muted px-1.5 py-0.5 rounded-lg">{chatbotStats.length}</span>
               </TabsTrigger>
-              <TabsTrigger value="voice" className="gap-2">
+              <TabsTrigger value="voice" className="gap-2 rounded-xl data-[state=active]:shadow-sm py-2 px-4">
                 <Phone className="w-3.5 h-3.5" />
                 Voice
-                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{voiceStats.length}</Badge>
+                <span className="ml-1 text-[10px] font-semibold bg-muted px-1.5 py-0.5 rounded-lg">{voiceStats.length}</span>
               </TabsTrigger>
-              <TabsTrigger value="whatsapp" className="gap-2">
+              <TabsTrigger value="whatsapp" className="gap-2 rounded-xl data-[state=active]:shadow-sm py-2 px-4">
                 <MessageCircle className="w-3.5 h-3.5" />
                 WhatsApp
-                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{whatsappStats.length}</Badge>
+                <span className="ml-1 text-[10px] font-semibold bg-muted px-1.5 py-0.5 rounded-lg">{whatsappStats.length}</span>
               </TabsTrigger>
             </TabsList>
 
             {/* Chatbots Tab */}
-            <TabsContent value="chatbots" className="space-y-4">
-              {/* Chatbot bar chart */}
+            <TabsContent value="chatbots" className="space-y-5">
               {chatbotStats.length > 0 && (
-                <Card className="border-border/50">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Messages by Chatbot</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={Math.max(chatbotStats.length * 48, 120)}>
-                      <BarChart data={chatbotStats} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-background to-muted/20 overflow-hidden">
+                  <div className="px-6 pt-6 pb-2">
+                    <h3 className="text-sm font-semibold">Messages by Chatbot</h3>
+                  </div>
+                  <div className="px-4 pb-5">
+                    <ResponsiveContainer width="100%" height={Math.max(chatbotStats.length * 52, 120)}>
+                      <BarChart data={chatbotStats} layout="vertical" margin={{ top: 4, right: 24, left: 0, bottom: 0 }}>
                         <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} />
                         <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} tickLine={false} axisLine={false} />
-                        <RechartsTooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
-                        <Bar dataKey="messages" name="Messages" radius={[0, 6, 6, 0]} barSize={24}>
+                        <RechartsTooltip contentStyle={tooltipStyle} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3, radius: 8 }} />
+                        <Bar dataKey="messages" name="Messages" radius={[0, 8, 8, 0]} barSize={22}>
                           {chatbotStats.map((bot) => (
-                            <Cell key={bot.id} fill={bot.theme_color || '#3b82f6'} fillOpacity={0.8} />
+                            <Cell key={bot.id} fill={bot.theme_color || colors.blue.main} fillOpacity={0.85} />
                           ))}
                         </Bar>
-                        <Bar dataKey="conversations" name="Conversations" radius={[0, 6, 6, 0]} barSize={24} fill="#94a3b8" fillOpacity={0.3} />
+                        <Bar dataKey="conversations" name="Conversations" radius={[0, 8, 8, 0]} barSize={22} fill={colors.neutral.main} fillOpacity={0.15} />
                       </BarChart>
                     </ResponsiveContainer>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )}
 
-              {/* Chatbot detail cards */}
-              <Card className="border-border/50">
-                <CardHeader className="pb-3">
+              <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-background to-muted/20 overflow-hidden">
+                <div className="px-6 pt-6 pb-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-base">Chatbot Details</CardTitle>
-                      <CardDescription>{activeChatbots} active out of {chatbotStats.length}</CardDescription>
+                      <h3 className="text-sm font-semibold">Chatbot Details</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{activeChatbots} active out of {chatbotStats.length}</p>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="text-right"><p className="font-semibold">{totalChatConversations.toLocaleString()}</p><p className="text-xs text-muted-foreground">Conversations</p></div>
-                      <div className="text-right"><p className="font-semibold">{totalChatMessages.toLocaleString()}</p><p className="text-xs text-muted-foreground">Messages</p></div>
-                      <div className="text-right"><p className="font-semibold">{totalChatConversations > 0 ? Math.round(totalChatMessages / totalChatConversations * 10) / 10 : 0}</p><p className="text-xs text-muted-foreground">Avg/Conv</p></div>
+                    <div className="flex items-center gap-5 text-sm">
+                      <div className="text-right"><p className="font-bold text-lg">{totalChatConversations.toLocaleString()}</p><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Conversations</p></div>
+                      <div className="text-right"><p className="font-bold text-lg">{totalChatMessages.toLocaleString()}</p><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Messages</p></div>
+                      <div className="text-right"><p className="font-bold text-lg">{totalChatConversations > 0 ? Math.round(totalChatMessages / totalChatConversations * 10) / 10 : 0}</p><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg/Conv</p></div>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div className="px-6 pb-6">
                   {chatbotStats.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                      <Bot className="h-10 w-10 mb-2 opacity-30" /><p className="text-sm font-medium">No chatbots yet</p>
+                    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                      <Bot className="h-12 w-12 mb-3 opacity-20" />
+                      <p className="text-sm font-medium">No chatbots yet</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       {chatbotStats.map((bot) => {
                         const maxMsg = Math.max(...chatbotStats.map(b => b.messages), 1);
                         return (
-                          <div key={bot.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: bot.theme_color || '#3b82f6' }}>
+                          <div key={bot.id} className="flex items-center gap-4 p-4 rounded-xl border border-border/30 hover:border-border/60 bg-background/50 hover:bg-background/80 transition-all duration-200 group">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm" style={{ backgroundColor: bot.theme_color || colors.blue.main }}>
                               {bot.name.charAt(0).toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="text-sm font-medium truncate">{bot.name}</p>
-                                <Badge variant={bot.is_active ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0 shrink-0">{bot.is_active ? 'Active' : 'Inactive'}</Badge>
+                              <div className="flex items-center gap-2.5 mb-2">
+                                <p className="text-sm font-semibold truncate">{bot.name}</p>
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-lg ${bot.is_active ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
+                                  {bot.is_active ? 'Active' : 'Inactive'}
+                                </span>
                               </div>
-                              <div className="w-full bg-muted rounded-full h-1.5">
-                                <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${(bot.messages / maxMsg) * 100}%`, backgroundColor: bot.theme_color || '#3b82f6' }} />
+                              <div className="w-full bg-muted/50 rounded-full h-2 overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${(bot.messages / maxMsg) * 100}%`, backgroundColor: bot.theme_color || colors.blue.main }} />
                               </div>
-                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                                 <span>{bot.conversations} conversations</span>
                                 <span>{bot.messages} messages</span>
                               </div>
                             </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-lg font-semibold">{bot.messages.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">msgs</p>
+                            <div className="text-right shrink-0 pl-4">
+                              <p className="text-xl font-bold">{bot.messages.toLocaleString()}</p>
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">msgs</p>
                             </div>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </TabsContent>
 
             {/* Voice Tab */}
-            <TabsContent value="voice" className="space-y-4">
-              {/* Voice bar chart */}
+            <TabsContent value="voice" className="space-y-5">
               {voiceStats.length > 0 && (
-                <Card className="border-border/50">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Call Minutes by Assistant</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={Math.max(voiceStats.length * 48, 120)}>
-                      <BarChart data={voiceStats} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-background to-muted/20 overflow-hidden">
+                  <div className="px-6 pt-6 pb-2">
+                    <h3 className="text-sm font-semibold">Call Minutes by Assistant</h3>
+                  </div>
+                  <div className="px-4 pb-5">
+                    <ResponsiveContainer width="100%" height={Math.max(voiceStats.length * 52, 120)}>
+                      <BarChart data={voiceStats} layout="vertical" margin={{ top: 4, right: 24, left: 0, bottom: 0 }}>
                         <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} />
                         <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} tickLine={false} axisLine={false} />
-                        <RechartsTooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
-                        <Bar dataKey="minutes" name="Minutes" radius={[0, 6, 6, 0]} barSize={24} fill="#8b5cf6" fillOpacity={0.8} />
-                        <Bar dataKey="calls" name="Calls" radius={[0, 6, 6, 0]} barSize={24} fill="#c4b5fd" fillOpacity={0.4} />
+                        <RechartsTooltip contentStyle={tooltipStyle} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3, radius: 8 }} />
+                        <Bar dataKey="minutes" name="Minutes" radius={[0, 8, 8, 0]} barSize={22} fill={colors.violet.main} fillOpacity={0.85} />
+                        <Bar dataKey="calls" name="Calls" radius={[0, 8, 8, 0]} barSize={22} fill={colors.violet.main} fillOpacity={0.2} />
                       </BarChart>
                     </ResponsiveContainer>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )}
 
-              {/* Voice detail cards */}
-              <Card className="border-border/50">
-                <CardHeader className="pb-3">
+              <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-background to-muted/20 overflow-hidden">
+                <div className="px-6 pt-6 pb-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-base">Voice Assistant Details</CardTitle>
-                      <CardDescription>{totalVoiceAssistants} assistant{totalVoiceAssistants !== 1 ? 's' : ''}</CardDescription>
+                      <h3 className="text-sm font-semibold">Voice Assistant Details</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{totalVoiceAssistants} assistant{totalVoiceAssistants !== 1 ? 's' : ''}</p>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="text-right"><p className="font-semibold">{totalVoiceCalls.toLocaleString()}</p><p className="text-xs text-muted-foreground">Calls</p></div>
-                      <div className="text-right"><p className="font-semibold">{totalVoiceMinutes.toLocaleString()}</p><p className="text-xs text-muted-foreground">Minutes</p></div>
-                      <div className="text-right"><p className="font-semibold">{formatDuration(avgCallDuration)}</p><p className="text-xs text-muted-foreground">Avg Duration</p></div>
+                    <div className="flex items-center gap-5 text-sm">
+                      <div className="text-right"><p className="font-bold text-lg">{totalVoiceCalls.toLocaleString()}</p><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Calls</p></div>
+                      <div className="text-right"><p className="font-bold text-lg">{totalVoiceMinutes.toLocaleString()}</p><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Minutes</p></div>
+                      <div className="text-right"><p className="font-bold text-lg">{formatDuration(avgCallDuration)}</p><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg Duration</p></div>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div className="px-6 pb-6">
                   {voiceStats.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                      <Phone className="h-10 w-10 mb-2 opacity-30" /><p className="text-sm font-medium">No voice assistants yet</p>
+                    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                      <Phone className="h-12 w-12 mb-3 opacity-20" />
+                      <p className="text-sm font-medium">No voice assistants yet</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       {voiceStats.map((assistant) => {
                         const maxMin = Math.max(...voiceStats.map(a => a.minutes), 1);
                         return (
-                          <div key={assistant.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
-                            <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
-                              <Phone className="w-4 h-4 text-violet-500" />
+                          <div key={assistant.id} className="flex items-center gap-4 p-4 rounded-xl border border-border/30 hover:border-border/60 bg-background/50 hover:bg-background/80 transition-all duration-200 group">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: colors.violet.light }}>
+                              <Phone className="w-4.5 h-4.5" style={{ color: colors.violet.main }} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate mb-1">{assistant.name}</p>
-                              <div className="w-full bg-muted rounded-full h-1.5">
-                                <div className="h-1.5 rounded-full bg-violet-500 transition-all duration-500" style={{ width: `${(assistant.minutes / maxMin) * 100}%` }} />
+                              <p className="text-sm font-semibold truncate mb-2">{assistant.name}</p>
+                              <div className="w-full bg-muted/50 rounded-full h-2 overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${(assistant.minutes / maxMin) * 100}%`, backgroundColor: colors.violet.main }} />
                               </div>
-                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                                 <span>{assistant.calls} calls</span>
                                 <span>{assistant.minutes} min</span>
                                 <span>avg {formatDuration(assistant.avgDuration)}</span>
                               </div>
                             </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-lg font-semibold">{assistant.minutes.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">min</p>
+                            <div className="text-right shrink-0 pl-4">
+                              <p className="text-xl font-bold">{assistant.minutes.toLocaleString()}</p>
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">min</p>
                             </div>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </TabsContent>
 
             {/* WhatsApp Tab */}
-            <TabsContent value="whatsapp" className="space-y-4">
-              {/* WhatsApp bar chart */}
+            <TabsContent value="whatsapp" className="space-y-5">
               {whatsappStats.length > 0 && (
-                <Card className="border-border/50">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Messages by WhatsApp Agent</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={Math.max(whatsappStats.length * 48, 120)}>
-                      <BarChart data={whatsappStats} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-background to-muted/20 overflow-hidden">
+                  <div className="px-6 pt-6 pb-2">
+                    <h3 className="text-sm font-semibold">Messages by WhatsApp Agent</h3>
+                  </div>
+                  <div className="px-4 pb-5">
+                    <ResponsiveContainer width="100%" height={Math.max(whatsappStats.length * 52, 120)}>
+                      <BarChart data={whatsappStats} layout="vertical" margin={{ top: 4, right: 24, left: 0, bottom: 0 }}>
                         <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} />
                         <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} tickLine={false} axisLine={false} />
-                        <RechartsTooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
-                        <Bar dataKey="messages" name="Messages" radius={[0, 6, 6, 0]} barSize={24} fill="#22c55e" fillOpacity={0.8} />
-                        <Bar dataKey="conversations" name="Conversations" radius={[0, 6, 6, 0]} barSize={24} fill="#86efac" fillOpacity={0.3} />
+                        <RechartsTooltip contentStyle={tooltipStyle} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3, radius: 8 }} />
+                        <Bar dataKey="messages" name="Messages" radius={[0, 8, 8, 0]} barSize={22} fill={colors.emerald.main} fillOpacity={0.85} />
+                        <Bar dataKey="conversations" name="Conversations" radius={[0, 8, 8, 0]} barSize={22} fill={colors.emerald.main} fillOpacity={0.2} />
                       </BarChart>
                     </ResponsiveContainer>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )}
 
-              {/* WhatsApp detail cards */}
-              <Card className="border-border/50">
-                <CardHeader className="pb-3">
+              <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-background to-muted/20 overflow-hidden">
+                <div className="px-6 pt-6 pb-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-base">WhatsApp Agent Details</CardTitle>
-                      <CardDescription>{activeWhatsAppAgents} active out of {totalWhatsAppAgents}</CardDescription>
+                      <h3 className="text-sm font-semibold">WhatsApp Agent Details</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{activeWhatsAppAgents} active out of {totalWhatsAppAgents}</p>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="text-right"><p className="font-semibold">{totalWhatsAppConversations.toLocaleString()}</p><p className="text-xs text-muted-foreground">Conversations</p></div>
-                      <div className="text-right"><p className="font-semibold">{totalWhatsAppMessages.toLocaleString()}</p><p className="text-xs text-muted-foreground">Messages</p></div>
-                      <div className="text-right"><p className="font-semibold">{totalWhatsAppConversations > 0 ? Math.round(totalWhatsAppMessages / totalWhatsAppConversations * 10) / 10 : 0}</p><p className="text-xs text-muted-foreground">Avg/Conv</p></div>
+                    <div className="flex items-center gap-5 text-sm">
+                      <div className="text-right"><p className="font-bold text-lg">{totalWhatsAppConversations.toLocaleString()}</p><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Conversations</p></div>
+                      <div className="text-right"><p className="font-bold text-lg">{totalWhatsAppMessages.toLocaleString()}</p><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Messages</p></div>
+                      <div className="text-right"><p className="font-bold text-lg">{totalWhatsAppConversations > 0 ? Math.round(totalWhatsAppMessages / totalWhatsAppConversations * 10) / 10 : 0}</p><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg/Conv</p></div>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div className="px-6 pb-6">
                   {whatsappStats.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                      <MessageCircle className="h-10 w-10 mb-2 opacity-30" /><p className="text-sm font-medium">No WhatsApp agents yet</p>
+                    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                      <MessageCircle className="h-12 w-12 mb-3 opacity-20" />
+                      <p className="text-sm font-medium">No WhatsApp agents yet</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       {whatsappStats.map((agent) => {
                         const maxMsg = Math.max(...whatsappStats.map(a => a.messages), 1);
                         return (
-                          <div key={agent.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
-                            <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
-                              <MessageCircle className="w-4 h-4 text-green-500" />
+                          <div key={agent.id} className="flex items-center gap-4 p-4 rounded-xl border border-border/30 hover:border-border/60 bg-background/50 hover:bg-background/80 transition-all duration-200 group">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: colors.emerald.light }}>
+                              <MessageCircle className="w-4.5 h-4.5" style={{ color: colors.emerald.main }} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="text-sm font-medium truncate">{agent.name}</p>
-                                <Badge variant={agent.status === 'active' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0 shrink-0">{agent.status}</Badge>
+                              <div className="flex items-center gap-2.5 mb-2">
+                                <p className="text-sm font-semibold truncate">{agent.name}</p>
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-lg ${agent.status === 'active' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
+                                  {agent.status}
+                                </span>
                               </div>
-                              <div className="w-full bg-muted rounded-full h-1.5">
-                                <div className="h-1.5 rounded-full bg-green-500 transition-all duration-500" style={{ width: `${(agent.messages / maxMsg) * 100}%` }} />
+                              <div className="w-full bg-muted/50 rounded-full h-2 overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${(agent.messages / maxMsg) * 100}%`, backgroundColor: colors.emerald.main }} />
                               </div>
-                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                                 <span>{agent.conversations} conversations</span>
                                 <span>{agent.messages} messages</span>
                               </div>
                             </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-lg font-semibold">{agent.messages.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">msgs</p>
+                            <div className="text-right shrink-0 pl-4">
+                              <p className="text-xl font-bold">{agent.messages.toLocaleString()}</p>
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">msgs</p>
                             </div>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </>
