@@ -28,6 +28,11 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
 } from "recharts";
 
 interface ChatbotStats {
@@ -498,108 +503,125 @@ const Usage = () => {
             </Card>
           </div>
 
-          {/* Activity Chart */}
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base">Activity Over Time</CardTitle>
-                  <CardDescription>Daily interactions across all agents</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {dailyData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={dailyData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="chatGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="voiceGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="waGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={false}
-                      axisLine={false}
-                      interval={timeRange === '7d' ? 0 : 'preserveStartEnd'}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={false}
-                      axisLine={false}
-                      allowDecimals={false}
-                    />
-                    <RechartsTooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="chatMessages"
-                      name="Chat Messages"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      fill="url(#chatGrad)"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="voiceCalls"
-                      name="Voice Calls"
-                      stroke="#8b5cf6"
-                      strokeWidth={2}
-                      fill="url(#voiceGrad)"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="whatsappMessages"
-                      name="WhatsApp Messages"
-                      stroke="#22c55e"
-                      strokeWidth={2}
-                      fill="url(#waGrad)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                  <div className="text-center">
-                    <BarChart3 className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No activity data yet</p>
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Activity Over Time - takes 2 columns */}
+            <Card className="border-border/50 lg:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Activity Over Time</CardTitle>
+                <CardDescription>Daily interactions across all agents</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dailyData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <AreaChart data={dailyData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="chatGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="voiceGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="waGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} interval={timeRange === '7d' ? 0 : 'preserveStartEnd'} />
+                      <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                      <RechartsTooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                      <Area type="monotone" dataKey="chatMessages" name="Chat Messages" stroke="#3b82f6" strokeWidth={2} fill="url(#chatGrad)" />
+                      <Area type="monotone" dataKey="voiceCalls" name="Voice Calls" stroke="#8b5cf6" strokeWidth={2} fill="url(#voiceGrad)" />
+                      <Area type="monotone" dataKey="whatsappMessages" name="WhatsApp Messages" stroke="#22c55e" strokeWidth={2} fill="url(#waGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+                    <div className="text-center">
+                      <BarChart3 className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No activity data yet</p>
+                    </div>
                   </div>
+                )}
+                <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-500" />Chat Messages</div>
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-violet-500" />Voice Calls</div>
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-green-500" />WhatsApp</div>
                 </div>
-              )}
-              {/* Legend */}
-              <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                  Chat Messages
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-violet-500" />
-                  Voice Calls
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                  WhatsApp
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* Distribution Donut */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Distribution</CardTitle>
+                <CardDescription>Interactions by agent type</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center">
+                {totalInteractions > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Chatbot', value: totalChatConversations, color: '#3b82f6' },
+                            { name: 'Voice', value: totalVoiceCalls, color: '#8b5cf6' },
+                            { name: 'WhatsApp', value: totalWhatsAppConversations, color: '#22c55e' },
+                          ].filter(d => d.value > 0)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={80}
+                          paddingAngle={3}
+                          dataKey="value"
+                          strokeWidth={0}
+                        >
+                          {[
+                            { name: 'Chatbot', value: totalChatConversations, color: '#3b82f6' },
+                            { name: 'Voice', value: totalVoiceCalls, color: '#8b5cf6' },
+                            { name: 'WhatsApp', value: totalWhatsAppConversations, color: '#22c55e' },
+                          ].filter(d => d.value > 0).map((entry, index) => (
+                            <Cell key={index} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="flex flex-col gap-2 w-full mt-2">
+                      {[
+                        { label: 'Chatbots', value: totalChatConversations, color: '#3b82f6' },
+                        { label: 'Voice', value: totalVoiceCalls, color: '#8b5cf6' },
+                        { label: 'WhatsApp', value: totalWhatsAppConversations, color: '#22c55e' },
+                      ].map(item => (
+                        <div key={item.label} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                            <span className="text-muted-foreground">{item.label}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{item.value.toLocaleString()}</span>
+                            <span className="text-muted-foreground w-10 text-right">
+                              {totalInteractions > 0 ? Math.round(item.value / totalInteractions * 100) : 0}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+                    <div className="text-center">
+                      <Activity className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No data yet</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Agent Breakdown Tabs */}
           <Tabs defaultValue="chatbots" className="space-y-4">
@@ -622,70 +644,81 @@ const Usage = () => {
             </TabsList>
 
             {/* Chatbots Tab */}
-            <TabsContent value="chatbots">
+            <TabsContent value="chatbots" className="space-y-4">
+              {/* Chatbot bar chart */}
+              {chatbotStats.length > 0 && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Messages by Chatbot</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={Math.max(chatbotStats.length * 48, 120)}>
+                      <BarChart data={chatbotStats} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                        <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} tickLine={false} axisLine={false} />
+                        <RechartsTooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
+                        <Bar dataKey="messages" name="Messages" radius={[0, 6, 6, 0]} barSize={24}>
+                          {chatbotStats.map((bot) => (
+                            <Cell key={bot.id} fill={bot.theme_color || '#3b82f6'} fillOpacity={0.8} />
+                          ))}
+                        </Bar>
+                        <Bar dataKey="conversations" name="Conversations" radius={[0, 6, 6, 0]} barSize={24} fill="#94a3b8" fillOpacity={0.3} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Chatbot detail cards */}
               <Card className="border-border/50">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-base">Chatbot Performance</CardTitle>
-                      <CardDescription>
-                        {activeChatbots} active out of {chatbotStats.length} chatbot{chatbotStats.length !== 1 ? 's' : ''}
-                      </CardDescription>
+                      <CardTitle className="text-base">Chatbot Details</CardTitle>
+                      <CardDescription>{activeChatbots} active out of {chatbotStats.length}</CardDescription>
                     </div>
                     <div className="flex items-center gap-4 text-sm">
-                      <div className="text-right">
-                        <p className="font-semibold">{totalChatConversations.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Conversations</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{totalChatMessages.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Messages</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">
-                          {totalChatConversations > 0 ? Math.round(totalChatMessages / totalChatConversations * 10) / 10 : 0}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Avg/Conv</p>
-                      </div>
+                      <div className="text-right"><p className="font-semibold">{totalChatConversations.toLocaleString()}</p><p className="text-xs text-muted-foreground">Conversations</p></div>
+                      <div className="text-right"><p className="font-semibold">{totalChatMessages.toLocaleString()}</p><p className="text-xs text-muted-foreground">Messages</p></div>
+                      <div className="text-right"><p className="font-semibold">{totalChatConversations > 0 ? Math.round(totalChatMessages / totalChatConversations * 10) / 10 : 0}</p><p className="text-xs text-muted-foreground">Avg/Conv</p></div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   {chatbotStats.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                      <Bot className="h-10 w-10 mb-2 opacity-30" />
-                      <p className="text-sm font-medium">No chatbots yet</p>
-                      <p className="text-xs mt-1">Create a chatbot to see its analytics here</p>
+                      <Bot className="h-10 w-10 mb-2 opacity-30" /><p className="text-sm font-medium">No chatbots yet</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {chatbotStats.map((bot, index) => (
-                        <div key={bot.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"
-                              style={{ backgroundColor: bot.theme_color || '#3b82f6' }}
-                            >
+                      {chatbotStats.map((bot) => {
+                        const maxMsg = Math.max(...chatbotStats.map(b => b.messages), 1);
+                        return (
+                          <div key={bot.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: bot.theme_color || '#3b82f6' }}>
                               {bot.name.charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-medium">{bot.name}</p>
-                                <Badge variant={bot.is_active ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
-                                  {bot.is_active ? 'Active' : 'Inactive'}
-                                </Badge>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-sm font-medium truncate">{bot.name}</p>
+                                <Badge variant={bot.is_active ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0 shrink-0">{bot.is_active ? 'Active' : 'Inactive'}</Badge>
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                {bot.conversations} conversation{bot.conversations !== 1 ? 's' : ''}
-                              </p>
+                              <div className="w-full bg-muted rounded-full h-1.5">
+                                <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${(bot.messages / maxMsg) * 100}%`, backgroundColor: bot.theme_color || '#3b82f6' }} />
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                <span>{bot.conversations} conversations</span>
+                                <span>{bot.messages} messages</span>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-lg font-semibold">{bot.messages.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground">msgs</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-semibold">{bot.messages.toLocaleString()}</p>
-                            <p className="text-xs text-muted-foreground">messages</p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -693,60 +726,75 @@ const Usage = () => {
             </TabsContent>
 
             {/* Voice Tab */}
-            <TabsContent value="voice">
+            <TabsContent value="voice" className="space-y-4">
+              {/* Voice bar chart */}
+              {voiceStats.length > 0 && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Call Minutes by Assistant</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={Math.max(voiceStats.length * 48, 120)}>
+                      <BarChart data={voiceStats} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                        <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} tickLine={false} axisLine={false} />
+                        <RechartsTooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
+                        <Bar dataKey="minutes" name="Minutes" radius={[0, 6, 6, 0]} barSize={24} fill="#8b5cf6" fillOpacity={0.8} />
+                        <Bar dataKey="calls" name="Calls" radius={[0, 6, 6, 0]} barSize={24} fill="#c4b5fd" fillOpacity={0.4} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Voice detail cards */}
               <Card className="border-border/50">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-base">Voice Assistant Performance</CardTitle>
-                      <CardDescription>
-                        {totalVoiceAssistants} voice assistant{totalVoiceAssistants !== 1 ? 's' : ''}
-                      </CardDescription>
+                      <CardTitle className="text-base">Voice Assistant Details</CardTitle>
+                      <CardDescription>{totalVoiceAssistants} assistant{totalVoiceAssistants !== 1 ? 's' : ''}</CardDescription>
                     </div>
                     <div className="flex items-center gap-4 text-sm">
-                      <div className="text-right">
-                        <p className="font-semibold">{totalVoiceCalls.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Calls</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{totalVoiceMinutes.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Minutes</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{formatDuration(avgCallDuration)}</p>
-                        <p className="text-xs text-muted-foreground">Avg Duration</p>
-                      </div>
+                      <div className="text-right"><p className="font-semibold">{totalVoiceCalls.toLocaleString()}</p><p className="text-xs text-muted-foreground">Calls</p></div>
+                      <div className="text-right"><p className="font-semibold">{totalVoiceMinutes.toLocaleString()}</p><p className="text-xs text-muted-foreground">Minutes</p></div>
+                      <div className="text-right"><p className="font-semibold">{formatDuration(avgCallDuration)}</p><p className="text-xs text-muted-foreground">Avg Duration</p></div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   {voiceStats.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                      <Phone className="h-10 w-10 mb-2 opacity-30" />
-                      <p className="text-sm font-medium">No voice assistants yet</p>
-                      <p className="text-xs mt-1">Create a voice assistant to see call analytics here</p>
+                      <Phone className="h-10 w-10 mb-2 opacity-30" /><p className="text-sm font-medium">No voice assistants yet</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {voiceStats.map((assistant) => (
-                        <div key={assistant.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                      {voiceStats.map((assistant) => {
+                        const maxMin = Math.max(...voiceStats.map(a => a.minutes), 1);
+                        return (
+                          <div key={assistant.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+                            <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
                               <Phone className="w-4 h-4 text-violet-500" />
                             </div>
-                            <div>
-                              <p className="text-sm font-medium">{assistant.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {assistant.calls} call{assistant.calls !== 1 ? 's' : ''} · avg {formatDuration(assistant.avgDuration)}
-                              </p>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate mb-1">{assistant.name}</p>
+                              <div className="w-full bg-muted rounded-full h-1.5">
+                                <div className="h-1.5 rounded-full bg-violet-500 transition-all duration-500" style={{ width: `${(assistant.minutes / maxMin) * 100}%` }} />
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                <span>{assistant.calls} calls</span>
+                                <span>{assistant.minutes} min</span>
+                                <span>avg {formatDuration(assistant.avgDuration)}</span>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-lg font-semibold">{assistant.minutes.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground">min</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-semibold">{assistant.minutes.toLocaleString()}</p>
-                            <p className="text-xs text-muted-foreground">minutes</p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -754,67 +802,77 @@ const Usage = () => {
             </TabsContent>
 
             {/* WhatsApp Tab */}
-            <TabsContent value="whatsapp">
+            <TabsContent value="whatsapp" className="space-y-4">
+              {/* WhatsApp bar chart */}
+              {whatsappStats.length > 0 && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Messages by WhatsApp Agent</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={Math.max(whatsappStats.length * 48, 120)}>
+                      <BarChart data={whatsappStats} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                        <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} tickLine={false} axisLine={false} />
+                        <RechartsTooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
+                        <Bar dataKey="messages" name="Messages" radius={[0, 6, 6, 0]} barSize={24} fill="#22c55e" fillOpacity={0.8} />
+                        <Bar dataKey="conversations" name="Conversations" radius={[0, 6, 6, 0]} barSize={24} fill="#86efac" fillOpacity={0.3} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* WhatsApp detail cards */}
               <Card className="border-border/50">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-base">WhatsApp Agent Performance</CardTitle>
-                      <CardDescription>
-                        {activeWhatsAppAgents} active out of {totalWhatsAppAgents} agent{totalWhatsAppAgents !== 1 ? 's' : ''}
-                      </CardDescription>
+                      <CardTitle className="text-base">WhatsApp Agent Details</CardTitle>
+                      <CardDescription>{activeWhatsAppAgents} active out of {totalWhatsAppAgents}</CardDescription>
                     </div>
                     <div className="flex items-center gap-4 text-sm">
-                      <div className="text-right">
-                        <p className="font-semibold">{totalWhatsAppConversations.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Conversations</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{totalWhatsAppMessages.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Messages</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">
-                          {totalWhatsAppConversations > 0 ? Math.round(totalWhatsAppMessages / totalWhatsAppConversations * 10) / 10 : 0}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Avg/Conv</p>
-                      </div>
+                      <div className="text-right"><p className="font-semibold">{totalWhatsAppConversations.toLocaleString()}</p><p className="text-xs text-muted-foreground">Conversations</p></div>
+                      <div className="text-right"><p className="font-semibold">{totalWhatsAppMessages.toLocaleString()}</p><p className="text-xs text-muted-foreground">Messages</p></div>
+                      <div className="text-right"><p className="font-semibold">{totalWhatsAppConversations > 0 ? Math.round(totalWhatsAppMessages / totalWhatsAppConversations * 10) / 10 : 0}</p><p className="text-xs text-muted-foreground">Avg/Conv</p></div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   {whatsappStats.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                      <MessageCircle className="h-10 w-10 mb-2 opacity-30" />
-                      <p className="text-sm font-medium">No WhatsApp agents yet</p>
-                      <p className="text-xs mt-1">Create a WhatsApp agent to see its analytics here</p>
+                      <MessageCircle className="h-10 w-10 mb-2 opacity-30" /><p className="text-sm font-medium">No WhatsApp agents yet</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {whatsappStats.map((agent) => (
-                        <div key={agent.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                      {whatsappStats.map((agent) => {
+                        const maxMsg = Math.max(...whatsappStats.map(a => a.messages), 1);
+                        return (
+                          <div key={agent.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+                            <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
                               <MessageCircle className="w-4 h-4 text-green-500" />
                             </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-medium">{agent.name}</p>
-                                <Badge variant={agent.status === 'active' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
-                                  {agent.status}
-                                </Badge>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-sm font-medium truncate">{agent.name}</p>
+                                <Badge variant={agent.status === 'active' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0 shrink-0">{agent.status}</Badge>
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                {agent.conversations} conversation{agent.conversations !== 1 ? 's' : ''}
-                              </p>
+                              <div className="w-full bg-muted rounded-full h-1.5">
+                                <div className="h-1.5 rounded-full bg-green-500 transition-all duration-500" style={{ width: `${(agent.messages / maxMsg) * 100}%` }} />
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                <span>{agent.conversations} conversations</span>
+                                <span>{agent.messages} messages</span>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-lg font-semibold">{agent.messages.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground">msgs</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-semibold">{agent.messages.toLocaleString()}</p>
-                            <p className="text-xs text-muted-foreground">messages</p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
