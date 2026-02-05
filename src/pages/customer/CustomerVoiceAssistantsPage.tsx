@@ -135,16 +135,18 @@ export default function CustomerVoiceAssistantsPage() {
   };
 
   // Load data from database (fast - shows cached data immediately)
+  // Uses SECURITY DEFINER RPC functions to bypass complex RLS chain
   const loadCachedData = async (): Promise<string[]> => {
     try {
-      const { data: assignments, error: assignmentsError } = await supabase
-        .from('customer_assistant_assignments')
-        .select('assistant_id')
-        .eq('customer_id', customer.id);
+      // Get assigned assistant IDs via RPC (bypasses RLS chain)
+      const { data: assistantIdsResult, error: idsError } = await supabase
+        .rpc('get_customer_assigned_assistant_ids');
 
-      if (assignmentsError) throw assignmentsError;
+      if (idsError) throw idsError;
 
-      if (!assignments || assignments.length === 0) {
+      const assistantIds: string[] = assistantIdsResult || [];
+
+      if (assistantIds.length === 0) {
         setAssistants([]);
         setCallLogs([]);
         setLoading(false);
@@ -152,30 +154,24 @@ export default function CustomerVoiceAssistantsPage() {
         return [];
       }
 
-      const assistantIds = assignments.map(a => a.assistant_id);
-
+      // Get voice assistants via RPC (bypasses RLS chain)
       const { data: assistantData, error: assistantError } = await supabase
-        .from('voice_assistants')
-        .select('*')
-        .in('id', assistantIds);
+        .rpc('get_customer_voice_assistants') as { data: any[] | null; error: any };
 
       if (assistantError) throw assistantError;
 
+      // Get voice calls via RPC (bypasses RLS chain)
       const { data: callData, error: callsError } = await supabase
-        .from('voice_assistant_calls')
-        .select('*')
-        .in('assistant_id', assistantIds)
-        .order('started_at', { ascending: false }) as { data: any[] | null; error: any };
+        .rpc('get_customer_voice_calls') as { data: any[] | null; error: any };
 
       if (callsError) throw callsError;
       const calls = callData || [];
 
-      const callIds = calls.map(c => c.id);
+      const callIds = calls.map((c: any) => c.id);
+      // Get recordings via RPC (bypasses RLS chain)
       const { data: recordings } = callIds.length > 0
         ? await supabase
-            .from('voice_assistant_recordings')
-            .select('call_id, recording_url')
-            .in('call_id', callIds)
+            .rpc('get_customer_call_recordings', { p_call_ids: callIds }) as { data: any[] | null; error: any }
         : { data: [] };
 
       const recordingMap = new Map(recordings?.map(r => [r.call_id, r.recording_url]) || []);
@@ -253,11 +249,9 @@ export default function CustomerVoiceAssistantsPage() {
   const loadTranscript = async (callId: string) => {
     setLoadingTranscript(true);
     try {
+      // Use RPC function to bypass RLS chain for transcripts
       const { data, error } = await supabase
-        .from('voice_assistant_transcripts')
-        .select('*')
-        .eq('call_id', callId)
-        .order('timestamp', { ascending: true });
+        .rpc('get_customer_call_transcripts', { p_call_id: callId }) as { data: any[] | null; error: any };
 
       if (error) throw error;
       setTranscripts(data || []);
