@@ -167,14 +167,12 @@ export default function CustomerVoiceAssistantsPage() {
       if (callsError) throw callsError;
       const calls = callData || [];
 
-      const callIds = calls.map((c: any) => c.id);
-      // Get recordings via RPC (bypasses RLS chain)
-      const { data: recordings } = callIds.length > 0
-        ? await supabase
-            .rpc('get_customer_call_recordings', { p_call_ids: callIds }) as { data: any[] | null; error: any }
-        : { data: [] };
+      // Get all recordings via RPC (bypasses RLS chain - no need to pass call IDs)
+      const { data: recordings, error: recError } = await supabase
+        .rpc('get_customer_call_recordings_all') as { data: any[] | null; error: any };
 
-      const recordingMap = new Map(recordings?.map(r => [r.call_id, r.recording_url]) || []);
+      if (recError) console.error('Recordings RPC error:', recError);
+      const recordingMap = new Map((recordings || []).map(r => [r.call_id, r.recording_url]));
 
       // Build assistant stats
       const assistantsWithStats = (assistantData || []).map(assistant => {

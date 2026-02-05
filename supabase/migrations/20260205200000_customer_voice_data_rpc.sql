@@ -70,3 +70,18 @@ RETURNS TABLE(call_id UUID, recording_url TEXT) AS $$
     AND c.email = auth.email()
   );
 $$ LANGUAGE SQL SECURITY DEFINER STABLE SET search_path = public;
+
+-- Simpler recordings function that doesn't require passing call IDs
+-- (avoids issues with large UUID arrays)
+CREATE OR REPLACE FUNCTION public.get_customer_call_recordings_all()
+RETURNS TABLE(call_id UUID, recording_url TEXT) AS $$
+  SELECT var.call_id, var.recording_url
+  FROM public.voice_assistant_recordings var
+  INNER JOIN public.voice_assistant_calls vac ON vac.id = var.call_id
+  WHERE vac.assistant_id IN (
+    SELECT caa.assistant_id
+    FROM public.customer_assistant_assignments caa
+    INNER JOIN public.customers c ON c.id = caa.customer_id
+    WHERE c.email = auth.email()
+  );
+$$ LANGUAGE SQL SECURITY DEFINER STABLE SET search_path = public;
