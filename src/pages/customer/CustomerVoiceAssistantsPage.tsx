@@ -90,7 +90,6 @@ export default function CustomerVoiceAssistantsPage() {
           event: '*',
           schema: 'public',
           table: 'voice_assistant_calls',
-          filter: `customer_id=eq.${customer.id}`
         },
         (payload) => {
           console.log('Call log changed:', payload);
@@ -164,9 +163,9 @@ export default function CustomerVoiceAssistantsPage() {
 
       const { data: callData, error: callsError } = await supabase
         .from('voice_assistant_calls')
-        .select('*, summary, key_points, action_items, sentiment, sentiment_notes, call_outcome, topics_discussed, lead_info')
+        .select('*')
         .in('assistant_id', assistantIds)
-        .order('started_at', { ascending: false });
+        .order('started_at', { ascending: false }) as { data: any[] | null; error: any };
 
       if (callsError) throw callsError;
       const calls = callData || [];
