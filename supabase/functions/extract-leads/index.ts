@@ -17,31 +17,31 @@ interface ExtractedLead {
   reason: string;
 }
 
-// Use OpenAI to analyze transcript and extract/validate lead information
+// Use Mistral to analyze transcript and extract/validate lead information
 async function analyzeTranscriptForLead(transcript: string): Promise<ExtractedLead> {
-  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-  
-  if (!OPENAI_API_KEY) {
-    console.error("OPENAI_API_KEY not configured");
+  const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY");
+
+  if (!MISTRAL_API_KEY) {
+    console.error("MISTRAL_API_KEY not configured");
     return {
       is_valid_lead: false,
       name: null,
       phone_number: null,
       email: null,
       confidence: 0,
-      reason: "OpenAI not configured"
+      reason: "Mistral not configured"
     };
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${MISTRAL_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "mistral-small-latest",
         messages: [
           {
             role: "system",
@@ -81,14 +81,14 @@ Respond ONLY with valid JSON in this exact format:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
+      console.error("Mistral API error:", response.status, errorText);
       return {
         is_valid_lead: false,
         name: null,
         phone_number: null,
         email: null,
         confidence: 0,
-        reason: `OpenAI error: ${response.status}`
+        reason: `Mistral error: ${response.status}`
       };
     }
 
@@ -136,7 +136,7 @@ Respond ONLY with valid JSON in this exact format:
       };
     }
   } catch (error) {
-    console.error("Error calling OpenAI:", error);
+    console.error("Error calling Mistral:", error);
     return {
       is_valid_lead: false,
       name: null,
