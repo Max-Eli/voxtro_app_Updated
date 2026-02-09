@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MessageSquare, User, Bot, Sparkles, Mail, Phone, Building2, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MessageSquare, User, Bot, Sparkles, CheckCircle, AlertCircle, Target } from "lucide-react";
 import { toast } from "sonner";
 
 interface Message {
@@ -204,91 +202,75 @@ const CustomerConversationDetail = ({ conversationId, onBack }: CustomerConversa
         </div>
       </div>
 
-      {/* AI Summary Section - Compact Design */}
-      {conversationInfo.summary && (
+      {/* AI Insights - Key Details & Lead Info */}
+      {((conversationInfo.key_points && conversationInfo.key_points.length > 0) ||
+        (conversationInfo.lead_info && (conversationInfo.lead_info.name || conversationInfo.lead_info.email || conversationInfo.lead_info.phone))) && (
         <div className="border rounded-lg overflow-hidden">
-          {/* Header with badges */}
-          <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b">
+          <div className="px-3 py-2 bg-muted/30">
             <div className="flex items-center gap-2">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              <span className="text-sm font-medium">AI Analysis</span>
-            </div>
-            <div className="flex gap-1.5">
-              {conversationInfo.sentiment && (
-                <Badge
-                  variant={conversationInfo.sentiment === 'positive' ? 'default' : conversationInfo.sentiment === 'negative' ? 'destructive' : 'secondary'}
-                  className="text-xs px-2 py-0"
-                >
-                  {conversationInfo.sentiment}
-                </Badge>
-              )}
-              {conversationInfo.conversation_outcome && (
-                <Badge variant="outline" className="text-xs px-2 py-0">
-                  {conversationInfo.conversation_outcome.replace(/_/g, ' ')}
-                </Badge>
-              )}
+              <span className="text-sm font-medium">AI Insights</span>
             </div>
           </div>
 
-          {/* Content */}
-          <div className="p-3 space-y-2.5">
-            {/* Summary */}
-            <p className="text-sm text-muted-foreground leading-relaxed">{conversationInfo.summary}</p>
-
-            {/* Topics as inline tags */}
-            {conversationInfo.topics_discussed && conversationInfo.topics_discussed.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {conversationInfo.topics_discussed.slice(0, 4).map((topic, i) => (
-                  <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
-                    {topic}
-                  </span>
-                ))}
-                {conversationInfo.topics_discussed.length > 4 && (
-                  <span className="text-xs text-muted-foreground">+{conversationInfo.topics_discussed.length - 4} more</span>
-                )}
+          <div className="p-3 space-y-3">
+            {/* Key Details */}
+            {conversationInfo.key_points && conversationInfo.key_points.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">Key Details</p>
+                <ul className="text-sm space-y-1">
+                  {conversationInfo.key_points.map((point, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
-            {/* Key Points & Actions - Compact */}
-            {((conversationInfo.key_points && conversationInfo.key_points.length > 0) ||
-              (conversationInfo.action_items && conversationInfo.action_items.length > 0)) && (
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                {conversationInfo.key_points && conversationInfo.key_points.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Key Points</p>
-                    <ul className="text-xs space-y-0.5">
-                      {conversationInfo.key_points.slice(0, 3).map((point, i) => (
-                        <li key={i} className="flex items-start gap-1">
-                          <span className="text-primary">•</span>
-                          <span className="line-clamp-1">{point}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {conversationInfo.action_items && conversationInfo.action_items.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Actions</p>
-                    <ul className="text-xs space-y-0.5">
-                      {conversationInfo.action_items.slice(0, 3).map((item, i) => (
-                        <li key={i} className="flex items-start gap-1">
-                          <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="line-clamp-1">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Lead Info - Inline */}
+            {/* Lead Information */}
             {conversationInfo.lead_info && (conversationInfo.lead_info.name || conversationInfo.lead_info.email || conversationInfo.lead_info.phone) && (
-              <div className="flex items-center gap-3 pt-1 text-xs border-t">
-                <span className="text-muted-foreground">Lead:</span>
-                {conversationInfo.lead_info.name && <span className="font-medium">{conversationInfo.lead_info.name}</span>}
-                {conversationInfo.lead_info.email && <span className="text-muted-foreground">{conversationInfo.lead_info.email}</span>}
-                {conversationInfo.lead_info.phone && <span className="text-muted-foreground">{conversationInfo.lead_info.phone}</span>}
+              <div className="p-2.5 border rounded-md bg-muted/20">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Lead Information</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {conversationInfo.lead_info.name && (
+                    <div className="flex items-center gap-1.5">
+                      <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <span>{conversationInfo.lead_info.name}</span>
+                    </div>
+                  )}
+                  {conversationInfo.lead_info.email && (
+                    <div className="flex items-center gap-1.5">
+                      <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <span className="truncate">{conversationInfo.lead_info.email}</span>
+                    </div>
+                  )}
+                  {conversationInfo.lead_info.phone && (
+                    <div className="flex items-center gap-1.5">
+                      <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <span>{conversationInfo.lead_info.phone}</span>
+                    </div>
+                  )}
+                  {conversationInfo.lead_info.company && (
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <span>{conversationInfo.lead_info.company}</span>
+                    </div>
+                  )}
+                  {conversationInfo.lead_info.interest_level && (
+                    <div className="flex items-center gap-1.5">
+                      <Star className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <span>Interest: </span>
+                      <Badge variant="outline" className="text-xs py-0">
+                        {conversationInfo.lead_info.interest_level}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+                {conversationInfo.lead_info.notes && (
+                  <p className="text-xs text-muted-foreground mt-2 italic">{conversationInfo.lead_info.notes}</p>
+                )}
               </div>
             )}
           </div>

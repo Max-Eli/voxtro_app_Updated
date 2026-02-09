@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Phone, Clock, Calendar, FileText, Headphones, TrendingUp, Search, Sparkles, CheckCircle, AlertCircle, Target, MessageSquare } from "lucide-react";
+import { Phone, Clock, Calendar, FileText, Headphones, TrendingUp, Search, Sparkles, User, Mail, Building2, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -515,56 +515,22 @@ export default function CustomerVoiceAssistantsPage() {
           </SheetHeader>
 
           <div className="mt-6 space-y-6">
-            {/* AI Summary Section - Compact */}
-            {selectedCall?.summary && (
-              <div className="space-y-2">
+            {/* AI Insights - Key Details & Lead Info */}
+            {selectedCall && ((selectedCall.key_points && selectedCall.key_points.length > 0) ||
+              (selectedCall.lead_info && (selectedCall.lead_info.name || selectedCall.lead_info.email || selectedCall.lead_info.phone))) && (
+              <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  <h3 className="text-sm font-semibold">AI Analysis</h3>
+                  <h3 className="text-sm font-semibold">AI Insights</h3>
                 </div>
 
-                {/* Summary */}
-                <div className="p-2.5 bg-muted/50 rounded-md">
-                  <p className="text-xs leading-relaxed">{selectedCall.summary}</p>
-                </div>
-
-                {/* Sentiment & Outcome */}
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedCall.sentiment && (
-                    <Badge variant={
-                      selectedCall.sentiment === 'positive' ? 'default' :
-                      selectedCall.sentiment === 'negative' ? 'destructive' : 'secondary'
-                    } className="text-xs py-0">
-                      {selectedCall.sentiment === 'positive' && <CheckCircle className="h-2.5 w-2.5 mr-1" />}
-                      {selectedCall.sentiment === 'negative' && <AlertCircle className="h-2.5 w-2.5 mr-1" />}
-                      {selectedCall.sentiment.charAt(0).toUpperCase() + selectedCall.sentiment.slice(1)}
-                    </Badge>
-                  )}
-                  {selectedCall.call_outcome && (
-                    <Badge variant="outline" className="text-xs py-0">
-                      <Target className="h-2.5 w-2.5 mr-1" />
-                      {selectedCall.call_outcome.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Sentiment Notes */}
-                {selectedCall.sentiment_notes && (
-                  <p className="text-xs text-muted-foreground italic">
-                    {selectedCall.sentiment_notes}
-                  </p>
-                )}
-
-                {/* Key Points */}
+                {/* Key Details */}
                 {selectedCall.key_points && selectedCall.key_points.length > 0 && (
-                  <div className="space-y-1">
-                    <h4 className="text-xs font-medium flex items-center gap-1.5">
-                      <MessageSquare className="h-2.5 w-2.5" />
-                      Key Points
-                    </h4>
-                    <ul className="space-y-0.5 text-xs">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Key Details</p>
+                    <ul className="text-sm space-y-1">
                       {selectedCall.key_points.map((point, i) => (
-                        <li key={i} className="flex items-start gap-1.5">
+                        <li key={i} className="flex items-start gap-2">
                           <span className="text-primary mt-0.5">•</span>
                           <span>{point}</span>
                         </li>
@@ -573,74 +539,47 @@ export default function CustomerVoiceAssistantsPage() {
                   </div>
                 )}
 
-                {/* Action Items */}
-                {selectedCall.action_items && selectedCall.action_items.length > 0 && (
-                  <div className="space-y-1">
-                    <h4 className="text-xs font-medium flex items-center gap-1.5">
-                      <CheckCircle className="h-2.5 w-2.5" />
-                      Action Items
-                    </h4>
-                    <ul className="space-y-0.5 text-xs">
-                      {selectedCall.action_items.map((item, i) => (
-                        <li key={i} className="flex items-start gap-1.5">
-                          <span className="text-green-500 mt-0.5">✓</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Topics Discussed */}
-                {selectedCall.topics_discussed && selectedCall.topics_discussed.length > 0 && (
-                  <div className="space-y-1">
-                    <h4 className="text-xs font-medium">Topics</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedCall.topics_discussed.map((topic, i) => (
-                        <Badge key={i} variant="secondary" className="text-[10px] py-0 px-1.5">
-                          {topic}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Lead Info */}
+                {/* Lead Information */}
                 {selectedCall.lead_info && (selectedCall.lead_info.name || selectedCall.lead_info.email || selectedCall.lead_info.phone) && (
-                  <div className="space-y-1 p-2 border rounded-md">
-                    <h4 className="text-xs font-medium">Lead Information</h4>
-                    <div className="grid grid-cols-2 gap-1 text-xs">
+                  <div className="p-2.5 border rounded-md bg-muted/20">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Lead Information</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
                       {selectedCall.lead_info.name && (
-                        <div>
-                          <span className="text-muted-foreground">Name:</span> {selectedCall.lead_info.name}
+                        <div className="flex items-center gap-1.5">
+                          <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span>{selectedCall.lead_info.name}</span>
                         </div>
                       )}
                       {selectedCall.lead_info.email && (
-                        <div>
-                          <span className="text-muted-foreground">Email:</span> {selectedCall.lead_info.email}
+                        <div className="flex items-center gap-1.5">
+                          <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate">{selectedCall.lead_info.email}</span>
                         </div>
                       )}
                       {selectedCall.lead_info.phone && (
-                        <div>
-                          <span className="text-muted-foreground">Phone:</span> {selectedCall.lead_info.phone}
+                        <div className="flex items-center gap-1.5">
+                          <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span>{selectedCall.lead_info.phone}</span>
                         </div>
                       )}
                       {selectedCall.lead_info.company && (
-                        <div>
-                          <span className="text-muted-foreground">Company:</span> {selectedCall.lead_info.company}
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span>{selectedCall.lead_info.company}</span>
                         </div>
                       )}
                       {selectedCall.lead_info.interest_level && (
-                        <div>
-                          <span className="text-muted-foreground">Interest:</span>{' '}
-                          <Badge variant="outline" className="text-[10px] py-0">
+                        <div className="flex items-center gap-1.5">
+                          <Star className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span>Interest: </span>
+                          <Badge variant="outline" className="text-xs py-0">
                             {selectedCall.lead_info.interest_level}
                           </Badge>
                         </div>
                       )}
                     </div>
                     {selectedCall.lead_info.notes && (
-                      <p className="text-xs text-muted-foreground mt-1">{selectedCall.lead_info.notes}</p>
+                      <p className="text-xs text-muted-foreground mt-2 italic">{selectedCall.lead_info.notes}</p>
                     )}
                   </div>
                 )}
