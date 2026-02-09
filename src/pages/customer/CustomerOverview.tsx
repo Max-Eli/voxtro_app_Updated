@@ -272,12 +272,6 @@ export function CustomerOverview() {
     }
   };
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
-  };
-
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'open': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
@@ -600,15 +594,9 @@ export function CustomerOverview() {
                 <EmptyAgentState type="voice" compact />
               ) : (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="text-center p-2.5 bg-muted/50 rounded-lg">
-                      <p className="text-lg font-semibold">{voiceAnalytics?.total_calls || 0}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Calls</p>
-                    </div>
-                    <div className="text-center p-2.5 bg-muted/50 rounded-lg">
-                      <p className="text-lg font-semibold">{formatDuration(voiceAnalytics?.avg_duration || 0)}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg Duration</p>
-                    </div>
+                  <div className="text-center p-2.5 bg-muted/50 rounded-lg">
+                    <p className="text-lg font-semibold">{voiceAnalytics?.total_calls || 0}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Calls</p>
                   </div>
                   <div className="space-y-1.5 pt-1">
                     {assistants.slice(0, 3).map((a) => (

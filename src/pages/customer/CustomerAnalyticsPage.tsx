@@ -227,24 +227,6 @@ export function CustomerAnalyticsPage() {
     }
   };
 
-  const formatDuration = (seconds: number | null | undefined) => {
-    // Handle null, undefined, NaN, and 0
-    const sec = typeof seconds === 'number' && !isNaN(seconds) ? Math.floor(seconds) : 0;
-    if (sec <= 0) return '0s';
-
-    const hours = Math.floor(sec / 3600);
-    const minutes = Math.floor((sec % 3600) / 60);
-    const secs = sec % 60;
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    if (minutes > 0) {
-      return secs > 0 ? `${minutes}m ${secs}s` : `${minutes}m`;
-    }
-    return `${secs}s`;
-  };
-
   // Format percentage - cap at 100% and handle edge cases
   const formatPercentage = (value: number) => {
     if (value === null || value === undefined || isNaN(value)) return '0%';
@@ -435,10 +417,6 @@ export function CustomerAnalyticsPage() {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Calls</span>
                       <span>{interactionCounts.calls}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Duration</span>
-                      <span>{formatDuration(interactionCounts.totalDuration)}</span>
                     </div>
                   </div>
                 </div>
@@ -708,23 +686,9 @@ export function CustomerAnalyticsPage() {
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-8">
-                            <div className="text-center">
-                              <p className="text-xl font-bold">{assistant.call_count}</p>
-                              <p className="text-xs text-muted-foreground">calls</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-xl font-bold">{formatDuration(assistant.total_duration)}</p>
-                              <p className="text-xs text-muted-foreground">total time</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-xl font-bold">
-                                {assistant.call_count > 0
-                                  ? formatDuration(Math.round(assistant.total_duration / assistant.call_count))
-                                  : '0m'}
-                              </p>
-                              <p className="text-xs text-muted-foreground">avg call</p>
-                            </div>
+                          <div className="text-center">
+                            <p className="text-xl font-bold">{assistant.call_count}</p>
+                            <p className="text-xs text-muted-foreground">calls</p>
                           </div>
                         </div>
                       ))}
@@ -760,8 +724,6 @@ export function CustomerAnalyticsPage() {
                                 <div className="flex items-center gap-2 mb-1">
                                   <Phone className="h-4 w-4 text-muted-foreground" />
                                   <span className="font-medium">{log.assistant_name}</span>
-                                  <span className="text-xs text-muted-foreground">·</span>
-                                  <span className="text-xs text-muted-foreground">{formatDuration(log.duration_seconds)}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                   <span>{formatTimestamp(log.started_at)}</span>

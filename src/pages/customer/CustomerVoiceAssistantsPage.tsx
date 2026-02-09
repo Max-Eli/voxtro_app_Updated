@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Phone, Clock, Calendar, FileText, Headphones, TrendingUp, Search, Sparkles, User, Mail, Building2, Star } from "lucide-react";
+import { Phone, Clock, Calendar, FileText, Headphones, Search, Sparkles, User, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -265,12 +265,6 @@ export default function CustomerVoiceAssistantsPage() {
     }
   };
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -328,35 +322,6 @@ export default function CustomerVoiceAssistantsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Duration</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatDuration(assistants.reduce((sum, a) => sum + a.totalDuration, 0))}
-            </div>
-            <p className="text-xs text-muted-foreground">Combined talk time</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Call Duration</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(() => {
-                const totalDuration = assistants.reduce((sum, a) => sum + a.totalDuration, 0);
-                const completedCalls = assistants.reduce((sum, a) => sum + a.completedCalls, 0);
-                return completedCalls > 0 ? formatDuration(Math.round(totalDuration / completedCalls)) : '0m 0s';
-              })()}
-            </div>
-            <p className="text-xs text-muted-foreground">Per completed call</p>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>
@@ -378,12 +343,8 @@ export default function CustomerVoiceAssistantsPage() {
                     <p className="text-xs text-muted-foreground">Total Calls</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{formatDuration(assistant.totalDuration)}</p>
-                    <p className="text-xs text-muted-foreground">Total Duration</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{formatDuration(assistant.avgDuration)}</p>
-                    <p className="text-xs text-muted-foreground">Avg Duration</p>
+                    <p className="text-2xl font-bold">{assistant.completedCalls}</p>
+                    <p className="text-xs text-muted-foreground">Completed</p>
                   </div>
                 </div>
               </div>
@@ -460,11 +421,6 @@ export default function CustomerVoiceAssistantsPage() {
                             <Clock className="h-3 w-3" />
                             {format(new Date(call.started_at), 'h:mm a')}
                           </span>
-                          <span>
-                            Duration: {call.duration_seconds != null && call.ended_at 
-                              ? formatDuration(call.duration_seconds) 
-                              : 'N/A'}
-                          </span>
                           {call.phone_number && (
                             <span className="flex items-center gap-1">
                               <Phone className="h-3 w-3" />
@@ -503,12 +459,6 @@ export default function CustomerVoiceAssistantsPage() {
                       {selectedCall.phone_number}
                     </div>
                   )}
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-3 w-3" />
-                    Duration: {selectedCall.duration_seconds != null && selectedCall.ended_at 
-                      ? formatDuration(selectedCall.duration_seconds) 
-                      : 'N/A'}
-                  </div>
                 </div>
               )}
             </SheetDescription>
@@ -516,71 +466,79 @@ export default function CustomerVoiceAssistantsPage() {
 
           <div className="mt-6 space-y-6">
             {/* AI Insights - Key Details & Lead Info */}
-            {selectedCall && ((selectedCall.key_points && selectedCall.key_points.length > 0) ||
+            {selectedCall && ((selectedCall.key_points && selectedCall.key_points.length > 0) || selectedCall.summary || (selectedCall.action_items && selectedCall.action_items.length > 0) ||
               (selectedCall.lead_info && (selectedCall.lead_info.name || selectedCall.lead_info.email || selectedCall.lead_info.phone))) && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
                   <h3 className="text-sm font-semibold">AI Insights</h3>
                 </div>
 
                 {/* Key Details */}
-                {selectedCall.key_points && selectedCall.key_points.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Key Details</p>
-                    <ul className="text-sm space-y-1">
-                      {selectedCall.key_points.map((point, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-primary mt-0.5">•</span>
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
+                {(selectedCall.key_points?.[0] || selectedCall.summary || (selectedCall.action_items && selectedCall.action_items.length > 0)) && (
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="px-3 py-2 bg-muted/30">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Key Details</span>
+                    </div>
+                    <div className="p-3 space-y-3">
+                      {selectedCall.key_points?.[0] && (
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-0.5">Caller Intent</p>
+                          <p className="text-sm">{selectedCall.key_points[0]}</p>
+                        </div>
+                      )}
+                      {selectedCall.summary && (
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-0.5">Summary</p>
+                          <p className="text-sm">{selectedCall.summary}</p>
+                        </div>
+                      )}
+                      {selectedCall.action_items && selectedCall.action_items.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-1">Next Steps</p>
+                          <ul className="text-sm space-y-1">
+                            {selectedCall.action_items.map((item, i) => (
+                              <li key={i} className="flex items-start gap-2">
+                                <span className="text-primary mt-0.5">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {/* Lead Information */}
                 {selectedCall.lead_info && (selectedCall.lead_info.name || selectedCall.lead_info.email || selectedCall.lead_info.phone) && (
-                  <div className="p-2.5 border rounded-md bg-muted/20">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Lead Information</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="px-3 py-2 bg-muted/30">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lead Information</span>
+                    </div>
+                    <div className="p-3 space-y-2">
                       {selectedCall.lead_info.name && (
-                        <div className="flex items-center gap-1.5">
-                          <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <div className="flex items-center gap-2 text-sm">
+                          <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground w-12">Name</span>
                           <span>{selectedCall.lead_info.name}</span>
                         </div>
                       )}
-                      {selectedCall.lead_info.email && (
-                        <div className="flex items-center gap-1.5">
-                          <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate">{selectedCall.lead_info.email}</span>
-                        </div>
-                      )}
                       {selectedCall.lead_info.phone && (
-                        <div className="flex items-center gap-1.5">
-                          <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground w-12">Phone</span>
                           <span>{selectedCall.lead_info.phone}</span>
                         </div>
                       )}
-                      {selectedCall.lead_info.company && (
-                        <div className="flex items-center gap-1.5">
-                          <Building2 className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span>{selectedCall.lead_info.company}</span>
-                        </div>
-                      )}
-                      {selectedCall.lead_info.interest_level && (
-                        <div className="flex items-center gap-1.5">
-                          <Star className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span>Interest: </span>
-                          <Badge variant="outline" className="text-xs py-0">
-                            {selectedCall.lead_info.interest_level}
-                          </Badge>
+                      {selectedCall.lead_info.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground w-12">Email</span>
+                          <span className="truncate">{selectedCall.lead_info.email}</span>
                         </div>
                       )}
                     </div>
-                    {selectedCall.lead_info.notes && (
-                      <p className="text-xs text-muted-foreground mt-2 italic">{selectedCall.lead_info.notes}</p>
-                    )}
                   </div>
                 )}
               </div>

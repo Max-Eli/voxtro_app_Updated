@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, User, Bot, Sparkles, Mail, Phone, Building2, Star } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { MessageSquare, User, Bot, Sparkles, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 
 interface Message {
@@ -203,77 +202,81 @@ const CustomerConversationDetail = ({ conversationId, onBack }: CustomerConversa
       </div>
 
       {/* AI Insights - Key Details & Lead Info */}
-      {((conversationInfo.key_points && conversationInfo.key_points.length > 0) ||
+      {((conversationInfo.key_points && conversationInfo.key_points.length > 0) || conversationInfo.summary || (conversationInfo.action_items && conversationInfo.action_items.length > 0) ||
         (conversationInfo.lead_info && (conversationInfo.lead_info.name || conversationInfo.lead_info.email || conversationInfo.lead_info.phone))) && (
-        <div className="border rounded-lg overflow-hidden">
-          <div className="px-3 py-2 bg-muted/30">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              <span className="text-sm font-medium">AI Insights</span>
-            </div>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span className="text-sm font-semibold">AI Insights</span>
           </div>
 
-          <div className="p-3 space-y-3">
-            {/* Key Details */}
-            {conversationInfo.key_points && conversationInfo.key_points.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5">Key Details</p>
-                <ul className="text-sm space-y-1">
-                  {conversationInfo.key_points.map((point, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
+          {/* Key Details */}
+          {(conversationInfo.key_points?.[0] || conversationInfo.summary || (conversationInfo.action_items && conversationInfo.action_items.length > 0)) && (
+            <div className="border rounded-lg overflow-hidden">
+              <div className="px-3 py-2 bg-muted/30">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Key Details</span>
               </div>
-            )}
-
-            {/* Lead Information */}
-            {conversationInfo.lead_info && (conversationInfo.lead_info.name || conversationInfo.lead_info.email || conversationInfo.lead_info.phone) && (
-              <div className="p-2.5 border rounded-md bg-muted/20">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Lead Information</p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  {conversationInfo.lead_info.name && (
-                    <div className="flex items-center gap-1.5">
-                      <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <span>{conversationInfo.lead_info.name}</span>
-                    </div>
-                  )}
-                  {conversationInfo.lead_info.email && (
-                    <div className="flex items-center gap-1.5">
-                      <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <span className="truncate">{conversationInfo.lead_info.email}</span>
-                    </div>
-                  )}
-                  {conversationInfo.lead_info.phone && (
-                    <div className="flex items-center gap-1.5">
-                      <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <span>{conversationInfo.lead_info.phone}</span>
-                    </div>
-                  )}
-                  {conversationInfo.lead_info.company && (
-                    <div className="flex items-center gap-1.5">
-                      <Building2 className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <span>{conversationInfo.lead_info.company}</span>
-                    </div>
-                  )}
-                  {conversationInfo.lead_info.interest_level && (
-                    <div className="flex items-center gap-1.5">
-                      <Star className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <span>Interest: </span>
-                      <Badge variant="outline" className="text-xs py-0">
-                        {conversationInfo.lead_info.interest_level}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-                {conversationInfo.lead_info.notes && (
-                  <p className="text-xs text-muted-foreground mt-2 italic">{conversationInfo.lead_info.notes}</p>
+              <div className="p-3 space-y-3">
+                {conversationInfo.key_points?.[0] && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Caller Intent</p>
+                    <p className="text-sm">{conversationInfo.key_points[0]}</p>
+                  </div>
+                )}
+                {conversationInfo.summary && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Summary</p>
+                    <p className="text-sm">{conversationInfo.summary}</p>
+                  </div>
+                )}
+                {conversationInfo.action_items && conversationInfo.action_items.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Next Steps</p>
+                    <ul className="text-sm space-y-1">
+                      {conversationInfo.action_items.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-primary mt-0.5">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Lead Information */}
+          {conversationInfo.lead_info && (conversationInfo.lead_info.name || conversationInfo.lead_info.email || conversationInfo.lead_info.phone) && (
+            <div className="border rounded-lg overflow-hidden">
+              <div className="px-3 py-2 bg-muted/30">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lead Information</span>
+              </div>
+              <div className="p-3 space-y-2">
+                {conversationInfo.lead_info.name && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    <span className="text-muted-foreground w-12">Name</span>
+                    <span>{conversationInfo.lead_info.name}</span>
+                  </div>
+                )}
+                {conversationInfo.lead_info.phone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    <span className="text-muted-foreground w-12">Phone</span>
+                    <span>{conversationInfo.lead_info.phone}</span>
+                  </div>
+                )}
+                {conversationInfo.lead_info.email && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    <span className="text-muted-foreground w-12">Email</span>
+                    <span className="truncate">{conversationInfo.lead_info.email}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

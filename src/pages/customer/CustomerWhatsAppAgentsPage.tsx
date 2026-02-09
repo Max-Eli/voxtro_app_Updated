@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { MessageCircle, Clock, Calendar, FileText, TrendingUp, Phone, Search, Sparkles, User, Mail, Building2, Star } from "lucide-react";
+import { MessageCircle, Clock, Calendar, FileText, TrendingUp, Phone, Search, Sparkles, User, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -217,12 +217,6 @@ export default function CustomerWhatsAppAgentsPage() {
     }
   };
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
-  };
-
   if (loading) {
     return (
       <div className="space-y-6">
@@ -408,9 +402,6 @@ export default function CustomerWhatsAppAgentsPage() {
                             <Clock className="h-3 w-3" />
                             {format(new Date(conv.start_time * 1000), 'h:mm a')}
                           </span>
-                          {conv.duration_seconds && (
-                            <span>Duration: {formatDuration(conv.duration_seconds)}</span>
-                          )}
                         </div>
                         {conv.summary && (
                           <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{conv.summary}</p>
@@ -450,12 +441,6 @@ export default function CustomerWhatsAppAgentsPage() {
                     <Calendar className="h-3 w-3" />
                     {format(new Date(selectedConversation.start_time * 1000), 'MMM d, yyyy h:mm a')}
                   </div>
-                  {selectedConversation.duration_seconds && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-3 w-3" />
-                      Duration: {formatDuration(selectedConversation.duration_seconds)}
-                    </div>
-                  )}
                 </div>
               )}
             </SheetDescription>
@@ -463,71 +448,79 @@ export default function CustomerWhatsAppAgentsPage() {
 
           <div className="mt-6 space-y-6">
             {/* AI Insights - Key Details & Lead Info */}
-            {selectedConversation && ((selectedConversation.key_points && selectedConversation.key_points.length > 0) ||
+            {selectedConversation && ((selectedConversation.key_points && selectedConversation.key_points.length > 0) || selectedConversation.summary || (selectedConversation.action_items && selectedConversation.action_items.length > 0) ||
               (selectedConversation.lead_info && (selectedConversation.lead_info.name || selectedConversation.lead_info.email || selectedConversation.lead_info.phone))) && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
                   <h3 className="text-sm font-semibold">AI Insights</h3>
                 </div>
 
                 {/* Key Details */}
-                {selectedConversation.key_points && selectedConversation.key_points.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Key Details</p>
-                    <ul className="text-sm space-y-1">
-                      {selectedConversation.key_points.map((point, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-primary mt-0.5">•</span>
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
+                {(selectedConversation.key_points?.[0] || selectedConversation.summary || (selectedConversation.action_items && selectedConversation.action_items.length > 0)) && (
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="px-3 py-2 bg-muted/30">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Key Details</span>
+                    </div>
+                    <div className="p-3 space-y-3">
+                      {selectedConversation.key_points?.[0] && (
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-0.5">Caller Intent</p>
+                          <p className="text-sm">{selectedConversation.key_points[0]}</p>
+                        </div>
+                      )}
+                      {selectedConversation.summary && (
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-0.5">Summary</p>
+                          <p className="text-sm">{selectedConversation.summary}</p>
+                        </div>
+                      )}
+                      {selectedConversation.action_items && selectedConversation.action_items.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-1">Next Steps</p>
+                          <ul className="text-sm space-y-1">
+                            {selectedConversation.action_items.map((item, i) => (
+                              <li key={i} className="flex items-start gap-2">
+                                <span className="text-primary mt-0.5">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {/* Lead Information */}
                 {selectedConversation.lead_info && (selectedConversation.lead_info.name || selectedConversation.lead_info.email || selectedConversation.lead_info.phone) && (
-                  <div className="p-2.5 border rounded-md bg-muted/20">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Lead Information</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="px-3 py-2 bg-muted/30">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lead Information</span>
+                    </div>
+                    <div className="p-3 space-y-2">
                       {selectedConversation.lead_info.name && (
-                        <div className="flex items-center gap-1.5">
-                          <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <div className="flex items-center gap-2 text-sm">
+                          <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground w-12">Name</span>
                           <span>{selectedConversation.lead_info.name}</span>
                         </div>
                       )}
-                      {selectedConversation.lead_info.email && (
-                        <div className="flex items-center gap-1.5">
-                          <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate">{selectedConversation.lead_info.email}</span>
-                        </div>
-                      )}
                       {selectedConversation.lead_info.phone && (
-                        <div className="flex items-center gap-1.5">
-                          <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground w-12">Phone</span>
                           <span>{selectedConversation.lead_info.phone}</span>
                         </div>
                       )}
-                      {selectedConversation.lead_info.company && (
-                        <div className="flex items-center gap-1.5">
-                          <Building2 className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span>{selectedConversation.lead_info.company}</span>
-                        </div>
-                      )}
-                      {selectedConversation.lead_info.interest_level && (
-                        <div className="flex items-center gap-1.5">
-                          <Star className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span>Interest: </span>
-                          <Badge variant="outline" className="text-xs py-0">
-                            {selectedConversation.lead_info.interest_level}
-                          </Badge>
+                      {selectedConversation.lead_info.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground w-12">Email</span>
+                          <span className="truncate">{selectedConversation.lead_info.email}</span>
                         </div>
                       )}
                     </div>
-                    {selectedConversation.lead_info.notes && (
-                      <p className="text-xs text-muted-foreground mt-2 italic">{selectedConversation.lead_info.notes}</p>
-                    )}
                   </div>
                 )}
               </div>
