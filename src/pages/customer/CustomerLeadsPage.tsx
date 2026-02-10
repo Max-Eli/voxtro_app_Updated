@@ -10,6 +10,7 @@ import { Users, Bot, Phone, MessageCircle, Search, Mail, User, Calendar, Refresh
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { getCustomerPortalLeads, CustomerLead } from '@/integrations/api/endpoints';
+import { formatLeadName, formatLeadEmail, formatLeadPhone } from '@/lib/utils';
 
 export default function CustomerLeadsPage() {
   const { customer } = useCustomerAuth();
@@ -221,7 +222,7 @@ export default function CustomerLeadsPage() {
                         {lead.name ? (
                           <div className="flex items-center gap-2">
                             <User className="h-3 w-3 text-muted-foreground" />
-                            <span>{lead.name}</span>
+                            <span>{formatLeadName(lead.name)}</span>
                           </div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
@@ -232,19 +233,19 @@ export default function CustomerLeadsPage() {
                           {lead.email && (
                             <div className="flex items-center gap-2 text-sm">
                               <Mail className="h-3 w-3 text-muted-foreground" />
-                              <span className="truncate max-w-[200px]">{lead.email}</span>
+                              <span className="truncate max-w-[200px]">{formatLeadEmail(lead.email)}</span>
                             </div>
                           )}
                           {lead.phone_number && (
                             <div className="flex items-center gap-2 text-sm">
                               <Phone className="h-3 w-3 text-muted-foreground" />
-                              <span>{lead.phone_number}</span>
+                              <span>{formatLeadPhone(lead.phone_number)}</span>
                             </div>
                           )}
                           {lead.additional_data?.caller_id && (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <PhoneIncoming className="h-3 w-3" />
-                              <span>Called from: {lead.additional_data.caller_id}</span>
+                              <span>Called from: {formatLeadPhone(lead.additional_data.caller_id)}</span>
                             </div>
                           )}
                           {!lead.email && !lead.phone_number && !lead.additional_data?.caller_id && (

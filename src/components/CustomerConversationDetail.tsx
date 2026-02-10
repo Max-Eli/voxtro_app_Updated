@@ -3,6 +3,7 @@ import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageSquare, User, Bot, Sparkles, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
+import { formatLeadName, formatLeadEmail, formatLeadPhone } from "@/lib/utils";
 
 interface Message {
   id: string;
@@ -257,21 +258,21 @@ const CustomerConversationDetail = ({ conversationId, onBack }: CustomerConversa
                   <div className="flex items-center gap-2 text-sm">
                     <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                     <span className="text-muted-foreground w-12">Name</span>
-                    <span>{conversationInfo.lead_info.name}</span>
+                    <span>{formatLeadName(conversationInfo.lead_info.name)}</span>
                   </div>
                 )}
                 {conversationInfo.lead_info.phone && (
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                     <span className="text-muted-foreground w-12">Phone</span>
-                    <span>{conversationInfo.lead_info.phone}</span>
+                    <span>{formatLeadPhone(conversationInfo.lead_info.phone)}</span>
                   </div>
                 )}
                 {conversationInfo.lead_info.email && (
                   <div className="flex items-center gap-2 text-sm">
                     <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                     <span className="text-muted-foreground w-12">Email</span>
-                    <span className="truncate">{conversationInfo.lead_info.email}</span>
+                    <span className="truncate">{formatLeadEmail(conversationInfo.lead_info.email)}</span>
                   </div>
                 )}
               </div>

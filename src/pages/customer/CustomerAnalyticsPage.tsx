@@ -16,6 +16,7 @@ import {
   WhatsAppConversationLog,
   CustomerLead
 } from '@/integrations/api/endpoints/customers';
+import { formatLeadName, formatLeadEmail, formatLeadPhone } from '@/lib/utils';
 import {
   BarChart3,
   Phone,
@@ -488,17 +489,17 @@ export function CustomerAnalyticsPage() {
                           <div className="flex items-center gap-4">
                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="text-sm font-medium text-primary">
-                                {(lead.name || lead.email || '?')[0].toUpperCase()}
+                                {(formatLeadName(lead.name) || formatLeadEmail(lead.email) || '?')[0].toUpperCase()}
                               </span>
                             </div>
                             <div>
                               <p className="font-medium">
-                                {lead.name || lead.email || lead.phone_number || 'Anonymous'}
+                                {formatLeadName(lead.name) || formatLeadEmail(lead.email) || formatLeadPhone(lead.phone_number) || 'Anonymous'}
                               </p>
                               <p className="text-sm text-muted-foreground">
                                 {lead.email && lead.phone_number
-                                  ? `${lead.email} · ${lead.phone_number}`
-                                  : lead.email || lead.phone_number || 'No contact info'}
+                                  ? `${formatLeadEmail(lead.email)} · ${formatLeadPhone(lead.phone_number)}`
+                                  : formatLeadEmail(lead.email) || formatLeadPhone(lead.phone_number) || 'No contact info'}
                               </p>
                             </div>
                           </div>
@@ -627,17 +628,17 @@ export function CustomerAnalyticsPage() {
                             <div className="flex flex-wrap gap-3 text-sm">
                               {log.lead_info.name && (
                                 <span className="text-muted-foreground">
-                                  <span className="font-medium text-foreground">{log.lead_info.name}</span>
+                                  <span className="font-medium text-foreground">{formatLeadName(log.lead_info.name)}</span>
                                 </span>
                               )}
                               {log.lead_info.email && (
-                                <span className="text-muted-foreground">{log.lead_info.email}</span>
+                                <span className="text-muted-foreground">{formatLeadEmail(log.lead_info.email)}</span>
                               )}
                               {log.lead_info.phone && (
-                                <span className="text-muted-foreground">{log.lead_info.phone}</span>
+                                <span className="text-muted-foreground">{formatLeadPhone(log.lead_info.phone)}</span>
                               )}
                               {log.lead_info.company && (
-                                <span className="text-muted-foreground">@ {log.lead_info.company}</span>
+                                <span className="text-muted-foreground">@ {formatLeadName(log.lead_info.company)}</span>
                               )}
                             </div>
                           )}
@@ -794,16 +795,16 @@ export function CustomerAnalyticsPage() {
                                 <p className="text-xs text-muted-foreground font-medium mb-2">Lead Information</p>
                                 <div className="flex flex-wrap gap-3 text-sm">
                                   {log.analysis.lead_info.name && (
-                                    <span className="font-medium">{log.analysis.lead_info.name}</span>
+                                    <span className="font-medium">{formatLeadName(log.analysis.lead_info.name)}</span>
                                   )}
                                   {log.analysis.lead_info.email && (
-                                    <span className="text-muted-foreground">{log.analysis.lead_info.email}</span>
+                                    <span className="text-muted-foreground">{formatLeadEmail(log.analysis.lead_info.email)}</span>
                                   )}
                                   {log.analysis.lead_info.phone && (
-                                    <span className="text-muted-foreground">{log.analysis.lead_info.phone}</span>
+                                    <span className="text-muted-foreground">{formatLeadPhone(log.analysis.lead_info.phone)}</span>
                                   )}
                                   {log.analysis.lead_info.company && (
-                                    <span className="text-muted-foreground">@ {log.analysis.lead_info.company}</span>
+                                    <span className="text-muted-foreground">@ {formatLeadName(log.analysis.lead_info.company)}</span>
                                   )}
                                 </div>
                               </div>
@@ -959,16 +960,16 @@ export function CustomerAnalyticsPage() {
                                 <p className="text-xs text-muted-foreground font-medium mb-2">Lead Information</p>
                                 <div className="flex flex-wrap gap-3 text-sm">
                                   {log.analysis.lead_info.name && (
-                                    <span className="font-medium">{log.analysis.lead_info.name}</span>
+                                    <span className="font-medium">{formatLeadName(log.analysis.lead_info.name)}</span>
                                   )}
                                   {log.analysis.lead_info.email && (
-                                    <span className="text-muted-foreground">{log.analysis.lead_info.email}</span>
+                                    <span className="text-muted-foreground">{formatLeadEmail(log.analysis.lead_info.email)}</span>
                                   )}
                                   {log.analysis.lead_info.phone && (
-                                    <span className="text-muted-foreground">{log.analysis.lead_info.phone}</span>
+                                    <span className="text-muted-foreground">{formatLeadPhone(log.analysis.lead_info.phone)}</span>
                                   )}
                                   {log.analysis.lead_info.company && (
-                                    <span className="text-muted-foreground">@ {log.analysis.lead_info.company}</span>
+                                    <span className="text-muted-foreground">@ {formatLeadName(log.analysis.lead_info.company)}</span>
                                   )}
                                 </div>
                               </div>

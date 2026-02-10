@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatLeadName, formatLeadEmail, formatLeadPhone } from "@/lib/utils";
 import { EmptyAgentState } from "@/components/customer/EmptyAgentState";
 
 interface AgentWithDetails {
@@ -503,21 +504,21 @@ export default function CustomerWhatsAppAgentsPage() {
                         <div className="flex items-center gap-2 text-sm">
                           <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                           <span className="text-muted-foreground w-12">Name</span>
-                          <span>{selectedConversation.lead_info.name}</span>
+                          <span>{formatLeadName(selectedConversation.lead_info.name)}</span>
                         </div>
                       )}
                       {selectedConversation.lead_info.phone && (
                         <div className="flex items-center gap-2 text-sm">
                           <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                           <span className="text-muted-foreground w-12">Phone</span>
-                          <span>{selectedConversation.lead_info.phone}</span>
+                          <span>{formatLeadPhone(selectedConversation.lead_info.phone)}</span>
                         </div>
                       )}
                       {selectedConversation.lead_info.email && (
                         <div className="flex items-center gap-2 text-sm">
                           <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                           <span className="text-muted-foreground w-12">Email</span>
-                          <span className="truncate">{selectedConversation.lead_info.email}</span>
+                          <span className="truncate">{formatLeadEmail(selectedConversation.lead_info.email)}</span>
                         </div>
                       )}
                     </div>

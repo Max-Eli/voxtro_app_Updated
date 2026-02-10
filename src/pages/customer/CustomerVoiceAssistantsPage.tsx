@@ -10,6 +10,7 @@ import { Phone, Clock, Calendar, FileText, Headphones, Search, Sparkles, User, M
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { formatLeadName, formatLeadEmail, formatLeadPhone } from "@/lib/utils";
 import { EmptyAgentState } from "@/components/customer/EmptyAgentState";
 import { FAQSubmissionForm } from "@/components/customer/FAQSubmissionForm";
 import { WebCrawlSubmissionForm } from "@/components/customer/WebCrawlSubmissionForm";
@@ -521,21 +522,21 @@ export default function CustomerVoiceAssistantsPage() {
                         <div className="flex items-center gap-2 text-sm">
                           <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                           <span className="text-muted-foreground w-12">Name</span>
-                          <span>{selectedCall.lead_info.name}</span>
+                          <span>{formatLeadName(selectedCall.lead_info.name)}</span>
                         </div>
                       )}
                       {selectedCall.lead_info.phone && (
                         <div className="flex items-center gap-2 text-sm">
                           <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                           <span className="text-muted-foreground w-12">Phone</span>
-                          <span>{selectedCall.lead_info.phone}</span>
+                          <span>{formatLeadPhone(selectedCall.lead_info.phone)}</span>
                         </div>
                       )}
                       {selectedCall.lead_info.email && (
                         <div className="flex items-center gap-2 text-sm">
                           <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                           <span className="text-muted-foreground w-12">Email</span>
-                          <span className="truncate">{selectedCall.lead_info.email}</span>
+                          <span className="truncate">{formatLeadEmail(selectedCall.lead_info.email)}</span>
                         </div>
                       )}
                     </div>
