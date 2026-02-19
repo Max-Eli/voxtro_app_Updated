@@ -9,7 +9,8 @@ import {
   Phone,
   MessageCircle,
   Ticket,
-  Users
+  Users,
+  UserPlus,
 } from "lucide-react";
 import {
   Sidebar,
@@ -48,6 +49,8 @@ export function CustomerSidebar({ customLogo }: CustomerSidebarProps) {
   const { state } = useSidebar();
   const location = useLocation();
   const { customer, signOut } = useCustomerAuth();
+  const DIXIE_CUSTOMER_ID = "3e5282f1-4973-462d-b0e6-0eb3b4800f1f";
+  const isDixieAmateur = customer?.id === DIXIE_CUSTOMER_ID;
   const { theme } = useTheme();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
@@ -93,8 +96,8 @@ export function CustomerSidebar({ customLogo }: CustomerSidebarProps) {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
+                    <NavLink
+                      to={item.url}
                       end={item.url === "/customer-dashboard"}
                       className={getNavClass(item.url)}
                     >
@@ -104,6 +107,32 @@ export function CustomerSidebar({ customLogo }: CustomerSidebarProps) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {isDixieAmateur && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/customer-dashboard/player-invitations"
+                        className={getNavClass("/customer-dashboard/player-invitations")}
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        {!collapsed && <span>Player Invitations</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/customer-dashboard/players"
+                        className={getNavClass("/customer-dashboard/players")}
+                      >
+                        <Users className="h-4 w-4" />
+                        {!collapsed && <span>Players</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

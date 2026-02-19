@@ -54,6 +54,8 @@ import VoiceAssistantTasks from "./pages/VoiceAssistantTasks";
 import SupportTickets from "./pages/SupportTickets";
 import CustomerSupportTicketsPage from "./pages/customer/CustomerSupportTicketsPage";
 import CustomerLeadsPage from "./pages/customer/CustomerLeadsPage";
+import PlayerInvitationsPage from "./pages/customer/PlayerInvitationsPage";
+import PlayersPage from "./pages/customer/PlayersPage";
 import Teams from "./pages/Teams";
 import AcceptInvite from "./pages/AcceptInvite";
 
@@ -116,6 +118,8 @@ const App = () => (
                   <Route path="forms" element={<CustomerFormsPage />} />
                   <Route path="analytics" element={<CustomerAnalyticsPage />} />
                   <Route path="settings" element={<CustomerSettingsPage />} />
+                  <Route path="player-invitations" element={<PlayerInvitationsPage />} />
+                  <Route path="players" element={<PlayersPage />} />
                 </Route>
                 <Route path="/docs" element={<Documentation />} />
                 <Route path="/api" element={<ApiReference />} />
