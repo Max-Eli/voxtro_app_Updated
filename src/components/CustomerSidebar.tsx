@@ -49,7 +49,7 @@ export function CustomerSidebar({ customLogo }: CustomerSidebarProps) {
   const { state } = useSidebar();
   const location = useLocation();
   const { customer, signOut } = useCustomerAuth();
-  const DIXIE_CUSTOMER_ID = "3e5282f1-4973-462d-b0e6-0eb3b4800f1f";
+  const DIXIE_CUSTOMER_ID = "2d89d5e3-c41d-4567-b0bf-4598a482559a";
   const isDixieAmateur = customer?.id === DIXIE_CUSTOMER_ID;
   const { theme } = useTheme();
   const currentPath = location.pathname;
