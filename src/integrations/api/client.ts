@@ -42,9 +42,10 @@ class ApiClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          // Token expired or invalid - redirect to login
+          // Token expired or invalid - redirect to appropriate login page
           console.error('Authentication error - redirecting to login');
-          window.location.href = '/auth';
+          const isCustomerRoute = window.location.pathname.startsWith('/customer-dashboard');
+          window.location.href = isCustomerRoute ? '/customer-login' : '/auth';
         }
 
         // Extract error message
