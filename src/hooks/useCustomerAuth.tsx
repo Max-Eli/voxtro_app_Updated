@@ -118,13 +118,26 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       }
 
       console.log("Customer sign in successful");
-      setCustomer(customerData);
+
+      // Fetch full profile via direct query now that auth session is established.
+      // The RPC may not return all columns (e.g. id), so we query select('*') here
+      // to ensure customer.id is available for UUID-gated UI features.
+      const { data: fullProfile } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
+
+      setCustomer(fullProfile ?? customerData);
 
       // Update last login
-      await supabase
-        .from('customers')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', customerData.id);
+      const resolvedId = fullProfile?.id ?? customerData.id;
+      if (resolvedId) {
+        await supabase
+          .from('customers')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', resolvedId);
+      }
 
       return { error: null };
     } catch (error) {
