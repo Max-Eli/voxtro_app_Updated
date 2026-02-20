@@ -1,3 +1,4 @@
+// PlayersPage: manages player roster, CSV import, and invitations
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Papa from "papaparse";
@@ -228,7 +229,7 @@ export default function PlayersPage() {
             row[portalField] = raw;
           }
         }
-        return row as PlayerImportRow;
+        return row as unknown as PlayerImportRow;
       })
       .filter(
         (r) =>
