@@ -1,3 +1,4 @@
+// PlayersPage: manages player roster, CSV import, invitations, and filtering
 import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Papa from "papaparse";
