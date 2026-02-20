@@ -38,7 +38,6 @@ const menuItems = [
   { title: "Leads", url: "/customer-dashboard/leads", icon: Users },
   { title: "Support Tickets", url: "/customer-dashboard/support-tickets", icon: Ticket },
   { title: "Analytics", url: "/customer-dashboard/analytics", icon: BarChart3 },
-  { title: "Settings", url: "/customer-dashboard/settings", icon: Settings },
 ];
 
 interface CustomerSidebarProps {
@@ -133,6 +132,17 @@ export function CustomerSidebar({ customLogo }: CustomerSidebarProps) {
                   </SidebarMenuItem>
                 </>
               )}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/customer-dashboard/settings"
+                    className={getNavClass("/customer-dashboard/settings")}
+                  >
+                    <Settings className="h-4 w-4" />
+                    {!collapsed && <span>Settings</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

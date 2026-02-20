@@ -44,13 +44,32 @@ export interface Player {
   first_name: string;
   last_name: string;
   email: string | null;
+  phone: string | null;
   division: Division | null;
   club: string | null;
   handicap_index: number | null;
+  birth_year: number | null;
+  birth_month: number | null;
+  birth_day: number | null;
+  shirt_size: string | null;
+  wagr: string | null;
+  street_address: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  zip: string | null;
   source: PlayerSource;
+  invitation_id: string | null;
   access_code: string | null;
   created_at: string;
+  updated_at: string;
 }
+
+export type PlayerUpdateFields = Partial<Pick<Player,
+  'first_name' | 'last_name' | 'email' | 'phone' | 'division' | 'club' |
+  'handicap_index' | 'birth_year' | 'birth_month' | 'birth_day' |
+  'shirt_size' | 'wagr' | 'street_address' | 'city' | 'state' | 'country' | 'zip'
+>>;
 
 export interface PlayerImportRow {
   first_name: string;
@@ -98,4 +117,8 @@ export const playerInvitationsApi = {
   /** Bulk import players from CSV (after field mapping in the UI) */
   importPlayers: (players: PlayerImportRow[]): Promise<{ success: boolean; imported: number }> =>
     apiClient.post('/api/customers/players/import', { players }),
+
+  /** Update editable fields on a player record */
+  updatePlayer: (id: string, updates: PlayerUpdateFields): Promise<Player> =>
+    apiClient.patch(`/api/customers/players/${id}`, updates),
 };
