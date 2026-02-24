@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Search, MessageSquare, EyeOff, Eye } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface ConversationSummary {
@@ -15,6 +17,7 @@ interface ConversationSummary {
   last_message_time: string;
   message_count: number;
   last_sender: string;
+  hidden_from_portal: boolean;
 }
 
 interface Chatbot {
@@ -34,6 +37,7 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
   const [chatbots, setChatbots] = useState<Chatbot[]>([]);
   const [selectedChatbot, setSelectedChatbot] = useState<string>(chatbotId || "all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showHidden, setShowHidden] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchChatbots = async () => {
@@ -72,6 +76,7 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
         conversations!inner(
           id,
           chatbot_id,
+          hidden_from_portal,
           chatbots!inner(
             id,
             name,
@@ -104,15 +109,17 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
       messages: any[];
       chatbot_name: string;
       chatbot_id: string;
+      hidden_from_portal: boolean;
     }>();
-    
+
     messagesData?.forEach(message => {
       const convId = message.conversation_id;
       if (!conversationMap.has(convId)) {
         conversationMap.set(convId, {
           messages: [],
           chatbot_name: message.conversations.chatbots.name,
-          chatbot_id: message.conversations.chatbot_id
+          chatbot_id: message.conversations.chatbot_id,
+          hidden_from_portal: message.conversations.hidden_from_portal || false
         });
       }
       conversationMap.get(convId)!.messages.push(message);
@@ -135,11 +142,15 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
           last_message: lastMessage.content,
           last_message_time: lastMessage.created_at,
           message_count: messages.length,
-          last_sender: lastMessage.role
+          last_sender: lastMessage.role,
+          hidden_from_portal: convData.hidden_from_portal
         };
-        
+
+        // Apply hidden filter
+        if (!showHidden && summary.hidden_from_portal) return;
+
         // Apply search filter
-        if (!searchTerm || 
+        if (!searchTerm ||
             summary.last_message.toLowerCase().includes(searchTerm.toLowerCase()) ||
             summary.chatbot_name.toLowerCase().includes(searchTerm.toLowerCase())) {
           conversationSummaries.push(summary);
@@ -171,7 +182,7 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
 
   useEffect(() => {
     fetchConversations();
-  }, [user, selectedChatbot, searchTerm]);
+  }, [user, selectedChatbot, searchTerm, showHidden]);
 
   const formatTimestamp = (timestamp: string) => {
     return new Date(timestamp).toLocaleString([], {
@@ -184,6 +195,20 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
 
   const truncateText = (text: string, maxLength: number = 60) => {
     return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+  };
+
+  const toggleHidden = async (conversationId: string, currentlyHidden: boolean) => {
+    const { error } = await supabase
+      .from('conversations')
+      .update({ hidden_from_portal: !currentlyHidden })
+      .eq('id', conversationId);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to update conversation", variant: "destructive" });
+    } else {
+      toast({ title: currentlyHidden ? "Conversation visible to customers" : "Conversation hidden from customers" });
+      fetchConversations();
+    }
   };
 
   if (!user) {
@@ -219,6 +244,16 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
               className="pl-8"
             />
           </div>
+          <Button
+            variant={showHidden ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setShowHidden(!showHidden)}
+            className="flex-shrink-0"
+            title={showHidden ? "Showing all conversations" : "Show hidden conversations"}
+          >
+            <EyeOff className="h-4 w-4 mr-1" />
+            {showHidden ? "All" : "Hidden"}
+          </Button>
         </div>
       </div>
 
@@ -234,9 +269,9 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
         ) : (
           <div className="p-2">
             {conversations.map((conversation) => (
-              <Card 
-                key={conversation.id} 
-                className="mb-2 cursor-pointer hover:bg-accent/50 transition-colors"
+              <Card
+                key={conversation.id}
+                className={`mb-2 cursor-pointer hover:bg-accent/50 transition-colors ${conversation.hidden_from_portal ? 'opacity-60' : ''}`}
                 onClick={() => onConversationSelect(conversation.id)}
               >
                 <CardContent className="p-4">
@@ -248,6 +283,9 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
                         <span className="text-xs text-muted-foreground">
                           {conversation.message_count} messages
                         </span>
+                        {conversation.hidden_from_portal && (
+                          <Badge variant="outline" className="text-xs">Hidden</Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
                         <span className="font-medium">
@@ -256,8 +294,22 @@ const ConversationsList = ({ onConversationSelect, chatbotId, hideFilter = false
                         {truncateText(conversation.last_message)}
                       </p>
                     </div>
-                    <div className="text-xs text-muted-foreground ml-4 flex-shrink-0">
-                      {formatTimestamp(conversation.last_message_time)}
+                    <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                      <span className="text-xs text-muted-foreground">
+                        {formatTimestamp(conversation.last_message_time)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title={conversation.hidden_from_portal ? "Show in customer portal" : "Hide from customer portal"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleHidden(conversation.id, conversation.hidden_from_portal);
+                        }}
+                      >
+                        {conversation.hidden_from_portal ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

@@ -551,6 +551,7 @@ export type Database = {
           chatbot_id: string
           created_at: string
           ended_at: string | null
+          hidden_from_portal: boolean
           id: string
           lead_analyzed_at: string | null
           status: string
@@ -560,6 +561,7 @@ export type Database = {
           chatbot_id: string
           created_at?: string
           ended_at?: string | null
+          hidden_from_portal?: boolean
           id?: string
           lead_analyzed_at?: string | null
           status?: string
@@ -569,6 +571,7 @@ export type Database = {
           chatbot_id?: string
           created_at?: string
           ended_at?: string | null
+          hidden_from_portal?: boolean
           id?: string
           lead_analyzed_at?: string | null
           status?: string
@@ -1194,6 +1197,7 @@ export type Database = {
           customer_id: string | null
           duration_seconds: number | null
           ended_at: string | null
+          hidden_from_portal: boolean
           id: string
           lead_analyzed_at: string | null
           phone_number: string | null
@@ -1207,6 +1211,7 @@ export type Database = {
           customer_id?: string | null
           duration_seconds?: number | null
           ended_at?: string | null
+          hidden_from_portal?: boolean
           id?: string
           lead_analyzed_at?: string | null
           phone_number?: string | null
@@ -1220,6 +1225,7 @@ export type Database = {
           customer_id?: string | null
           duration_seconds?: number | null
           ended_at?: string | null
+          hidden_from_portal?: boolean
           id?: string
           lead_analyzed_at?: string | null
           phone_number?: string | null
@@ -1504,6 +1510,7 @@ export type Database = {
           created_at: string
           customer_id: string | null
           ended_at: string | null
+          hidden_from_portal: boolean
           id: string
           lead_analyzed_at: string | null
           phone_number: string | null
@@ -1518,6 +1525,7 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           ended_at?: string | null
+          hidden_from_portal?: boolean
           id: string
           lead_analyzed_at?: string | null
           phone_number?: string | null
@@ -1532,6 +1540,7 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           ended_at?: string | null
+          hidden_from_portal?: boolean
           id?: string
           lead_analyzed_at?: string | null
           phone_number?: string | null

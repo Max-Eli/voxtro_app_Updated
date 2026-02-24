@@ -118,6 +118,7 @@ export default function CustomerWhatsAppAgentsPage() {
         .from('whatsapp_conversations')
         .select('*')
         .in('agent_id', agentIds)
+        .eq('hidden_from_portal', false)
         .order('started_at', { ascending: false });
 
       if (convError) throw convError;

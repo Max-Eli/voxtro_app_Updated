@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, RefreshCw, Phone, Settings, AlertCircle, UserPlus, Trash2, ChevronRight, Search, Bot, Sparkles, Mic2, Clock, Users2, Save, Loader2, Calendar, FileText } from "lucide-react";
+import { MessageCircle, RefreshCw, Phone, Settings, AlertCircle, UserPlus, Trash2, ChevronRight, Search, Bot, Sparkles, Mic2, Clock, Users2, Save, Loader2, Calendar, FileText, EyeOff, Eye } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +68,7 @@ interface DbConversation {
   summary: string | null;
   sentiment: string | null;
   phone_number: string | null;
+  hidden_from_portal: boolean;
 }
 
 interface Customer {
@@ -300,6 +301,22 @@ const WhatsAppAgents = () => {
     setSelectedConversation(conv);
     loadConversationMessages(conv.conversation_id);
     setShowConversationDetail(true);
+  };
+
+  const toggleHiddenWhatsApp = async (conversationId: string, currentlyHidden: boolean) => {
+    const { error } = await supabase
+      .from('whatsapp_conversations')
+      .update({ hidden_from_portal: !currentlyHidden })
+      .eq('id', conversationId);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to update conversation", variant: "destructive" });
+    } else {
+      setDbConversations(prev => prev.map(c =>
+        c.id === conversationId ? { ...c, hidden_from_portal: !currentlyHidden } : c
+      ));
+      toast({ title: currentlyHidden ? "Conversation visible to customers" : "Conversation hidden from customers" });
+    }
   };
 
   const formatDuration = (seconds: number) => {
@@ -932,7 +949,7 @@ const WhatsAppAgents = () => {
                               return (
                                 <div
                                   key={conv.id}
-                                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                                  className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer ${conv.hidden_from_portal ? 'opacity-60' : ''}`}
                                   onClick={() => handleConversationClick(conversationData)}
                                 >
                                   <div className="flex-1">
@@ -942,6 +959,9 @@ const WhatsAppAgents = () => {
                                       </Badge>
                                       {conv.sentiment && (
                                         <Badge variant="outline">{conv.sentiment}</Badge>
+                                      )}
+                                      {conv.hidden_from_portal && (
+                                        <Badge variant="outline" className="text-xs">Hidden</Badge>
                                       )}
                                     </div>
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -967,7 +987,21 @@ const WhatsAppAgents = () => {
                                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{conv.summary}</p>
                                     )}
                                   </div>
-                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      title={conv.hidden_from_portal ? "Show in customer portal" : "Hide from customer portal"}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleHiddenWhatsApp(conv.id, conv.hidden_from_portal);
+                                      }}
+                                    >
+                                      {conv.hidden_from_portal ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                    </Button>
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                  </div>
                                 </div>
                               );
                             })}

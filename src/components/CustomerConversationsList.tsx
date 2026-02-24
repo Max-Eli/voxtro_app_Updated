@@ -98,6 +98,7 @@ const CustomerConversationsList = ({ onConversationSelect }: CustomerConversatio
         )
       `)
       .in('conversations.chatbot_id', chatbotIds)
+      .eq('conversations.hidden_from_portal', false)
       .order('created_at', { ascending: false });
 
     // Apply chatbot filter
