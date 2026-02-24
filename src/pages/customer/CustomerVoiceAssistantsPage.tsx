@@ -595,7 +595,7 @@ export default function CustomerVoiceAssistantsPage() {
                         </p>
                         <p className="text-sm">{transcript.content}</p>
                         <p className="text-xs opacity-50 mt-1">
-                          {format(new Date(transcript.timestamp), 'h:mm:ss a')}
+                          {format(new Date(transcript.timestamp), 'MMM d, h:mm:ss a')}
                         </p>
                       </div>
                     </div>
