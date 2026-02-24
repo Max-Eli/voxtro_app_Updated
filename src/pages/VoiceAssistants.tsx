@@ -1,20 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Bot, RefreshCw, UserPlus, Trash2, Mic2, MessageCircle, Users2, Sparkles, Settings2, Phone, ChevronRight, Search } from 'lucide-react';
+import { Bot, RefreshCw, UserPlus, Trash2, Mic2, MessageCircle, Users2, Sparkles, Settings2, Phone, ChevronRight, Search, Calendar, Clock, FileText, EyeOff, Eye } from 'lucide-react';
 import { OrganizationSwitcher } from '@/components/OrganizationSwitcher';
 import { Input } from '@/components/ui/input';
 import { QuickTaskForm } from '@/components/tasks/QuickTaskForm';
 import { syncVoiceAssistants } from '@/integrations/api/endpoints';
+import { format } from 'date-fns';
 
 interface VoiceAssistant {
   id: string;
@@ -56,6 +59,12 @@ export default function VoiceAssistants() {
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
+  const [callLogs, setCallLogs] = useState<any[]>([]);
+  const [loadingCalls, setLoadingCalls] = useState(false);
+  const [selectedCall, setSelectedCall] = useState<any>(null);
+  const [showCallDetail, setShowCallDetail] = useState(false);
+  const [callTranscripts, setCallTranscripts] = useState<any[]>([]);
+  const [loadingTranscripts, setLoadingTranscripts] = useState(false);
 
   // Auto-sync on page load and periodic refresh
   const performAutoSync = async () => {
@@ -263,6 +272,92 @@ export default function VoiceAssistants() {
     }
   };
 
+  // Call history functions
+  const fetchCallsForAssistant = async (assistantId: string) => {
+    setLoadingCalls(true);
+    try {
+      const { data: calls, error } = await supabase
+        .from('voice_assistant_calls')
+        .select('*')
+        .eq('assistant_id', assistantId)
+        .order('started_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch recordings for all calls
+      if (calls && calls.length > 0) {
+        const { data: recordings } = await supabase
+          .from('voice_assistant_recordings')
+          .select('call_id, recording_url')
+          .in('call_id', calls.map(c => c.id));
+
+        const recordingMap = new Map(
+          (recordings || []).map(r => [r.call_id, r.recording_url])
+        );
+
+        setCallLogs(calls.map(call => ({
+          ...call,
+          recording_url: recordingMap.get(call.id) || null
+        })));
+      } else {
+        setCallLogs([]);
+      }
+    } catch (error) {
+      console.error('Error fetching calls:', error);
+      toast.error('Failed to load call history');
+    } finally {
+      setLoadingCalls(false);
+    }
+  };
+
+  const loadCallTranscript = async (callId: string) => {
+    setLoadingTranscripts(true);
+    try {
+      const { data, error } = await supabase
+        .from('voice_assistant_transcripts')
+        .select('*')
+        .eq('call_id', callId)
+        .order('timestamp', { ascending: true });
+
+      if (error) throw error;
+      setCallTranscripts(data || []);
+    } catch (error) {
+      console.error('Error loading transcript:', error);
+      setCallTranscripts([]);
+    } finally {
+      setLoadingTranscripts(false);
+    }
+  };
+
+  const toggleHiddenCall = async (callId: string, currentlyHidden: boolean) => {
+    const { error } = await supabase
+      .from('voice_assistant_calls')
+      .update({ hidden_from_portal: !currentlyHidden })
+      .eq('id', callId);
+
+    if (error) {
+      toast.error('Failed to update call');
+    } else {
+      setCallLogs(prev => prev.map(c =>
+        c.id === callId ? { ...c, hidden_from_portal: !currentlyHidden } : c
+      ));
+      toast.success(currentlyHidden ? 'Call visible to customers' : 'Call hidden from customers');
+    }
+  };
+
+  const formatCallDuration = (seconds: number | null) => {
+    if (!seconds) return '—';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  };
+
+  useEffect(() => {
+    if (selectedAssistantId) {
+      fetchCallsForAssistant(selectedAssistantId);
+    }
+  }, [selectedAssistantId]);
+
   const selectedAssistant = assistants.find(a => a.id === selectedAssistantId);
   const selectedAssignments = assignments.filter(a => a.assistant_id === selectedAssistantId);
 
@@ -411,154 +506,256 @@ export default function VoiceAssistants() {
               </div>
             </div>
 
-            {/* Quick Add Task */}
-            <div className="mb-6">
-              <p className="text-xs font-medium text-muted-foreground mb-2">Quick Add Task</p>
-              <QuickTaskForm
-                assistantId={selectedAssistant.id}
-                assistantName={selectedAssistant.name}
-                orgId={activeOrgId}
-                placeholder="Add a task and press Enter..."
-              />
-            </div>
+            <Tabs defaultValue="overview">
+              <TabsList className="mb-6">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="calls">Call History</TabsTrigger>
+              </TabsList>
 
-            {/* First Message */}
-            {selectedAssistant.first_message && (
-              <Card className="mb-6">
-                <CardContent className="pt-4">
-                  <div className="flex items-start gap-3">
-                    <MessageCircle className="h-4 w-4 text-primary mt-0.5" />
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">First Message</p>
-                      <p className="text-sm italic">"{selectedAssistant.first_message}"</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Configuration */}
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold mb-3">Configuration</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {selectedAssistant.voice_provider && (
-                  <Card>
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex items-center gap-2">
-                        <Mic2 className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Voice</p>
-                          <p className="text-sm font-medium">{selectedAssistant.voice_provider}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                {selectedAssistant.model_provider && (
-                  <Card>
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Model</p>
-                          <p className="text-sm font-medium">
-                            {selectedAssistant.model_provider}
-                            {selectedAssistant.model && ` • ${selectedAssistant.model}`}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                {selectedAssistant.transcriber_provider && (
-                  <Card>
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex items-center gap-2">
-                        <Bot className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Transcriber</p>
-                          <p className="text-sm font-medium">{selectedAssistant.transcriber_provider}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                {selectedAssistant.phone_number && (
-                  <Card>
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Phone Number</p>
-                          <p className="text-sm font-medium font-mono">{selectedAssistant.phone_number}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </div>
-
-            <Separator className="my-6" />
-
-            {/* Assigned Customers */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Users2 className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-semibold">Assigned Customers</h3>
-                  <Badge variant="secondary" className="text-xs">{selectedAssignments.length}</Badge>
+              <TabsContent value="overview">
+                {/* Quick Add Task */}
+                <div className="mb-6">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Quick Add Task</p>
+                  <QuickTaskForm
+                    assistantId={selectedAssistant.id}
+                    assistantName={selectedAssistant.name}
+                    orgId={activeOrgId}
+                    placeholder="Add a task and press Enter..."
+                  />
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => setShowAssignDialog(true)}
-                  className="gap-1.5"
-                >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Assign
-                </Button>
-              </div>
 
-              {selectedAssignments.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="py-8 text-center">
-                    <Users2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No customers assigned yet</p>
-                    <p className="text-xs text-muted-foreground mt-1">Assign customers to give them access to this assistant</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-2">
-                  {selectedAssignments.map((assignment) => (
-                    <Card key={assignment.id}>
-                      <CardContent className="py-3 px-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
-                              <span className="text-sm font-semibold text-primary">
-                                {assignment.customer?.full_name?.charAt(0)?.toUpperCase() || '?'}
-                              </span>
-                            </div>
+                {/* First Message */}
+                {selectedAssistant.first_message && (
+                  <Card className="mb-6">
+                    <CardContent className="pt-4">
+                      <div className="flex items-start gap-3">
+                        <MessageCircle className="h-4 w-4 text-primary mt-0.5" />
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-1">First Message</p>
+                          <p className="text-sm italic">"{selectedAssistant.first_message}"</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Configuration */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold mb-3">Configuration</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedAssistant.voice_provider && (
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="flex items-center gap-2">
+                            <Mic2 className="h-4 w-4 text-muted-foreground" />
                             <div>
-                              <p className="font-medium text-sm">{assignment.customer?.full_name || 'Unknown'}</p>
-                              <p className="text-xs text-muted-foreground">{assignment.customer?.email || 'No email'}</p>
+                              <p className="text-xs text-muted-foreground">Voice</p>
+                              <p className="text-sm font-medium">{selectedAssistant.voice_provider}</p>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveAssignment(assignment.id)}
-                            className="hover:bg-destructive/10 hover:text-destructive h-8 w-8 p-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                    {selectedAssistant.model_provider && (
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Model</p>
+                              <p className="text-sm font-medium">
+                                {selectedAssistant.model_provider}
+                                {selectedAssistant.model && ` • ${selectedAssistant.model}`}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                    {selectedAssistant.transcriber_provider && (
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="flex items-center gap-2">
+                            <Bot className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Transcriber</p>
+                              <p className="text-sm font-medium">{selectedAssistant.transcriber_provider}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                    {selectedAssistant.phone_number && (
+                      <Card>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Phone Number</p>
+                              <p className="text-sm font-medium font-mono">{selectedAssistant.phone_number}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+
+                <Separator className="my-6" />
+
+                {/* Assigned Customers */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Users2 className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-semibold">Assigned Customers</h3>
+                      <Badge variant="secondary" className="text-xs">{selectedAssignments.length}</Badge>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowAssignDialog(true)}
+                      className="gap-1.5"
+                    >
+                      <UserPlus className="h-3.5 w-3.5" />
+                      Assign
+                    </Button>
+                  </div>
+
+                  {selectedAssignments.length === 0 ? (
+                    <Card className="border-dashed">
+                      <CardContent className="py-8 text-center">
+                        <Users2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No customers assigned yet</p>
+                        <p className="text-xs text-muted-foreground mt-1">Assign customers to give them access to this assistant</p>
                       </CardContent>
                     </Card>
-                  ))}
+                  ) : (
+                    <div className="space-y-2">
+                      {selectedAssignments.map((assignment) => (
+                        <Card key={assignment.id}>
+                          <CardContent className="py-3 px-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
+                                  <span className="text-sm font-semibold text-primary">
+                                    {assignment.customer?.full_name?.charAt(0)?.toUpperCase() || '?'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">{assignment.customer?.full_name || 'Unknown'}</p>
+                                  <p className="text-xs text-muted-foreground">{assignment.customer?.email || 'No email'}</p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveAssignment(assignment.id)}
+                                className="hover:bg-destructive/10 hover:text-destructive h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </TabsContent>
+
+              <TabsContent value="calls">
+                <Card>
+                  <CardHeader>
+                    <div>
+                      <CardTitle className="text-lg">Call History</CardTitle>
+                      <CardDescription>
+                        Click on a call to view the transcript
+                      </CardDescription>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingCalls ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    ) : callLogs.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Phone className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No calls yet for this assistant</p>
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-[500px]">
+                        <div className="space-y-3">
+                          {callLogs.map((call) => {
+                            const duration = call.duration_seconds ||
+                              (call.started_at && call.ended_at
+                                ? Math.floor((new Date(call.ended_at).getTime() - new Date(call.started_at).getTime()) / 1000)
+                                : null);
+
+                            return (
+                              <div
+                                key={call.id}
+                                className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer ${call.hidden_from_portal ? 'opacity-60' : ''}`}
+                                onClick={() => {
+                                  setSelectedCall({ ...call, duration_calc: duration });
+                                  loadCallTranscript(call.id);
+                                  setShowCallDetail(true);
+                                }}
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant={call.status === 'completed' ? 'default' : 'secondary'}>
+                                      {call.status}
+                                    </Badge>
+                                    {call.hidden_from_portal && (
+                                      <Badge variant="outline" className="text-xs">Hidden</Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    {call.phone_number && (
+                                      <span className="flex items-center gap-1">
+                                        <Phone className="h-3 w-3" />
+                                        {call.phone_number}
+                                      </span>
+                                    )}
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      {format(new Date(call.started_at), 'MMM d, yyyy')}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {format(new Date(call.started_at), 'h:mm a')}
+                                    </span>
+                                    {duration && (
+                                      <span>Duration: {formatCallDuration(duration)}</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    title={call.hidden_from_portal ? "Show in customer portal" : "Hide from customer portal"}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleHiddenCall(call.id, call.hidden_from_portal);
+                                    }}
+                                  >
+                                    {call.hidden_from_portal ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                  </Button>
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
@@ -569,6 +766,103 @@ export default function VoiceAssistants() {
           </div>
         )}
       </div>
+
+      {/* Call Detail Sheet */}
+      <Sheet open={showCallDetail} onOpenChange={setShowCallDetail}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Call Details</SheetTitle>
+            <SheetDescription>
+              {selectedCall && (
+                <div className="text-sm space-y-2 mt-2">
+                  {selectedCall.phone_number && (
+                    <div className="flex items-center gap-2 bg-muted/50 rounded-md px-3 py-2">
+                      <Phone className="h-4 w-4 text-primary" />
+                      <div>
+                        <span className="text-xs text-muted-foreground block">Caller</span>
+                        <span className="font-medium text-foreground">{selectedCall.phone_number}</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3 w-3" />
+                    {format(new Date(selectedCall.started_at), 'MMM d, yyyy h:mm a')}
+                  </div>
+                  {selectedCall.duration_calc && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3 w-3" />
+                      Duration: {formatCallDuration(selectedCall.duration_calc)}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Badge variant={selectedCall.status === 'completed' ? 'default' : 'secondary'}>
+                      {selectedCall.status}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-6">
+            {/* Recording */}
+            {selectedCall?.recording_url && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Mic2 className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold">Recording</h3>
+                </div>
+                <audio controls className="w-full">
+                  <source src={selectedCall.recording_url} />
+                </audio>
+              </div>
+            )}
+
+            {/* Transcript */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <h3 className="font-semibold">Transcript</h3>
+              </div>
+
+              {loadingTranscripts ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : callTranscripts.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No transcript available for this call
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {callTranscripts.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex ${msg.role === 'user' ? 'justify-start' : 'justify-end'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg p-3 ${
+                          msg.role === 'user'
+                            ? 'bg-muted'
+                            : 'bg-primary/10'
+                        }`}
+                      >
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          {msg.role === 'user' ? 'Caller' : 'Assistant'}
+                        </p>
+                        <p className="text-sm">{msg.content}</p>
+                        <p className="text-xs opacity-50 mt-1">
+                          {format(new Date(msg.timestamp), 'MMM d, h:mm:ss a')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Assign Dialog */}
       <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
