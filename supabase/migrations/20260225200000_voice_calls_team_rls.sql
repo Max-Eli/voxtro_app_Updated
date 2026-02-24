@@ -1,6 +1,47 @@
 -- Add team-level SELECT policies for voice call data
 -- Makes call visibility consistent with voice_assistants (which already has team access)
--- Uses the same get_teammate_user_ids() function as voice_assistants_select_team
+
+-- ============================================
+-- Ensure helper functions exist (CREATE OR REPLACE is safe to re-run)
+-- ============================================
+
+-- Returns ALL teammate user IDs (includes the caller themselves)
+CREATE OR REPLACE FUNCTION get_teammate_user_ids(user_uuid UUID)
+RETURNS SETOF UUID
+LANGUAGE SQL
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT DISTINCT tm2.user_id
+  FROM team_members tm1
+  JOIN team_members tm2 ON tm1.team_org_id = tm2.team_org_id
+  WHERE tm1.user_id = user_uuid;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_teammate_user_ids(UUID) TO authenticated;
+
+-- Returns direct teammates only (excludes the caller)
+CREATE OR REPLACE FUNCTION get_direct_teammates(user_uuid UUID)
+RETURNS SETOF UUID
+LANGUAGE SQL
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT DISTINCT tm_other.user_id
+  FROM team_members tm_self
+  INNER JOIN team_members tm_other
+    ON tm_self.team_org_id = tm_other.team_org_id
+  WHERE tm_self.user_id = user_uuid
+    AND tm_other.user_id != user_uuid;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_direct_teammates(UUID) TO authenticated;
+
+-- ============================================
+-- Team RLS policies for voice call data
+-- ============================================
 
 -- Calls: team members can view calls for teammates' assistants
 CREATE POLICY "voice_assistant_calls_select_team"
