@@ -62,7 +62,9 @@ export default function CustomerLeadsPage() {
   const isValidField = (val: string | null | undefined) => {
     if (!val) return false;
     const normalized = val.trim().toLowerCase();
-    return normalized !== '' && normalized !== 'unknown' && normalized !== 'n/a' && normalized !== 'none' && normalized !== '-';
+    if (normalized === '' || normalized === 'unknown' || normalized === 'n/a' || normalized === 'none' || normalized === '-' || normalized === 'not provided' || normalized === 'not mentioned' || normalized === 'not available') return false;
+    if (normalized.includes('if mentioned') || normalized.includes('if provided') || normalized.includes('not specified')) return false;
+    return true;
   };
 
   const filteredLeads = leads.filter(lead => {
