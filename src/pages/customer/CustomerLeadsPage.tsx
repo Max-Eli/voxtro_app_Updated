@@ -60,9 +60,13 @@ export default function CustomerLeadsPage() {
   };
 
   const filteredLeads = leads.filter(lead => {
+    // Only show leads that have name, email, AND phone number
+    const hasRequiredFields = lead.name && lead.email && (lead.phone_number || lead.additional_data?.caller_id);
+    if (!hasRequiredFields) return false;
+
     const matchesSource = sourceFilter === 'all' || lead.source_type === sourceFilter;
     const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = searchQuery === '' ||
       (lead.name?.toLowerCase().includes(searchLower)) ||
       (lead.email?.toLowerCase().includes(searchLower)) ||
       (lead.phone_number?.includes(searchQuery)) ||
@@ -89,10 +93,10 @@ export default function CustomerLeadsPage() {
   };
 
   const stats = {
-    total: leads.length,
-    chatbot: leads.filter(l => l.source_type === 'chatbot').length,
-    voice: leads.filter(l => l.source_type === 'voice').length,
-    whatsapp: leads.filter(l => l.source_type === 'whatsapp').length
+    total: filteredLeads.length,
+    chatbot: filteredLeads.filter(l => l.source_type === 'chatbot').length,
+    voice: filteredLeads.filter(l => l.source_type === 'voice').length,
+    whatsapp: filteredLeads.filter(l => l.source_type === 'whatsapp').length
   };
 
   return (
