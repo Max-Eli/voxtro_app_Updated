@@ -59,9 +59,15 @@ export default function CustomerLeadsPage() {
     }
   };
 
+  const isValidField = (val: string | null | undefined) => {
+    if (!val) return false;
+    const normalized = val.trim().toLowerCase();
+    return normalized !== '' && normalized !== 'unknown' && normalized !== 'n/a' && normalized !== 'none' && normalized !== '-';
+  };
+
   const filteredLeads = leads.filter(lead => {
-    // Only show leads that have name, email, AND phone number
-    const hasRequiredFields = lead.name && lead.email && (lead.phone_number || lead.additional_data?.caller_id);
+    // Only show leads that have a real name, email, AND phone number
+    const hasRequiredFields = isValidField(lead.name) && isValidField(lead.email) && (isValidField(lead.phone_number) || isValidField(lead.additional_data?.caller_id));
     if (!hasRequiredFields) return false;
 
     const matchesSource = sourceFilter === 'all' || lead.source_type === sourceFilter;
