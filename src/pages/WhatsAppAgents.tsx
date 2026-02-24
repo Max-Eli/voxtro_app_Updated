@@ -1187,7 +1187,7 @@ const WhatsAppAgents = () => {
                         </p>
                         <p className="text-sm">{msg.content}</p>
                         <p className="text-xs opacity-50 mt-1">
-                          {format(new Date(msg.timestamp), 'h:mm:ss a')}
+                          {format(new Date(msg.timestamp), 'MMM d, h:mm:ss a')}
                         </p>
                       </div>
                     </div>
