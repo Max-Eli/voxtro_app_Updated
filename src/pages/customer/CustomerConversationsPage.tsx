@@ -59,11 +59,12 @@ export function CustomerConversationsPage() {
         const chatbotId = assignment.chatbot_id;
         const chatbotName = assignment.chatbots.name;
 
-        // Get total conversations
+        // Get total conversations (exclude hidden)
         const { data: conversations } = await supabase
           .from('conversations')
           .select('id')
-          .eq('chatbot_id', chatbotId);
+          .eq('chatbot_id', chatbotId)
+          .eq('hidden_from_portal', false);
 
         const totalConversations = conversations?.length || 0;
 
