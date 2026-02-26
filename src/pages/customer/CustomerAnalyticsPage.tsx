@@ -117,7 +117,8 @@ export function CustomerAnalyticsPage() {
         const { data: conversations } = await supabase
           .from('conversations')
           .select('id')
-          .in('chatbot_id', chatbotIds);
+          .in('chatbot_id', chatbotIds)
+          .eq('hidden_from_portal', false);
         totalConversations = conversations?.length || 0;
       }
 
@@ -134,7 +135,8 @@ export function CustomerAnalyticsPage() {
         const { data: calls } = await supabase
           .from('voice_assistant_calls')
           .select('id, duration_seconds')
-          .in('assistant_id', assistantIds);
+          .in('assistant_id', assistantIds)
+          .eq('hidden_from_portal', false);
         totalCalls = calls?.length || 0;
         totalDuration = calls?.reduce((sum, call) => sum + (call.duration_seconds || 0), 0) || 0;
       }
@@ -151,7 +153,8 @@ export function CustomerAnalyticsPage() {
         const { data: waConvs } = await supabase
           .from('whatsapp_conversations')
           .select('id')
-          .in('agent_id', waAgentIds);
+          .in('agent_id', waAgentIds)
+          .eq('hidden_from_portal', false);
         totalWaConversations = waConvs?.length || 0;
       }
 

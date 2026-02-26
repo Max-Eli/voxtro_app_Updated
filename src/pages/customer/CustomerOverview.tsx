@@ -115,12 +115,14 @@ export function CustomerOverview() {
       const { data: conversationCounts } = await supabase
         .from('conversations')
         .select('chatbot_id')
-        .in('chatbot_id', chatbotIds);
+        .in('chatbot_id', chatbotIds)
+        .eq('hidden_from_portal', false);
 
       const { data: messageCounts } = await supabase
         .from('messages')
-        .select('conversation_id, conversations!inner(chatbot_id)')
-        .in('conversations.chatbot_id', chatbotIds);
+        .select('conversation_id, conversations!inner(chatbot_id, hidden_from_portal)')
+        .in('conversations.chatbot_id', chatbotIds)
+        .eq('conversations.hidden_from_portal', false);
 
       const chatbotData = assignments?.map(assignment => {
         const chatbot = assignment.chatbots;
@@ -158,7 +160,8 @@ export function CustomerOverview() {
         const { data } = await supabase
           .from('voice_assistant_calls')
           .select('assistant_id, duration_seconds')
-          .in('assistant_id', assistantIds);
+          .in('assistant_id', assistantIds)
+          .eq('hidden_from_portal', false);
         calls = data || [];
       }
 
@@ -198,7 +201,8 @@ export function CustomerOverview() {
         const { data: convData } = await supabase
           .from('whatsapp_conversations')
           .select('id, agent_id')
-          .in('agent_id', waAgentIds);
+          .in('agent_id', waAgentIds)
+          .eq('hidden_from_portal', false);
         waConversations = convData || [];
 
         if (waConversations.length > 0) {
