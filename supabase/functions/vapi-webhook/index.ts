@@ -86,48 +86,72 @@ serve(async (req) => {
         console.log('Call upserted successfully:', call.id, 'Duration:', durationSeconds);
       }
 
-      // Insert transcript if available
+      // Insert transcripts if available (batch insert, idempotent)
       if (artifact?.messages && callRecord) {
         console.log('Processing messages:', artifact.messages.length);
 
-        // Vapi uses 'bot' for assistant messages; normalize role variants
-        for (const msg of artifact.messages) {
-          const rawRole = msg.role || '';
-          let role: string;
-          if (['bot', 'assistant', 'ai'].includes(rawRole)) {
-            role = 'assistant';
-          } else if (['user', 'human', 'customer'].includes(rawRole)) {
-            role = 'user';
-          } else {
-            role = rawRole;
-          }
+        // Only insert if no transcripts exist yet (idempotent — safe for webhook retries)
+        const { data: existingTranscripts } = await supabaseClient
+          .from('voice_assistant_transcripts')
+          .select('id')
+          .eq('call_id', callRecord.id)
+          .limit(1);
 
-          // VAPI may use msg.message, msg.content, or msg.text
-          const content = msg.message || msg.content || msg.text || '';
+        if (!existingTranscripts || existingTranscripts.length === 0) {
+          const transcriptsToInsert: any[] = [];
 
-          // Only save user and assistant messages that have content
-          if ((role === 'user' || role === 'assistant') && content) {
-            console.log('Inserting transcript:', { role, content: content.substring(0, 50) });
-            await supabaseClient
-              .from('voice_assistant_transcripts')
-              .insert({
+          for (const msg of artifact.messages) {
+            // Normalize role — VAPI uses 'bot', some events use 'ai' or 'assistant'
+            const rawRole = msg.role || '';
+            let role: string;
+            if (['bot', 'assistant', 'ai'].includes(rawRole)) {
+              role = 'assistant';
+            } else if (['user', 'human', 'customer'].includes(rawRole)) {
+              role = 'user';
+            } else {
+              continue; // skip system/tool messages
+            }
+
+            // VAPI may put content in msg.message, msg.content, or msg.text
+            const content = msg.message || msg.content || msg.text || '';
+
+            if (content) {
+              transcriptsToInsert.push({
                 call_id: callRecord.id,
-                role: role,
-                content: content,
+                role,
+                content,
                 timestamp: msg.time ? new Date(msg.time).toISOString() : new Date().toISOString(),
               });
+            }
           }
+
+          if (transcriptsToInsert.length > 0) {
+            const { error: transcriptError } = await supabaseClient
+              .from('voice_assistant_transcripts')
+              .insert(transcriptsToInsert);
+
+            if (transcriptError) {
+              console.error('Error inserting transcripts:', transcriptError);
+            } else {
+              console.log(`Inserted ${transcriptsToInsert.length} transcript messages for call:`, call.id);
+            }
+          } else {
+            console.log('No transcript messages to insert for call:', call.id);
+          }
+        } else {
+          console.log('Transcripts already exist for call, skipping:', call.id);
         }
       }
 
-      // Insert recording if available
+      // Insert recording if available (idempotent — upsert on call_id)
       if (artifact?.recordingUrl && callRecord) {
-        await supabaseClient
+        const { error: recError } = await supabaseClient
           .from('voice_assistant_recordings')
-          .insert({
-            call_id: callRecord.id,
-            recording_url: artifact.recordingUrl,
-          });
+          .upsert({ call_id: callRecord.id, recording_url: artifact.recordingUrl }, { onConflict: 'call_id' });
+
+        if (recError) {
+          console.error('Error upserting recording:', recError);
+        }
       }
 
       console.log('Call data saved successfully for call:', call.id);
