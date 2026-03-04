@@ -26,21 +26,24 @@ serve(async (req) => {
     if (message?.type === 'end-of-call-report') {
       const call = message.call;
       const artifact = message.artifact;
-      const assistantId = call.assistantId;
+      const vapiAssistantId = call.assistantId;
 
-      // Find the user who owns this assistant
+      // Find the assistant - the database ID IS the VAPI assistant ID
       const { data: assistant } = await supabaseClient
         .from('voice_assistants')
-        .select('user_id')
-        .eq('id', assistantId)
+        .select('id, user_id')
+        .eq('id', vapiAssistantId)
         .single();
 
       if (!assistant) {
-        console.log('Assistant not found:', assistantId);
+        console.log('Assistant not found for VAPI ID:', vapiAssistantId);
         return new Response(JSON.stringify({ received: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
+
+      // Use the database ID for all our queries
+      const assistantId = assistant.id;
 
       // Find customer assigned to this assistant
       const { data: assignment } = await supabaseClient
@@ -48,7 +51,7 @@ serve(async (req) => {
         .select('customer_id')
         .eq('assistant_id', assistantId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const customerId = assignment?.customer_id || null;
 
@@ -86,20 +89,31 @@ serve(async (req) => {
       // Insert transcript if available
       if (artifact?.messages && callRecord) {
         console.log('Processing messages:', artifact.messages.length);
-        
-        // Vapi uses 'bot' for assistant messages
+
+        // Vapi uses 'bot' for assistant messages; normalize role variants
         for (const msg of artifact.messages) {
-          const role = msg.role === 'bot' ? 'assistant' : msg.role;
-          
-          // Only save user and assistant/bot messages
-          if ((role === 'user' || role === 'assistant') && msg.message) {
-            console.log('Inserting transcript:', { role, message: msg.message.substring(0, 50) });
+          const rawRole = msg.role || '';
+          let role: string;
+          if (['bot', 'assistant', 'ai'].includes(rawRole)) {
+            role = 'assistant';
+          } else if (['user', 'human', 'customer'].includes(rawRole)) {
+            role = 'user';
+          } else {
+            role = rawRole;
+          }
+
+          // VAPI may use msg.message, msg.content, or msg.text
+          const content = msg.message || msg.content || msg.text || '';
+
+          // Only save user and assistant messages that have content
+          if ((role === 'user' || role === 'assistant') && content) {
+            console.log('Inserting transcript:', { role, content: content.substring(0, 50) });
             await supabaseClient
               .from('voice_assistant_transcripts')
               .insert({
                 call_id: callRecord.id,
                 role: role,
-                content: msg.message,
+                content: content,
                 timestamp: msg.time ? new Date(msg.time).toISOString() : new Date().toISOString(),
               });
           }

@@ -321,17 +321,97 @@ export function AdminCustomerPreview() {
         })));
       }
 
-      // ── Leads ─────────────────────────────────────────────────────────────
-      const allSourceIds = [...cbIds, ...vaIds, ...waIds];
-      if (allSourceIds.length > 0) {
-        const { data: leadsData } = await supabase
-          .from('leads')
-          .select('id, source_type, source_name, name, email, phone_number, additional_data, extracted_at')
-          .eq('user_id', user.id)
-          .in('source_id', allSourceIds)
-          .order('extracted_at', { ascending: false });
-        setLeads(leadsData || []);
+      // ── Leads — mirror the backend portal/leads endpoint ─────────────────
+      // Leads live in lead_info columns on conversations/calls, NOT in a
+      // separate leads table. We extract them the same way the backend does.
+      const extractedLeads: LeadRow[] = [];
+
+      // Chatbot leads from conversations.lead_info
+      if (cbIds.length > 0) {
+        const { data: cbConvs } = await supabase
+          .from('conversations')
+          .select('id, chatbot_id, lead_info, created_at')
+          .in('chatbot_id', cbIds)
+          .eq('hidden_from_portal', false)
+          .not('lead_info', 'is', null);
+
+        for (const conv of cbConvs || []) {
+          const li = conv.lead_info as any;
+          if (!li) continue;
+          const phone = li.phone;
+          if (isValidField(li.name) && isValidField(li.email) && (isValidField(phone) || isValidField(li.phone_number))) {
+            extractedLeads.push({
+              id: conv.id,
+              source_type: 'chatbot',
+              source_name: cbNameMap[conv.chatbot_id] || 'Unknown',
+              name: li.name,
+              email: li.email,
+              phone_number: phone || li.phone_number || null,
+              additional_data: { company: li.company, interest_level: li.interest_level },
+              extracted_at: conv.created_at,
+            });
+          }
+        }
       }
+
+      // Voice leads from voice_assistant_calls.lead_info
+      if (vaIds.length > 0) {
+        const { data: vaCalls } = await supabase
+          .from('voice_assistant_calls')
+          .select('id, assistant_id, lead_info, started_at, phone_number')
+          .in('assistant_id', vaIds)
+          .eq('hidden_from_portal', false)
+          .not('lead_info', 'is', null);
+
+        for (const call of vaCalls || []) {
+          const li = call.lead_info as any;
+          if (!li) continue;
+          const phone = li.phone || call.phone_number;
+          if (isValidField(li.name) && isValidField(li.email) && isValidField(phone)) {
+            extractedLeads.push({
+              id: call.id,
+              source_type: 'voice',
+              source_name: vaNameMap[call.assistant_id] || 'Unknown',
+              name: li.name,
+              email: li.email,
+              phone_number: li.phone || null,
+              additional_data: { company: li.company, interest_level: li.interest_level, caller_id: call.phone_number },
+              extracted_at: call.started_at,
+            });
+          }
+        }
+      }
+
+      // WhatsApp leads from whatsapp_conversations.lead_info
+      if (waIds.length > 0) {
+        const { data: waConvsLeads } = await supabase
+          .from('whatsapp_conversations')
+          .select('id, agent_id, lead_info, started_at, phone_number')
+          .in('agent_id', waIds)
+          .eq('hidden_from_portal', false)
+          .not('lead_info', 'is', null);
+
+        for (const conv of waConvsLeads || []) {
+          const li = conv.lead_info as any;
+          if (!li) continue;
+          const phone = li.phone || conv.phone_number;
+          if (isValidField(li.name) && isValidField(li.email) && isValidField(phone)) {
+            extractedLeads.push({
+              id: conv.id,
+              source_type: 'whatsapp',
+              source_name: waNameMap[conv.agent_id] || 'Unknown',
+              name: li.name,
+              email: li.email,
+              phone_number: li.phone || conv.phone_number || null,
+              additional_data: { company: li.company, interest_level: li.interest_level, caller_id: conv.phone_number },
+              extracted_at: conv.started_at,
+            });
+          }
+        }
+      }
+
+      extractedLeads.sort((a, b) => new Date(b.extracted_at).getTime() - new Date(a.extracted_at).getTime());
+      setLeads(extractedLeads);
 
     } catch (err) {
       console.error('Preview data error:', err);
