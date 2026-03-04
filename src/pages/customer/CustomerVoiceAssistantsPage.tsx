@@ -94,7 +94,7 @@ export default function CustomerVoiceAssistantsPage() {
         },
         (payload) => {
           console.log('Call log changed:', payload);
-          fetchData();
+          loadCachedData();
         }
       )
       .subscribe();
@@ -117,9 +117,15 @@ export default function CustomerVoiceAssistantsPage() {
       )
       .subscribe();
 
+    // Poll DB every 30s as fallback in case realtime isn't enabled for this table
+    const pollInterval = setInterval(() => {
+      loadCachedData();
+    }, 30000);
+
     return () => {
       supabase.removeChannel(callsChannel);
       supabase.removeChannel(transcriptsChannel);
+      clearInterval(pollInterval);
     };
   }, [customer, selectedCall]);
 
