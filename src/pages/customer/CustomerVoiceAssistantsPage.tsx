@@ -120,6 +120,10 @@ export default function CustomerVoiceAssistantsPage() {
     // Poll DB every 30s as fallback in case realtime isn't enabled for this table
     const pollInterval = setInterval(() => {
       loadCachedData();
+      // Also refresh the open transcript if a call detail sheet is showing
+      if (selectedCall) {
+        loadTranscript(selectedCall.id);
+      }
     }, 30000);
 
     return () => {
