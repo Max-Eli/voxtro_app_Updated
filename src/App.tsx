@@ -58,6 +58,7 @@ import PlayerInvitationsPage from "./pages/customer/PlayerInvitationsPage";
 import PlayersPage from "./pages/customer/PlayersPage";
 import Teams from "./pages/Teams";
 import AcceptInvite from "./pages/AcceptInvite";
+import { AdminCustomerPreview } from "./pages/AdminCustomerPreview";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -101,6 +102,7 @@ const App = () => (
                 <Route path="/teams" element={<DashboardLayout><Teams /></DashboardLayout>} />
                 <Route path="/invite/:token" element={<AcceptInvite />} />
                 <Route path="/billing" element={<DashboardLayout><Billing /></DashboardLayout>} />
+                <Route path="/admin/customer-preview/:customerId" element={<DashboardLayout><AdminCustomerPreview /></DashboardLayout>} />
                 <Route path="/changelog" element={<Changelog />} />
                 <Route path="/create-chatbot" element={<CreateChatbot />} />
                 <Route path="/edit-chatbot/:chatbotId" element={<EditChatbot />} />

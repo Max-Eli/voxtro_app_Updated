@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserPlus, Mail, Trash2, Settings, Users, Shield, FileCheck, Globe, Search, Bot, Clock, Building2 } from 'lucide-react';
+import { UserPlus, Mail, Trash2, Settings, Users, Shield, FileCheck, Globe, Search, Bot, Clock, Building2, Eye } from 'lucide-react';
 import { createCustomerWithAuth, sendCustomerLoginLink, deleteCustomer, updateCustomerChatbots } from '@/integrations/api/endpoints';
 import { CustomerPermissionConfig } from '@/components/CustomerPermissionConfig';
 import { PendingContentReview } from '@/components/PendingContentReview';
@@ -625,6 +625,19 @@ export function CustomerManagement() {
                             </TableCell>
                             <TableCell className="pr-6">
                               <div className="flex items-center justify-end gap-1">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => window.open(`/admin/customer-preview/${customer.id}`, '_blank')}
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>View customer portal</TooltipContent>
+                                </Tooltip>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
