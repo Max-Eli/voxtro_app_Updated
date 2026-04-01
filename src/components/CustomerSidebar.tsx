@@ -11,6 +11,7 @@ import {
   Ticket,
   Users,
   UserPlus,
+  ClipboardList,
 } from "lucide-react";
 import {
   Sidebar,
@@ -127,6 +128,17 @@ export function CustomerSidebar({ customLogo }: CustomerSidebarProps) {
                       >
                         <Users className="h-4 w-4" />
                         {!collapsed && <span>Players</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/customer-dashboard/registered-players"
+                        className={getNavClass("/customer-dashboard/registered-players")}
+                      >
+                        <ClipboardList className="h-4 w-4" />
+                        {!collapsed && <span>Registered Players</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

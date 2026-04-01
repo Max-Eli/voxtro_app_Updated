@@ -18,6 +18,16 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Upload, Download, X, ChevronUp, ChevronDown, Search, Pencil, Check, Ban } from "lucide-react";
+import { Upload, Download, X, ChevronUp, ChevronDown, Search, Pencil, Check, Ban, Trash2 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
   playerInvitationsApi,
@@ -248,6 +258,18 @@ export default function PlayersPage() {
       toast.success("Player updated.");
     },
     onError: (err: Error) => toast.error(`Update failed: ${err.message}`),
+  });
+
+  // Delete state + mutation
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => playerInvitationsApi.deletePlayer(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+      toast.success("Player removed.");
+      closeDetail();
+    },
+    onError: (err: Error) => toast.error(`Delete failed: ${err.message}`),
   });
 
   // Open detail + collapse sidebar
@@ -693,6 +715,15 @@ export default function PlayersPage() {
                   Edit
                 </Button>
               )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-destructive hover:text-destructive"
+                onClick={() => setDeleteConfirmOpen(true)}
+                title="Delete player"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
               <Button size="icon" variant="ghost" onClick={closeDetail} className="h-8 w-8">
                 <X className="h-4 w-4" />
               </Button>
@@ -830,6 +861,32 @@ export default function PlayersPage() {
           </div>
         </div>
       )}
+
+      {/* ============ DELETE CONFIRM DIALOG ============ */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this player?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove
+              {selectedPlayer ? ` ${selectedPlayer.first_name} ${selectedPlayer.last_name}` : " this player"}
+              {" "}from the roster. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (selectedId) deleteMutation.mutate(selectedId);
+                setDeleteConfirmOpen(false);
+              }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ============ CSV Field Mapping Dialog ============ */}
       <Dialog

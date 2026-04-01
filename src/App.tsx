@@ -56,6 +56,7 @@ import CustomerSupportTicketsPage from "./pages/customer/CustomerSupportTicketsP
 import CustomerLeadsPage from "./pages/customer/CustomerLeadsPage";
 import PlayerInvitationsPage from "./pages/customer/PlayerInvitationsPage";
 import PlayersPage from "./pages/customer/PlayersPage";
+import RegisteredPlayersPage from "./pages/customer/RegisteredPlayersPage";
 import Teams from "./pages/Teams";
 import AcceptInvite from "./pages/AcceptInvite";
 import { AdminCustomerPreview } from "./pages/AdminCustomerPreview";
@@ -122,6 +123,7 @@ const App = () => (
                   <Route path="settings" element={<CustomerSettingsPage />} />
                   <Route path="player-invitations" element={<PlayerInvitationsPage />} />
                   <Route path="players" element={<PlayersPage />} />
+                  <Route path="registered-players" element={<RegisteredPlayersPage />} />
                 </Route>
                 <Route path="/docs" element={<Documentation />} />
                 <Route path="/api" element={<ApiReference />} />

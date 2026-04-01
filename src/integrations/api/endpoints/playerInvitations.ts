@@ -6,9 +6,10 @@ import { apiClient } from '../client';
 
 // ---- Types ----
 
-export type InvitationStatus = 'pending' | 'accepted' | 'declined';
+export type InvitationStatus = 'pending' | 'accepted' | 'declined' | 'registered';
 export type Division = 'mens' | 'womens' | 'senior';
 export type PlayerSource = 'invitation' | 'csv_import';
+export type RegistrationStatus = 'invited' | 'registered' | 'withdrew';
 
 export interface PlayerInvitation {
   id: string;
@@ -61,6 +62,7 @@ export interface Player {
   source: PlayerSource;
   invitation_id: string | null;
   access_code: string | null;
+  registration_status: RegistrationStatus;
   created_at: string;
   updated_at: string;
 }
@@ -70,6 +72,28 @@ export type PlayerUpdateFields = Partial<Pick<Player,
   'handicap_index' | 'birth_year' | 'birth_month' | 'birth_day' |
   'shirt_size' | 'wagr' | 'street_address' | 'city' | 'state' | 'country' | 'zip'
 >>;
+
+export interface CreateInvitationData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  division: Division;
+  phone?: string;
+  club?: string;
+  handicap_index?: number;
+  birth_year?: number;
+  birth_month?: number;
+  birth_day?: number;
+  shirt_size?: string;
+  wagr?: string;
+  wagr_url?: string;
+  golf_resume?: string;
+  street_address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip?: string;
+}
 
 export interface PlayerImportRow {
   first_name: string;
@@ -121,4 +145,20 @@ export const playerInvitationsApi = {
   /** Update editable fields on a player record */
   updatePlayer: (id: string, updates: PlayerUpdateFields): Promise<Player> =>
     apiClient.patch(`/api/customers/players/${id}`, updates),
+
+  /** Manually create a player invitation (starts as pending) */
+  createInvitation: (data: CreateInvitationData): Promise<PlayerInvitation> =>
+    apiClient.post('/api/customers/player-invitations', data),
+
+  /** Delete a player invitation (and its linked player record, if any) */
+  deleteInvitation: (id: string): Promise<{ success: boolean }> =>
+    apiClient.delete(`/api/customers/player-invitations/${id}`),
+
+  /** Delete a player from the roster */
+  deletePlayer: (id: string): Promise<{ success: boolean }> =>
+    apiClient.delete(`/api/customers/players/${id}`),
+
+  /** Update the registration status of a player */
+  updatePlayerRegistrationStatus: (id: string, registration_status: RegistrationStatus): Promise<Player> =>
+    apiClient.patch(`/api/customers/players/${id}/registration-status`, { registration_status }),
 };

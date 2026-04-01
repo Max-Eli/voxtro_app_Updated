@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -17,14 +18,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { X, ChevronUp, ChevronDown, Search } from "lucide-react";
+import { X, ChevronUp, ChevronDown, Search, Plus, Trash2 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
   playerInvitationsApi,
   type PlayerInvitation,
   type InvitationStatus,
+  type Division,
+  type CreateInvitationData,
 } from "@/integrations/api/endpoints/playerInvitations";
 
 // ---- Helpers & constants ----
@@ -130,6 +150,48 @@ export default function PlayerInvitationsPage() {
   });
 
   const isActing = acceptMutation.isPending || declineMutation.isPending;
+
+  // Add player dialog state
+  const [addOpen, setAddOpen] = useState(false);
+  const [addForm, setAddForm] = useState<CreateInvitationData>({
+    first_name: "", last_name: "", email: "", division: "mens" as Division,
+  });
+
+  // Delete confirmation state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: (data: CreateInvitationData) => playerInvitationsApi.createInvitation(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["player-invitations"] });
+      toast.success("Invitation created.");
+      setAddOpen(false);
+      setAddForm({ first_name: "", last_name: "", email: "", division: "mens" as Division });
+    },
+    onError: (err: Error) => toast.error(`Create failed: ${err.message}`),
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => playerInvitationsApi.deleteInvitation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["player-invitations"] });
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+      toast.success("Invitation deleted.");
+      closeDetail();
+    },
+    onError: (err: Error) => toast.error(`Delete failed: ${err.message}`),
+  });
+
+  function handleAddSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addForm.first_name.trim() || !addForm.last_name.trim() || !addForm.email.trim()) {
+      toast.error("First name, last name, and email are required.");
+      return;
+    }
+    createMutation.mutate(addForm);
+  }
 
   // Open detail + collapse sidebar
   function selectInvitation(id: string) {
@@ -237,6 +299,10 @@ export default function PlayerInvitationsPage() {
                   : `${filtered.length}${filtered.length !== invitations.length ? ` of ${invitations.length}` : ""} invitation${invitations.length !== 1 ? "s" : ""}`}
               </p>
             </div>
+            <Button size="sm" className="gap-1.5" onClick={() => setAddOpen(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              Add Player
+            </Button>
           </div>
 
           {/* Search */}
@@ -401,6 +467,136 @@ export default function PlayerInvitationsPage() {
         </div>
       </div>
 
+      {/* ============ ADD PLAYER DIALOG ============ */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Player Invitation</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddSubmit} className="space-y-4 pt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-first">First Name *</Label>
+                <Input
+                  id="add-first"
+                  value={addForm.first_name}
+                  onChange={(e) => setAddForm((f) => ({ ...f, first_name: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-last">Last Name *</Label>
+                <Input
+                  id="add-last"
+                  value={addForm.last_name}
+                  onChange={(e) => setAddForm((f) => ({ ...f, last_name: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="add-email">Email *</Label>
+              <Input
+                id="add-email"
+                type="email"
+                value={addForm.email}
+                onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Division *</Label>
+              <Select
+                value={addForm.division}
+                onValueChange={(v) => setAddForm((f) => ({ ...f, division: v as Division }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mens">Men's</SelectItem>
+                  <SelectItem value="womens">Women's</SelectItem>
+                  <SelectItem value="senior">Senior/Mid-Master</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-phone">Phone</Label>
+                <Input
+                  id="add-phone"
+                  value={addForm.phone ?? ""}
+                  onChange={(e) => setAddForm((f) => ({ ...f, phone: e.target.value || undefined }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-club">Club</Label>
+                <Input
+                  id="add-club"
+                  value={addForm.club ?? ""}
+                  onChange={(e) => setAddForm((f) => ({ ...f, club: e.target.value || undefined }))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-handicap">Handicap Index</Label>
+                <Input
+                  id="add-handicap"
+                  type="number"
+                  step="0.1"
+                  value={addForm.handicap_index ?? ""}
+                  onChange={(e) => setAddForm((f) => ({ ...f, handicap_index: e.target.value ? Number(e.target.value) : undefined }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-wagr">WAGR Ranking</Label>
+                <Input
+                  id="add-wagr"
+                  value={addForm.wagr ?? ""}
+                  onChange={(e) => setAddForm((f) => ({ ...f, wagr: e.target.value || undefined }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? "Creating…" : "Create Invitation"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ============ DELETE CONFIRM DIALOG ============ */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this invitation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the invitation
+              {detail ? ` for ${detail.first_name} ${detail.last_name}` : ""}
+              {detail?.status === "accepted" ? " and their linked player record" : ""}.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (detail) deleteMutation.mutate(detail.id);
+                setDeleteConfirmOpen(false);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* ============ RIGHT: DETAIL PANEL ============ */}
       {selectedId && (
         <div className="flex flex-col flex-1 overflow-hidden bg-background">
@@ -437,6 +633,17 @@ export default function PlayerInvitationsPage() {
                     {declineMutation.isPending ? "Declining…" : "Decline"}
                   </Button>
                 </>
+              )}
+              {!isDetailLoading && detail && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  title="Delete invitation"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               )}
               <Button size="icon" variant="ghost" onClick={closeDetail} className="h-8 w-8">
                 <X className="h-4 w-4" />
