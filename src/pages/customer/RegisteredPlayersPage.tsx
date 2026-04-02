@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { X, ChevronUp, ChevronDown, Search, Download } from "lucide-react";
+import { X, ChevronUp, ChevronDown, Search, Download, Globe } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
   playerInvitationsApi,
@@ -204,6 +205,17 @@ export default function RegisteredPlayersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["players"] });
       toast.success("Registration status updated.");
+    },
+    onError: (err: Error) => toast.error(`Update failed: ${err.message}`),
+  });
+
+  // Show on site toggle mutation
+  const showOnSiteMutation = useMutation({
+    mutationFn: ({ id, show_on_site }: { id: string; show_on_site: boolean }) =>
+      playerInvitationsApi.updateShowOnSite(id, show_on_site),
+    onSuccess: (_, { show_on_site }) => {
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+      toast.success(show_on_site ? "Player is now visible on dixieamateur.com." : "Player hidden from dixieamateur.com.");
     },
     onError: (err: Error) => toast.error(`Update failed: ${err.message}`),
   });
@@ -523,6 +535,35 @@ export default function RegisteredPlayersPage() {
                   </p>
                 </div>
               </section>
+
+              {/* Show on Site */}
+              {selectedPlayer.registration_status === "registered" && (
+                <section>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                    Site Listing
+                  </h3>
+                  <div className="rounded-lg border px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Show on dixieamateur.com</span>
+                      </div>
+                      <Switch
+                        checked={selectedPlayer.show_on_site}
+                        disabled={showOnSiteMutation.isPending}
+                        onCheckedChange={(checked: boolean) =>
+                          showOnSiteMutation.mutate({ id: selectedPlayer.id, show_on_site: checked })
+                        }
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {selectedPlayer.show_on_site
+                        ? "This player's name is publicly visible on the registered players page."
+                        : "Toggle on to display this player on the public registered players page."}
+                    </p>
+                  </div>
+                </section>
+              )}
 
               {/* Personal */}
               <section>

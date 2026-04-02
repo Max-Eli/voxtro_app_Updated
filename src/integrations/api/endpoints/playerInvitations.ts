@@ -63,6 +63,7 @@ export interface Player {
   invitation_id: string | null;
   access_code: string | null;
   registration_status: RegistrationStatus;
+  show_on_site: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -161,4 +162,8 @@ export const playerInvitationsApi = {
   /** Update the registration status of a player */
   updatePlayerRegistrationStatus: (id: string, registration_status: RegistrationStatus): Promise<Player> =>
     apiClient.patch(`/api/customers/players/${id}/registration-status`, { registration_status }),
+
+  /** Toggle whether a registered player is shown on dixieamateur.com */
+  updateShowOnSite: (id: string, show_on_site: boolean): Promise<Player> =>
+    apiClient.patch(`/api/customers/players/${id}`, { show_on_site }),
 };
