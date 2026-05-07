@@ -27,7 +27,18 @@ import {
   Mail,
   TrendingUp,
   Activity,
+  UserPlus,
+  ClipboardList,
+  type LucideIcon,
 } from 'lucide-react';
+
+const DIXIE_CUSTOMER_ID = '2d89d5e3-c41d-4567-b0bf-4598a482559a';
+
+const DIVISION_LABELS: Record<string, string> = {
+  mens: "Men's",
+  womens: "Women's",
+  senior: 'Senior/Mid-Master',
+};
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -111,7 +122,70 @@ interface LeadRow {
   extracted_at: string;
 }
 
-type Section = 'overview' | 'conversations' | 'calls' | 'whatsapp' | 'leads';
+interface InvitationRow {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  division: string;
+  status: string;
+  access_code: string | null;
+  street_address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  zip?: string | null;
+  club?: string | null;
+  handicap_index?: number | null;
+  birth_month?: number | null;
+  birth_day?: number | null;
+  birth_year?: number | null;
+  shirt_size?: string | null;
+  wagr?: string | null;
+  wagr_url?: string | null;
+  golf_resume?: string | null;
+  resume_file_url?: string | null;
+  agree_policy?: boolean;
+  created_at: string;
+}
+
+interface PlayerRow {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
+  division: string | null;
+  club: string | null;
+  handicap_index: number | null;
+  birth_year: number | null;
+  birth_month: number | null;
+  birth_day: number | null;
+  shirt_size: string | null;
+  wagr: string | null;
+  street_address: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  zip: string | null;
+  source: string;
+  access_code: string | null;
+  registration_status: string;
+  show_on_site: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+type Section =
+  | 'overview'
+  | 'conversations'
+  | 'calls'
+  | 'whatsapp'
+  | 'leads'
+  | 'invitations'
+  | 'players'
+  | 'registered';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -141,12 +215,18 @@ function isValidField(val: string | null | undefined): boolean {
 
 // ── Sidebar Nav ────────────────────────────────────────────────────────────────
 
-const NAV_ITEMS: { id: Section; label: string; icon: React.ElementType }[] = [
+const BASE_NAV_ITEMS: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: 'overview',       label: 'Overview',         icon: LayoutDashboard },
   { id: 'conversations',  label: 'Conversations',    icon: MessageSquare },
   { id: 'calls',          label: 'Voice Calls',      icon: Phone },
   { id: 'whatsapp',       label: 'WhatsApp',         icon: MessageCircle },
   { id: 'leads',          label: 'Leads',            icon: Users },
+];
+
+const DIXIE_NAV_ITEMS: { id: Section; label: string; icon: LucideIcon }[] = [
+  { id: 'invitations',    label: 'Player Invitations', icon: UserPlus },
+  { id: 'players',        label: 'Players',            icon: Users },
+  { id: 'registered',     label: 'Registered Players', icon: ClipboardList },
 ];
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -169,6 +249,10 @@ export function AdminCustomerPreview() {
   const [waConversations, setWaConversations] = useState<WaConversation[]>([]);
   const [leads, setLeads] = useState<LeadRow[]>([]);
 
+  // Dixie-only data
+  const [invitations, setInvitations] = useState<InvitationRow[]>([]);
+  const [dixiePlayers, setDixiePlayers] = useState<PlayerRow[]>([]);
+
   // Detail state
   const [selectedConv, setSelectedConv] = useState<ConversationRow | null>(null);
   const [convMessages, setConvMessages] = useState<MessageRow[]>([]);
@@ -183,11 +267,23 @@ export function AdminCustomerPreview() {
   const [selectedWa, setSelectedWa] = useState<WaConversation | null>(null);
   const [showWaDetail, setShowWaDetail] = useState(false);
 
+  const [selectedInvitation, setSelectedInvitation] = useState<InvitationRow | null>(null);
+  const [showInvitationDetail, setShowInvitationDetail] = useState(false);
+
+  const [selectedDixiePlayer, setSelectedDixiePlayer] = useState<PlayerRow | null>(null);
+  const [showDixiePlayerDetail, setShowDixiePlayerDetail] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [convSearch, setConvSearch] = useState('');
   const [callSearch, setCallSearch] = useState('');
   const [waSearch, setWaSearch] = useState('');
   const [leadSearch, setLeadSearch] = useState('');
+  const [invSearch, setInvSearch] = useState('');
+  const [playerSearch, setPlayerSearch] = useState('');
+  const [registeredSearch, setRegisteredSearch] = useState('');
+
+  const isDixieAmateur = customerId === DIXIE_CUSTOMER_ID;
+  const NAV_ITEMS = isDixieAmateur ? [...BASE_NAV_ITEMS, ...DIXIE_NAV_ITEMS] : BASE_NAV_ITEMS;
 
   const fetchAll = useCallback(async () => {
     if (!customerId || !user) return;
@@ -413,6 +509,23 @@ export function AdminCustomerPreview() {
       extractedLeads.sort((a, b) => new Date(b.extracted_at).getTime() - new Date(a.extracted_at).getTime());
       setLeads(extractedLeads);
 
+      // ── Dixie Amateur–only data ───────────────────────────────────────────
+      if (customerId === DIXIE_CUSTOMER_ID) {
+        const { data: invData } = await supabase
+          .from('player_invitations')
+          .select('*')
+          .eq('customer_id', customerId)
+          .order('created_at', { ascending: false });
+        setInvitations((invData as InvitationRow[]) || []);
+
+        const { data: playerData } = await supabase
+          .from('players')
+          .select('*')
+          .eq('customer_id', customerId)
+          .order('created_at', { ascending: false });
+        setDixiePlayers((playerData as PlayerRow[]) || []);
+      }
+
     } catch (err) {
       console.error('Preview data error:', err);
       toast.error('Failed to load customer data');
@@ -476,6 +589,30 @@ export function AdminCustomerPreview() {
   ).filter(l =>
     !leadSearch || l.name?.toLowerCase().includes(leadSearch.toLowerCase()) || l.email?.toLowerCase().includes(leadSearch.toLowerCase()) || l.phone_number?.includes(leadSearch)
   );
+
+  const filteredInvitations = invitations.filter(inv => {
+    if (!invSearch) return true;
+    const s = invSearch.toLowerCase();
+    return `${inv.first_name} ${inv.last_name}`.toLowerCase().includes(s)
+      || inv.email.toLowerCase().includes(s);
+  });
+
+  const filteredPlayers = dixiePlayers.filter(p => {
+    if (!playerSearch) return true;
+    const s = playerSearch.toLowerCase();
+    return `${p.first_name} ${p.last_name}`.toLowerCase().includes(s)
+      || (p.email ?? '').toLowerCase().includes(s)
+      || (p.club ?? '').toLowerCase().includes(s);
+  });
+
+  const registeredOnly = dixiePlayers.filter(p => p.source === 'invitation');
+  const filteredRegistered = registeredOnly.filter(p => {
+    if (!registeredSearch) return true;
+    const s = registeredSearch.toLowerCase();
+    return `${p.first_name} ${p.last_name}`.toLowerCase().includes(s)
+      || (p.email ?? '').toLowerCase().includes(s)
+      || (p.club ?? '').toLowerCase().includes(s);
+  });
 
   // ── Stat totals ───────────────────────────────────────────────────────────
   const totalCalls = calls.length;
@@ -881,6 +1018,182 @@ export function AdminCustomerPreview() {
             </div>
           )}
 
+          {/* ── PLAYER INVITATIONS (Dixie only) ─────────────────────────────── */}
+          {section === 'invitations' && (
+            <div className="p-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold">Player Invitations</h1>
+                  <p className="text-muted-foreground text-sm">{invitations.length} total invitations</p>
+                </div>
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search name or email…" value={invSearch} onChange={e => setInvSearch(e.target.value)} className="pl-9" />
+                </div>
+              </div>
+              {filteredInvitations.length === 0 ? (
+                <div className="flex items-center justify-center py-20 text-muted-foreground">No invitations found</div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredInvitations.map(inv => (
+                    <Card
+                      key={inv.id}
+                      className="cursor-pointer hover:bg-accent/50 transition-colors border-l-4 border-l-primary"
+                      onClick={() => { setSelectedInvitation(inv); setShowInvitationDetail(true); }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <UserPlus className="h-4 w-4 text-primary flex-shrink-0" />
+                              <span className="font-medium text-sm">{inv.first_name} {inv.last_name}</span>
+                              <Badge variant="secondary" className="text-xs">{DIVISION_LABELS[inv.division] ?? inv.division}</Badge>
+                              <Badge
+                                variant={(inv.status === 'accepted' ? 'default' : inv.status === 'declined' ? 'destructive' : 'outline') as 'default' | 'destructive' | 'outline'}
+                                className="text-xs capitalize"
+                              >
+                                {inv.status}
+                              </Badge>
+                              {inv.access_code && (
+                                <span className="font-mono text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">
+                                  {inv.access_code}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{inv.email}</span>
+                              {inv.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{inv.phone}</span>}
+                              <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{fmt(inv.created_at)}</span>
+                            </div>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── PLAYERS (Dixie only) ────────────────────────────────────────── */}
+          {section === 'players' && (
+            <div className="p-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold">Players</h1>
+                  <p className="text-muted-foreground text-sm">{dixiePlayers.length} total players</p>
+                </div>
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search name, email, or club…" value={playerSearch} onChange={e => setPlayerSearch(e.target.value)} className="pl-9" />
+                </div>
+              </div>
+              {filteredPlayers.length === 0 ? (
+                <div className="flex items-center justify-center py-20 text-muted-foreground">No players found</div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredPlayers.map(p => (
+                    <Card
+                      key={p.id}
+                      className="cursor-pointer hover:bg-accent/50 transition-colors border-l-4 border-l-primary"
+                      onClick={() => { setSelectedDixiePlayer(p); setShowDixiePlayerDetail(true); }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Users className="h-4 w-4 text-primary flex-shrink-0" />
+                              <span className="font-medium text-sm">{p.first_name} {p.last_name}</span>
+                              {p.division && <Badge variant="secondary" className="text-xs">{DIVISION_LABELS[p.division] ?? p.division}</Badge>}
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {p.source === 'invitation' ? 'Tournament Invitation' : 'CSV Import'}
+                              </Badge>
+                              {p.handicap_index != null && (
+                                <span className="text-xs text-muted-foreground">HCP {p.handicap_index}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                              {p.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{p.email}</span>}
+                              {p.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{p.phone}</span>}
+                              {p.club && <span>{p.club}</span>}
+                              <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{fmt(p.created_at)}</span>
+                            </div>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── REGISTERED PLAYERS (Dixie only) ─────────────────────────────── */}
+          {section === 'registered' && (
+            <div className="p-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold">Registered Players</h1>
+                  <p className="text-muted-foreground text-sm">
+                    {registeredOnly.length} players from accepted invitations
+                  </p>
+                </div>
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search name, email, or club…" value={registeredSearch} onChange={e => setRegisteredSearch(e.target.value)} className="pl-9" />
+                </div>
+              </div>
+              {filteredRegistered.length === 0 ? (
+                <div className="flex items-center justify-center py-20 text-muted-foreground">No registered players found</div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredRegistered.map(p => (
+                    <Card
+                      key={p.id}
+                      className="cursor-pointer hover:bg-accent/50 transition-colors border-l-4 border-l-primary"
+                      onClick={() => { setSelectedDixiePlayer(p); setShowDixiePlayerDetail(true); }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <ClipboardList className="h-4 w-4 text-primary flex-shrink-0" />
+                              <span className="font-medium text-sm">{p.first_name} {p.last_name}</span>
+                              {p.division && <Badge variant="secondary" className="text-xs">{DIVISION_LABELS[p.division] ?? p.division}</Badge>}
+                              <Badge
+                                variant={(p.registration_status === 'registered' ? 'default' : p.registration_status === 'withdrew' ? 'destructive' : 'outline') as 'default' | 'destructive' | 'outline'}
+                                className="text-xs capitalize"
+                              >
+                                {p.registration_status}
+                              </Badge>
+                              {p.show_on_site && (
+                                <Badge variant="outline" className="text-xs">On site</Badge>
+                              )}
+                              {p.access_code && (
+                                <span className="font-mono text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">
+                                  {p.access_code}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                              {p.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{p.email}</span>}
+                              {p.club && <span>{p.club}</span>}
+                              {p.handicap_index != null && <span>HCP {p.handicap_index}</span>}
+                              <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{fmt(p.created_at)}</span>
+                            </div>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
         </main>
       </div>
 
@@ -1101,6 +1414,201 @@ export function AdminCustomerPreview() {
         </SheetContent>
       </Sheet>
 
+      {/* ── Invitation Detail Sheet (Dixie only) ────────────────────────────── */}
+      <Sheet open={showInvitationDetail} onOpenChange={setShowInvitationDetail}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0">
+          <SheetHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
+            <SheetTitle>{selectedInvitation ? `${selectedInvitation.first_name} ${selectedInvitation.last_name}` : 'Invitation'}</SheetTitle>
+            <SheetDescription className="space-y-1">
+              {selectedInvitation && (
+                <>
+                  <span className="capitalize">{selectedInvitation.status}</span>
+                  {' · '}{DIVISION_LABELS[selectedInvitation.division] ?? selectedInvitation.division}
+                  {' · '}Submitted {fmt(selectedInvitation.created_at)}
+                </>
+              )}
+            </SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="flex-1 px-6 py-4">
+            {selectedInvitation && (
+              <div className="space-y-6">
+                {selectedInvitation.access_code && (
+                  <div className="border rounded-lg p-3 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Access Code</p>
+                    <p className="font-mono text-base text-green-800 dark:text-green-300 tracking-wider">{selectedInvitation.access_code}</p>
+                  </div>
+                )}
+
+                <section>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Personal Information</h3>
+                  <div className="border rounded-lg divide-y divide-border/30 px-4">
+                    <DetailRow label="Email" value={selectedInvitation.email} />
+                    <DetailRow label="Phone" value={selectedInvitation.phone} />
+                    <DetailRow label="Division" value={DIVISION_LABELS[selectedInvitation.division] ?? selectedInvitation.division} />
+                    <DetailRow
+                      label="Date of Birth"
+                      value={selectedInvitation.birth_month && selectedInvitation.birth_day && selectedInvitation.birth_year
+                        ? `${selectedInvitation.birth_month}/${selectedInvitation.birth_day}/${selectedInvitation.birth_year}`
+                        : null}
+                    />
+                    <DetailRow label="Shirt Size" value={selectedInvitation.shirt_size} />
+                  </div>
+                </section>
+
+                {(selectedInvitation.street_address || selectedInvitation.city || selectedInvitation.country) && (
+                  <section>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Mailing Address</h3>
+                    <div className="border rounded-lg divide-y divide-border/30 px-4">
+                      <DetailRow label="Street" value={selectedInvitation.street_address} />
+                      <DetailRow label="City" value={selectedInvitation.city} />
+                      <DetailRow label="State / Province" value={selectedInvitation.state} />
+                      <DetailRow label="Country" value={selectedInvitation.country} />
+                      <DetailRow label="ZIP / Postal Code" value={selectedInvitation.zip} />
+                    </div>
+                  </section>
+                )}
+
+                <section>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Golf Profile</h3>
+                  <div className="border rounded-lg divide-y divide-border/30 px-4">
+                    <DetailRow label="Primary Club" value={selectedInvitation.club} />
+                    <DetailRow label="Handicap Index" value={selectedInvitation.handicap_index} />
+                    <DetailRow label="WAGR Ranking" value={selectedInvitation.wagr} />
+                    {selectedInvitation.wagr_url && (
+                      <div className="flex flex-col gap-0.5 py-2">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wide">WAGR Profile</span>
+                        <a href={selectedInvitation.wagr_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline truncate">
+                          View Profile →
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {selectedInvitation.golf_resume && (
+                  <section>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Golf Resume</h3>
+                    <div className="border rounded-lg p-4">
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{selectedInvitation.golf_resume}</p>
+                    </div>
+                  </section>
+                )}
+
+                {selectedInvitation.resume_file_url && (
+                  <a href={selectedInvitation.resume_file_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                    Download Resume File →
+                  </a>
+                )}
+
+                <section>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Submission</h3>
+                  <div className="border rounded-lg divide-y divide-border/30 px-4">
+                    <DetailRow label="Received" value={fmt(selectedInvitation.created_at)} />
+                    <DetailRow label="Policy Agreement" value={selectedInvitation.agree_policy ? 'Agreed' : 'Not indicated'} />
+                  </div>
+                </section>
+              </div>
+            )}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Player Detail Sheet (Dixie only) ────────────────────────────────── */}
+      <Sheet open={showDixiePlayerDetail} onOpenChange={setShowDixiePlayerDetail}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0">
+          <SheetHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
+            <SheetTitle>{selectedDixiePlayer ? `${selectedDixiePlayer.first_name} ${selectedDixiePlayer.last_name}` : 'Player'}</SheetTitle>
+            <SheetDescription className="space-y-1">
+              {selectedDixiePlayer && (
+                <>
+                  {selectedDixiePlayer.division && <>{DIVISION_LABELS[selectedDixiePlayer.division] ?? selectedDixiePlayer.division}</>}
+                  {selectedDixiePlayer.club && <> · {selectedDixiePlayer.club}</>}
+                </>
+              )}
+            </SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="flex-1 px-6 py-4">
+            {selectedDixiePlayer && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge
+                    variant={(selectedDixiePlayer.registration_status === 'registered' ? 'default' : selectedDixiePlayer.registration_status === 'withdrew' ? 'destructive' : 'outline') as 'default' | 'destructive' | 'outline'}
+                    className="capitalize"
+                  >
+                    {selectedDixiePlayer.registration_status}
+                  </Badge>
+                  <Badge variant="outline" className="capitalize">
+                    {selectedDixiePlayer.source === 'invitation' ? 'Tournament Invitation' : 'CSV Import'}
+                  </Badge>
+                  {selectedDixiePlayer.show_on_site && <Badge variant="outline">Visible on dixieamateur.com</Badge>}
+                  {selectedDixiePlayer.access_code && (
+                    <span className="font-mono text-sm bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 px-3 py-1 rounded-md tracking-wider">
+                      {selectedDixiePlayer.access_code}
+                    </span>
+                  )}
+                </div>
+
+                <section>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Personal Information</h3>
+                  <div className="border rounded-lg divide-y divide-border/30 px-4">
+                    <DetailRow label="Email" value={selectedDixiePlayer.email} />
+                    <DetailRow label="Phone" value={selectedDixiePlayer.phone} />
+                    <DetailRow label="Division" value={selectedDixiePlayer.division ? DIVISION_LABELS[selectedDixiePlayer.division] ?? selectedDixiePlayer.division : null} />
+                    <DetailRow
+                      label="Date of Birth"
+                      value={selectedDixiePlayer.birth_month && selectedDixiePlayer.birth_day && selectedDixiePlayer.birth_year
+                        ? `${selectedDixiePlayer.birth_month}/${selectedDixiePlayer.birth_day}/${selectedDixiePlayer.birth_year}`
+                        : null}
+                    />
+                    <DetailRow label="Shirt Size" value={selectedDixiePlayer.shirt_size} />
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Golf Profile</h3>
+                  <div className="border rounded-lg divide-y divide-border/30 px-4">
+                    <DetailRow label="Primary Club" value={selectedDixiePlayer.club} />
+                    <DetailRow label="Handicap Index" value={selectedDixiePlayer.handicap_index} />
+                    <DetailRow label="WAGR Ranking" value={selectedDixiePlayer.wagr} />
+                  </div>
+                </section>
+
+                {(selectedDixiePlayer.street_address || selectedDixiePlayer.city || selectedDixiePlayer.country) && (
+                  <section>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Mailing Address</h3>
+                    <div className="border rounded-lg divide-y divide-border/30 px-4">
+                      <DetailRow label="Street" value={selectedDixiePlayer.street_address} />
+                      <DetailRow label="City" value={selectedDixiePlayer.city} />
+                      <DetailRow label="State / Province" value={selectedDixiePlayer.state} />
+                      <DetailRow label="Country" value={selectedDixiePlayer.country} />
+                      <DetailRow label="ZIP / Postal Code" value={selectedDixiePlayer.zip} />
+                    </div>
+                  </section>
+                )}
+
+                <section>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Record Info</h3>
+                  <div className="border rounded-lg divide-y divide-border/30 px-4">
+                    <DetailRow label="Added" value={fmt(selectedDixiePlayer.created_at)} />
+                    <DetailRow label="Updated" value={fmt(selectedDixiePlayer.updated_at)} />
+                  </div>
+                </section>
+              </div>
+            )}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string | number | null | undefined }) {
+  if (value === null || value === undefined || value === '') return null;
+  return (
+    <div className="flex flex-col gap-0.5 py-2 border-b border-border/30 last:border-0">
+      <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
+      <span className="text-sm font-medium">{String(value)}</span>
     </div>
   );
 }
