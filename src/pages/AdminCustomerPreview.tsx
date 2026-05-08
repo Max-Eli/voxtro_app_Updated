@@ -32,13 +32,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-const DIXIE_CUSTOMER_ID = '2d89d5e3-c41d-4567-b0bf-4598a482559a';
+import { formatDivision } from '@/lib/dixieDivisions';
 
-const DIVISION_LABELS: Record<string, string> = {
-  mens: "Men's",
-  womens: "Women's",
-  senior: 'Senior/Mid-Master',
-};
+const DIXIE_CUSTOMER_ID = '2d89d5e3-c41d-4567-b0bf-4598a482559a';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -1047,7 +1043,7 @@ export function AdminCustomerPreview() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <UserPlus className="h-4 w-4 text-primary flex-shrink-0" />
                               <span className="font-medium text-sm">{inv.first_name} {inv.last_name}</span>
-                              <Badge variant="secondary" className="text-xs">{DIVISION_LABELS[inv.division] ?? inv.division}</Badge>
+                              <Badge variant="secondary" className="text-xs">{formatDivision(inv.division, inv.birth_year, inv.birth_month, inv.birth_day) ?? inv.division}</Badge>
                               <Badge
                                 variant={(inv.status === 'accepted' ? 'default' : inv.status === 'declined' ? 'destructive' : 'outline') as 'default' | 'destructive' | 'outline'}
                                 className="text-xs capitalize"
@@ -1105,7 +1101,7 @@ export function AdminCustomerPreview() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <Users className="h-4 w-4 text-primary flex-shrink-0" />
                               <span className="font-medium text-sm">{p.first_name} {p.last_name}</span>
-                              {p.division && <Badge variant="secondary" className="text-xs">{DIVISION_LABELS[p.division] ?? p.division}</Badge>}
+                              {p.division && <Badge variant="secondary" className="text-xs">{formatDivision(p.division, p.birth_year, p.birth_month, p.birth_day) ?? p.division}</Badge>}
                               <Badge variant="outline" className="text-xs capitalize">
                                 {p.source === 'invitation' ? 'Tournament Invitation' : 'CSV Import'}
                               </Badge>
@@ -1161,7 +1157,7 @@ export function AdminCustomerPreview() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <ClipboardList className="h-4 w-4 text-primary flex-shrink-0" />
                               <span className="font-medium text-sm">{p.first_name} {p.last_name}</span>
-                              {p.division && <Badge variant="secondary" className="text-xs">{DIVISION_LABELS[p.division] ?? p.division}</Badge>}
+                              {p.division && <Badge variant="secondary" className="text-xs">{formatDivision(p.division, p.birth_year, p.birth_month, p.birth_day) ?? p.division}</Badge>}
                               <Badge
                                 variant={(p.registration_status === 'registered' ? 'default' : p.registration_status === 'withdrew' ? 'destructive' : 'outline') as 'default' | 'destructive' | 'outline'}
                                 className="text-xs capitalize"
@@ -1423,7 +1419,7 @@ export function AdminCustomerPreview() {
               {selectedInvitation && (
                 <>
                   <span className="capitalize">{selectedInvitation.status}</span>
-                  {' · '}{DIVISION_LABELS[selectedInvitation.division] ?? selectedInvitation.division}
+                  {' · '}{formatDivision(selectedInvitation.division, selectedInvitation.birth_year, selectedInvitation.birth_month, selectedInvitation.birth_day) ?? selectedInvitation.division}
                   {' · '}Submitted {fmt(selectedInvitation.created_at)}
                 </>
               )}
@@ -1444,7 +1440,7 @@ export function AdminCustomerPreview() {
                   <div className="border rounded-lg divide-y divide-border/30 px-4">
                     <DetailRow label="Email" value={selectedInvitation.email} />
                     <DetailRow label="Phone" value={selectedInvitation.phone} />
-                    <DetailRow label="Division" value={DIVISION_LABELS[selectedInvitation.division] ?? selectedInvitation.division} />
+                    <DetailRow label="Division" value={formatDivision(selectedInvitation.division, selectedInvitation.birth_year, selectedInvitation.birth_month, selectedInvitation.birth_day) ?? selectedInvitation.division} />
                     <DetailRow
                       label="Date of Birth"
                       value={selectedInvitation.birth_month && selectedInvitation.birth_day && selectedInvitation.birth_year
@@ -1521,7 +1517,7 @@ export function AdminCustomerPreview() {
             <SheetDescription className="space-y-1">
               {selectedDixiePlayer && (
                 <>
-                  {selectedDixiePlayer.division && <>{DIVISION_LABELS[selectedDixiePlayer.division] ?? selectedDixiePlayer.division}</>}
+                  {selectedDixiePlayer.division && <>{formatDivision(selectedDixiePlayer.division, selectedDixiePlayer.birth_year, selectedDixiePlayer.birth_month, selectedDixiePlayer.birth_day) ?? selectedDixiePlayer.division}</>}
                   {selectedDixiePlayer.club && <> · {selectedDixiePlayer.club}</>}
                 </>
               )}
@@ -1553,7 +1549,7 @@ export function AdminCustomerPreview() {
                   <div className="border rounded-lg divide-y divide-border/30 px-4">
                     <DetailRow label="Email" value={selectedDixiePlayer.email} />
                     <DetailRow label="Phone" value={selectedDixiePlayer.phone} />
-                    <DetailRow label="Division" value={selectedDixiePlayer.division ? DIVISION_LABELS[selectedDixiePlayer.division] ?? selectedDixiePlayer.division : null} />
+                    <DetailRow label="Division" value={selectedDixiePlayer.division ? formatDivision(selectedDixiePlayer.division, selectedDixiePlayer.birth_year, selectedDixiePlayer.birth_month, selectedDixiePlayer.birth_day) ?? selectedDixiePlayer.division : null} />
                     <DetailRow
                       label="Date of Birth"
                       value={selectedDixiePlayer.birth_month && selectedDixiePlayer.birth_day && selectedDixiePlayer.birth_year
