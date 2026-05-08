@@ -48,14 +48,18 @@ import {
   type PlayerImportRow,
   type PlayerUpdateFields,
 } from "@/integrations/api/endpoints/playerInvitations";
+import {
+  DIVISION_LABELS,
+  SUBDIVISION_LABELS,
+  SUBDIVISION_AGE_RANGES,
+  SUBDIVISION_FILTER_PREFIX,
+  formatDivision,
+  getSeniorSubdivision,
+  divisionSortKey,
+  matchesDivisionFilter,
+} from "@/lib/dixieDivisions";
 
 // ---- Constants ----
-
-const DIVISION_LABELS: Record<string, string> = {
-  mens:   "Men's",
-  womens: "Women's",
-  senior: "Senior/Mid-Master",
-};
 
 const PORTAL_FIELDS = [
   { value: "__skip__",       label: "— Skip —" },
@@ -133,20 +137,24 @@ function formatDate(iso: string) {
 
 function exportToCsv(players: Player[]) {
   const headers = [
-    "First Name", "Last Name", "Email", "Phone", "Division", "Club",
+    "First Name", "Last Name", "Email", "Phone", "Division", "Subdivision", "Club",
     "Handicap Index", "Birth Year", "Birth Month", "Birth Day",
     "Shirt Size", "WAGR", "Street Address", "City", "State", "Country", "ZIP",
     "Added",
   ];
-  const rows = players.map((p) => [
-    p.first_name, p.last_name, p.email ?? "", p.phone ?? "",
-    DIVISION_LABELS[p.division ?? ""] ?? p.division ?? "",
-    p.club ?? "", p.handicap_index ?? "", p.birth_year ?? "",
-    p.birth_month ?? "", p.birth_day ?? "", p.shirt_size ?? "",
-    p.wagr ?? "", p.street_address ?? "", p.city ?? "",
-    p.state ?? "", p.country ?? "", p.zip ?? "",
-    formatDate(p.created_at),
-  ]);
+  const rows = players.map((p) => {
+    const sub = getSeniorSubdivision(p.division, p.birth_year, p.birth_month, p.birth_day);
+    return [
+      p.first_name, p.last_name, p.email ?? "", p.phone ?? "",
+      DIVISION_LABELS[p.division ?? ""] ?? p.division ?? "",
+      sub ? SUBDIVISION_LABELS[sub] : "",
+      p.club ?? "", p.handicap_index ?? "", p.birth_year ?? "",
+      p.birth_month ?? "", p.birth_day ?? "", p.shirt_size ?? "",
+      p.wagr ?? "", p.street_address ?? "", p.city ?? "",
+      p.state ?? "", p.country ?? "", p.zip ?? "",
+      formatDate(p.created_at),
+    ];
+  });
   const csv = [headers, ...rows]
     .map((row) =>
       row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
@@ -389,7 +397,11 @@ export default function PlayersPage() {
           (p.club ?? "").toLowerCase().includes(s)
       );
     }
-    if (filterDivision !== "all") items = items.filter((p) => p.division === filterDivision);
+    if (filterDivision !== "all") {
+      items = items.filter((p) =>
+        matchesDivisionFilter(filterDivision, p.division, p.birth_year, p.birth_month, p.birth_day)
+      );
+    }
 
     items.sort((a, b) => {
       let aVal = "";
@@ -398,8 +410,8 @@ export default function PlayersPage() {
         aVal = `${a.first_name} ${a.last_name}`;
         bVal = `${b.first_name} ${b.last_name}`;
       } else if (sortField === "division") {
-        aVal = a.division ?? "";
-        bVal = b.division ?? "";
+        aVal = divisionSortKey(a.division, a.birth_year, a.birth_month, a.birth_day);
+        bVal = divisionSortKey(b.division, b.birth_year, b.birth_month, b.birth_day);
       } else if (sortField === "club") {
         aVal = a.club ?? "";
         bVal = b.club ?? "";
@@ -557,7 +569,16 @@ export default function PlayersPage() {
                 <SelectItem value="all">All Divisions</SelectItem>
                 <SelectItem value="mens">Men's</SelectItem>
                 <SelectItem value="womens">Women's</SelectItem>
-                <SelectItem value="senior">Senior</SelectItem>
+                <SelectItem value="senior">Senior/Mid-Master (all)</SelectItem>
+                <SelectItem value={`${SUBDIVISION_FILTER_PREFIX}mid-master`}>
+                  &nbsp;&nbsp;↳ Mid-Master ({SUBDIVISION_AGE_RANGES["mid-master"]})
+                </SelectItem>
+                <SelectItem value={`${SUBDIVISION_FILTER_PREFIX}senior`}>
+                  &nbsp;&nbsp;↳ Senior ({SUBDIVISION_AGE_RANGES["senior"]})
+                </SelectItem>
+                <SelectItem value={`${SUBDIVISION_FILTER_PREFIX}super-senior`}>
+                  &nbsp;&nbsp;↳ Super Senior ({SUBDIVISION_AGE_RANGES["super-senior"]})
+                </SelectItem>
               </SelectContent>
             </Select>
             {hasActiveFilters && (
@@ -636,7 +657,7 @@ export default function PlayersPage() {
                     </TableCell>
                     {!selectedId && (
                       <TableCell className="py-2.5">
-                        {p.division ? (DIVISION_LABELS[p.division] ?? p.division) : "—"}
+                        {formatDivision(p.division, p.birth_year, p.birth_month, p.birth_day) ?? "—"}
                       </TableCell>
                     )}
                     {!selectedId && (
@@ -675,9 +696,12 @@ export default function PlayersPage() {
                 {selectedPlayer.first_name} {selectedPlayer.last_name}
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {selectedPlayer.division
-                  ? DIVISION_LABELS[selectedPlayer.division] ?? selectedPlayer.division
-                  : "No division"}
+                {formatDivision(
+                  selectedPlayer.division,
+                  selectedPlayer.birth_year,
+                  selectedPlayer.birth_month,
+                  selectedPlayer.birth_day,
+                ) ?? "No division"}
                 {selectedPlayer.club ? ` · ${selectedPlayer.club}` : ""}
               </p>
             </div>
@@ -770,7 +794,15 @@ export default function PlayersPage() {
                     <>
                       <ReadField label="Email"  value={selectedPlayer.email} />
                       <ReadField label="Phone"  value={selectedPlayer.phone} />
-                      <ReadField label="Division" value={selectedPlayer.division ? DIVISION_LABELS[selectedPlayer.division] ?? selectedPlayer.division : null} />
+                      <ReadField
+                        label="Division"
+                        value={formatDivision(
+                          selectedPlayer.division,
+                          selectedPlayer.birth_year,
+                          selectedPlayer.birth_month,
+                          selectedPlayer.birth_day,
+                        )}
+                      />
                       <ReadField
                         label="Date of Birth"
                         value={

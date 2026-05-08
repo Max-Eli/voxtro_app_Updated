@@ -46,14 +46,15 @@ import {
   type Division,
   type CreateInvitationData,
 } from "@/integrations/api/endpoints/playerInvitations";
+import {
+  SUBDIVISION_AGE_RANGES,
+  SUBDIVISION_FILTER_PREFIX,
+  formatDivision,
+  divisionSortKey,
+  matchesDivisionFilter,
+} from "@/lib/dixieDivisions";
 
 // ---- Helpers & constants ----
-
-const DIVISION_LABELS: Record<string, string> = {
-  mens:   "Men's",
-  womens: "Women's",
-  senior: "Senior/Mid-Master",
-};
 
 const STATUS_COLORS: Record<InvitationStatus, string> = {
   pending:  "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -243,7 +244,11 @@ export default function PlayerInvitationsPage() {
       );
     }
     if (filterStatus !== "all") items = items.filter((inv) => inv.status === filterStatus);
-    if (filterDivision !== "all") items = items.filter((inv) => inv.division === filterDivision);
+    if (filterDivision !== "all") {
+      items = items.filter((inv) =>
+        matchesDivisionFilter(filterDivision, inv.division, inv.birth_year, inv.birth_month, inv.birth_day)
+      );
+    }
     if (filterYear !== "all")
       items = items.filter(
         (inv) => new Date(inv.created_at).getFullYear().toString() === filterYear
@@ -256,8 +261,8 @@ export default function PlayerInvitationsPage() {
         aVal = `${a.first_name} ${a.last_name}`;
         bVal = `${b.first_name} ${b.last_name}`;
       } else if (sortField === "division") {
-        aVal = a.division ?? "";
-        bVal = b.division ?? "";
+        aVal = divisionSortKey(a.division, a.birth_year, a.birth_month, a.birth_day);
+        bVal = divisionSortKey(b.division, b.birth_year, b.birth_month, b.birth_day);
       } else if (sortField === "status") {
         aVal = a.status;
         bVal = b.status;
@@ -337,7 +342,16 @@ export default function PlayerInvitationsPage() {
                 <SelectItem value="all">All Divisions</SelectItem>
                 <SelectItem value="mens">Men's</SelectItem>
                 <SelectItem value="womens">Women's</SelectItem>
-                <SelectItem value="senior">Senior</SelectItem>
+                <SelectItem value="senior">Senior/Mid-Master (all)</SelectItem>
+                <SelectItem value={`${SUBDIVISION_FILTER_PREFIX}mid-master`}>
+                  &nbsp;&nbsp;↳ Mid-Master ({SUBDIVISION_AGE_RANGES["mid-master"]})
+                </SelectItem>
+                <SelectItem value={`${SUBDIVISION_FILTER_PREFIX}senior`}>
+                  &nbsp;&nbsp;↳ Senior ({SUBDIVISION_AGE_RANGES["senior"]})
+                </SelectItem>
+                <SelectItem value={`${SUBDIVISION_FILTER_PREFIX}super-senior`}>
+                  &nbsp;&nbsp;↳ Super Senior ({SUBDIVISION_AGE_RANGES["super-senior"]})
+                </SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterYear} onValueChange={setFilterYear}>
@@ -445,7 +459,7 @@ export default function PlayerInvitationsPage() {
                     </TableCell>
                     {!selectedId && (
                       <TableCell className="py-2.5">
-                        {DIVISION_LABELS[inv.division] ?? inv.division}
+                        {formatDivision(inv.division, inv.birth_year, inv.birth_month, inv.birth_day) ?? inv.division}
                       </TableCell>
                     )}
                     {!selectedId && (
@@ -670,7 +684,10 @@ export default function PlayerInvitationsPage() {
                     <DetailField label="Full Name" value={`${detail.first_name} ${detail.last_name}`} />
                     <DetailField label="Email" value={detail.email} />
                     <DetailField label="Phone" value={detail.phone} />
-                    <DetailField label="Division" value={DIVISION_LABELS[detail.division] ?? detail.division} />
+                    <DetailField
+                      label="Division"
+                      value={formatDivision(detail.division, detail.birth_year, detail.birth_month, detail.birth_day) ?? detail.division}
+                    />
                     <DetailField
                       label="Date of Birth"
                       value={
