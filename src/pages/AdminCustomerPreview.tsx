@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { matchesDivisionFilter, SUBDIVISION_FILTER_PREFIX } from '@/lib/dixieDivisions';
 import {
   Eye,
   MessageSquare,
@@ -27,14 +29,17 @@ import {
   Mail,
   TrendingUp,
   Activity,
-  UserPlus,
-  ClipboardList,
+  CheckCircle2,
   type LucideIcon,
 } from 'lucide-react';
 
-import { formatDivision } from '@/lib/dixieDivisions';
-
 const DIXIE_CUSTOMER_ID = '2d89d5e3-c41d-4567-b0bf-4598a482559a';
+
+const DIVISION_LABELS: Record<string, string> = {
+  mens: "Men's",
+  womens: "Women's",
+  senior: 'Senior/Mid-Master',
+};
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -179,9 +184,9 @@ type Section =
   | 'calls'
   | 'whatsapp'
   | 'leads'
-  | 'invitations'
-  | 'players'
-  | 'registered';
+  | 'players';
+
+type PlayersTab = 'requested' | 'invited' | 'registered';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -220,9 +225,7 @@ const BASE_NAV_ITEMS: { id: Section; label: string; icon: LucideIcon }[] = [
 ];
 
 const DIXIE_NAV_ITEMS: { id: Section; label: string; icon: LucideIcon }[] = [
-  { id: 'invitations',    label: 'Player Invitations', icon: UserPlus },
-  { id: 'players',        label: 'Players',            icon: Users },
-  { id: 'registered',     label: 'Registered Players', icon: ClipboardList },
+  { id: 'players', label: 'Players', icon: Users },
 ];
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -274,9 +277,9 @@ export function AdminCustomerPreview() {
   const [callSearch, setCallSearch] = useState('');
   const [waSearch, setWaSearch] = useState('');
   const [leadSearch, setLeadSearch] = useState('');
-  const [invSearch, setInvSearch] = useState('');
-  const [playerSearch, setPlayerSearch] = useState('');
-  const [registeredSearch, setRegisteredSearch] = useState('');
+  const [playersTab, setPlayersTab] = useState<PlayersTab>('requested');
+  const [playersSearch, setPlayersSearch] = useState('');
+  const [divisionTab, setDivisionTab] = useState<string>('mens');
 
   const isDixieAmateur = customerId === DIXIE_CUSTOMER_ID;
   const NAV_ITEMS = isDixieAmateur ? [...BASE_NAV_ITEMS, ...DIXIE_NAV_ITEMS] : BASE_NAV_ITEMS;
@@ -586,29 +589,36 @@ export function AdminCustomerPreview() {
     !leadSearch || l.name?.toLowerCase().includes(leadSearch.toLowerCase()) || l.email?.toLowerCase().includes(leadSearch.toLowerCase()) || l.phone_number?.includes(leadSearch)
   );
 
-  const filteredInvitations = invitations.filter(inv => {
-    if (!invSearch) return true;
-    const s = invSearch.toLowerCase();
-    return `${inv.first_name} ${inv.last_name}`.toLowerCase().includes(s)
-      || inv.email.toLowerCase().includes(s);
-  });
+  // ── Players hub (3-tab lifecycle view, mirrors customer portal) ─────────
+  const requestedInvitations = invitations.filter(i => i.status === 'pending');
+  const invitedPlayers = dixiePlayers.filter(p => p.registration_status === 'invited');
+  const registeredPlayers = dixiePlayers.filter(p => p.registration_status === 'registered');
 
-  const filteredPlayers = dixiePlayers.filter(p => {
-    if (!playerSearch) return true;
-    const s = playerSearch.toLowerCase();
-    return `${p.first_name} ${p.last_name}`.toLowerCase().includes(s)
-      || (p.email ?? '').toLowerCase().includes(s)
-      || (p.club ?? '').toLowerCase().includes(s);
-  });
+  const matchSearch = (s: string, first: string, last: string, email?: string | null, club?: string | null) => {
+    if (!s.trim()) return true;
+    const q = s.toLowerCase();
+    return `${first} ${last}`.toLowerCase().includes(q)
+      || (email ?? '').toLowerCase().includes(q)
+      || (club ?? '').toLowerCase().includes(q);
+  };
 
-  const registeredOnly = dixiePlayers.filter(p => p.source === 'invitation');
-  const filteredRegistered = registeredOnly.filter(p => {
-    if (!registeredSearch) return true;
-    const s = registeredSearch.toLowerCase();
-    return `${p.first_name} ${p.last_name}`.toLowerCase().includes(s)
-      || (p.email ?? '').toLowerCase().includes(s)
-      || (p.club ?? '').toLowerCase().includes(s);
-  });
+  type WithDob = { first_name: string; last_name: string; email?: string | null; club?: string | null; division?: string | null; birth_year?: number | null; birth_month?: number | null; birth_day?: number | null };
+  const byDivision = <T extends WithDob>(items: T[], divValue: string): T[] =>
+    items.filter(p => matchesDivisionFilter(divValue, p.division, p.birth_year, p.birth_month, p.birth_day));
+  const bySearch = <T extends { first_name: string; last_name: string; email?: string | null; club?: string | null }>(items: T[]): T[] =>
+    items.filter(p => matchSearch(playersSearch, p.first_name, p.last_name, p.email, p.club));
+  const applyAll = <T extends WithDob>(items: T[]): T[] => bySearch(byDivision(items, divisionTab));
+  const countDiv = <T extends WithDob>(items: T[], divValue: string): number => bySearch(byDivision(items, divValue)).length;
+
+  const filteredRequested = applyAll(requestedInvitations as WithDob[]) as typeof requestedInvitations;
+  const filteredInvited = applyAll(invitedPlayers as WithDob[]) as typeof invitedPlayers;
+  const filteredRegisteredHub = applyAll(registeredPlayers as WithDob[]) as typeof registeredPlayers;
+
+  // Pick the current tab's full data (before division filter) for sub-tab counts
+  const currentTabAll: WithDob[] =
+    playersTab === 'requested' ? requestedInvitations :
+    playersTab === 'invited'   ? invitedPlayers :
+                                  registeredPlayers;
 
   // ── Stat totals ───────────────────────────────────────────────────────────
   const totalCalls = calls.length;
@@ -618,7 +628,7 @@ export function AdminCustomerPreview() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
 
       {/* Preview Banner */}
       <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 px-6 py-2.5 flex items-center gap-3 z-50 flex-shrink-0">
@@ -1014,178 +1024,212 @@ export function AdminCustomerPreview() {
             </div>
           )}
 
-          {/* ── PLAYER INVITATIONS (Dixie only) ─────────────────────────────── */}
-          {section === 'invitations' && (
-            <div className="p-8 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold">Player Invitations</h1>
-                  <p className="text-muted-foreground text-sm">{invitations.length} total invitations</p>
-                </div>
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search name or email…" value={invSearch} onChange={e => setInvSearch(e.target.value)} className="pl-9" />
-                </div>
-              </div>
-              {filteredInvitations.length === 0 ? (
-                <div className="flex items-center justify-center py-20 text-muted-foreground">No invitations found</div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredInvitations.map(inv => (
-                    <Card
-                      key={inv.id}
-                      className="cursor-pointer hover:bg-accent/50 transition-colors border-l-4 border-l-primary"
-                      onClick={() => { setSelectedInvitation(inv); setShowInvitationDetail(true); }}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <UserPlus className="h-4 w-4 text-primary flex-shrink-0" />
-                              <span className="font-medium text-sm">{inv.first_name} {inv.last_name}</span>
-                              <Badge variant="secondary" className="text-xs">{formatDivision(inv.division, inv.birth_year, inv.birth_month, inv.birth_day) ?? inv.division}</Badge>
-                              <Badge
-                                variant={(inv.status === 'accepted' ? 'default' : inv.status === 'declined' ? 'destructive' : 'outline') as 'default' | 'destructive' | 'outline'}
-                                className="text-xs capitalize"
-                              >
-                                {inv.status}
-                              </Badge>
-                              {inv.access_code && (
-                                <span className="font-mono text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">
-                                  {inv.access_code}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                              <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{inv.email}</span>
-                              {inv.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{inv.phone}</span>}
-                              <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{fmt(inv.created_at)}</span>
-                            </div>
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── PLAYERS (Dixie only) ────────────────────────────────────────── */}
+          {/* ── PLAYERS (Dixie only — 3-tab lifecycle view) ──────────────────── */}
           {section === 'players' && (
             <div className="p-8 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                   <h1 className="text-2xl font-bold">Players</h1>
-                  <p className="text-muted-foreground text-sm">{dixiePlayers.length} total players</p>
-                </div>
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search name, email, or club…" value={playerSearch} onChange={e => setPlayerSearch(e.target.value)} className="pl-9" />
-                </div>
-              </div>
-              {filteredPlayers.length === 0 ? (
-                <div className="flex items-center justify-center py-20 text-muted-foreground">No players found</div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredPlayers.map(p => (
-                    <Card
-                      key={p.id}
-                      className="cursor-pointer hover:bg-accent/50 transition-colors border-l-4 border-l-primary"
-                      onClick={() => { setSelectedDixiePlayer(p); setShowDixiePlayerDetail(true); }}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Users className="h-4 w-4 text-primary flex-shrink-0" />
-                              <span className="font-medium text-sm">{p.first_name} {p.last_name}</span>
-                              {p.division && <Badge variant="secondary" className="text-xs">{formatDivision(p.division, p.birth_year, p.birth_month, p.birth_day) ?? p.division}</Badge>}
-                              <Badge variant="outline" className="text-xs capitalize">
-                                {p.source === 'invitation' ? 'Tournament Invitation' : 'CSV Import'}
-                              </Badge>
-                              {p.handicap_index != null && (
-                                <span className="text-xs text-muted-foreground">HCP {p.handicap_index}</span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                              {p.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{p.email}</span>}
-                              {p.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{p.phone}</span>}
-                              {p.club && <span>{p.club}</span>}
-                              <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{fmt(p.created_at)}</span>
-                            </div>
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── REGISTERED PLAYERS (Dixie only) ─────────────────────────────── */}
-          {section === 'registered' && (
-            <div className="p-8 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold">Registered Players</h1>
                   <p className="text-muted-foreground text-sm">
-                    {registeredOnly.length} players from accepted invitations
+                    Manage tournament registrations across every stage of the player lifecycle.
                   </p>
                 </div>
                 <div className="relative w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search name, email, or club…" value={registeredSearch} onChange={e => setRegisteredSearch(e.target.value)} className="pl-9" />
+                  <Input
+                    placeholder="Search name, email, or club…"
+                    value={playersSearch}
+                    onChange={e => setPlayersSearch(e.target.value)}
+                    className="pl-9"
+                  />
                 </div>
               </div>
-              {filteredRegistered.length === 0 ? (
-                <div className="flex items-center justify-center py-20 text-muted-foreground">No registered players found</div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredRegistered.map(p => (
-                    <Card
-                      key={p.id}
-                      className="cursor-pointer hover:bg-accent/50 transition-colors border-l-4 border-l-primary"
-                      onClick={() => { setSelectedDixiePlayer(p); setShowDixiePlayerDetail(true); }}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <ClipboardList className="h-4 w-4 text-primary flex-shrink-0" />
-                              <span className="font-medium text-sm">{p.first_name} {p.last_name}</span>
-                              {p.division && <Badge variant="secondary" className="text-xs">{formatDivision(p.division, p.birth_year, p.birth_month, p.birth_day) ?? p.division}</Badge>}
-                              <Badge
-                                variant={(p.registration_status === 'registered' ? 'default' : p.registration_status === 'withdrew' ? 'destructive' : 'outline') as 'default' | 'destructive' | 'outline'}
-                                className="text-xs capitalize"
-                              >
-                                {p.registration_status}
-                              </Badge>
-                              {p.show_on_site && (
-                                <Badge variant="outline" className="text-xs">On site</Badge>
-                              )}
-                              {p.access_code && (
-                                <span className="font-mono text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">
-                                  {p.access_code}
-                                </span>
-                              )}
+
+              <Tabs value={playersTab} onValueChange={(v) => setPlayersTab(v as PlayersTab)}>
+                <TabsList className="grid grid-cols-3 w-full max-w-xl">
+                  <TabsTrigger value="requested" className="gap-2">
+                    <Clock className="h-3.5 w-3.5" />
+                    Requested
+                    <span className="ml-1 text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">{requestedInvitations.length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="invited" className="gap-2">
+                    <Mail className="h-3.5 w-3.5" />
+                    Invited
+                    <span className="ml-1 text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">{invitedPlayers.length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="registered" className="gap-2">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Registered
+                    <span className="ml-1 text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">{registeredPlayers.length}</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {/* ── Division sub-tabs (5 divisions, mirroring customer portal) ─── */}
+              <Tabs value={divisionTab} onValueChange={setDivisionTab}>
+                <TabsList className="grid grid-cols-5 w-full">
+                  <TabsTrigger value="mens" className="gap-1.5 text-xs sm:text-sm">
+                    Men's
+                    <span className="text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">{countDiv(currentTabAll, 'mens')}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="womens" className="gap-1.5 text-xs sm:text-sm">
+                    Women's
+                    <span className="text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">{countDiv(currentTabAll, 'womens')}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value={`${SUBDIVISION_FILTER_PREFIX}mid-master`} className="gap-1.5 text-xs sm:text-sm">
+                    <span className="flex flex-col items-center leading-tight sm:flex-row sm:gap-1.5">
+                      <span>Mid-Master</span>
+                      <span className="text-[10px] sm:text-xs text-muted-foreground font-normal">40–54</span>
+                    </span>
+                    <span className="text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">{countDiv(currentTabAll, `${SUBDIVISION_FILTER_PREFIX}mid-master`)}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value={`${SUBDIVISION_FILTER_PREFIX}senior`} className="gap-1.5 text-xs sm:text-sm">
+                    <span className="flex flex-col items-center leading-tight sm:flex-row sm:gap-1.5">
+                      <span>Senior</span>
+                      <span className="text-[10px] sm:text-xs text-muted-foreground font-normal">55–64</span>
+                    </span>
+                    <span className="text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">{countDiv(currentTabAll, `${SUBDIVISION_FILTER_PREFIX}senior`)}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value={`${SUBDIVISION_FILTER_PREFIX}super-senior`} className="gap-1.5 text-xs sm:text-sm">
+                    <span className="flex flex-col items-center leading-tight sm:flex-row sm:gap-1.5">
+                      <span>Super Senior</span>
+                      <span className="text-[10px] sm:text-xs text-muted-foreground font-normal">65+</span>
+                    </span>
+                    <span className="text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">{countDiv(currentTabAll, `${SUBDIVISION_FILTER_PREFIX}super-senior`)}</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {/* ── REQUESTED tab ───────────────────────────────────────────── */}
+              {playersTab === 'requested' && (
+                filteredRequested.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
+                    <p className="text-sm font-medium">No pending requests.</p>
+                    <p className="text-xs mt-1 max-w-md">Players who request to register from your tournament site appear here for review.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredRequested.map(inv => (
+                      <Card
+                        key={inv.id}
+                        className="cursor-pointer hover:bg-accent/50 transition-colors border-l-4 border-l-yellow-500"
+                        onClick={() => { setSelectedInvitation(inv); setShowInvitationDetail(true); }}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Clock className="h-4 w-4 text-yellow-600 flex-shrink-0" />
+                                <span className="font-medium text-sm">{inv.first_name} {inv.last_name}</span>
+                                <Badge variant="secondary" className="text-xs">{DIVISION_LABELS[inv.division] ?? inv.division}</Badge>
+                              </div>
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                                <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{inv.email}</span>
+                                {inv.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{inv.phone}</span>}
+                                <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{fmt(inv.created_at)}</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                              {p.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{p.email}</span>}
-                              {p.club && <span>{p.club}</span>}
-                              {p.handicap_index != null && <span>HCP {p.handicap_index}</span>}
-                              <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{fmt(p.created_at)}</span>
-                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )
+              )}
+
+              {/* ── INVITED tab ─────────────────────────────────────────────── */}
+              {playersTab === 'invited' && (
+                filteredInvited.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
+                    <p className="text-sm font-medium">No invited players yet.</p>
+                    <p className="text-xs mt-1 max-w-md">Once you accept an invitation, the player gets an access code and shows here until registration is complete.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredInvited.map(p => (
+                      <Card
+                        key={p.id}
+                        className="cursor-pointer hover:bg-accent/50 transition-colors border-l-4 border-l-blue-500"
+                        onClick={() => { setSelectedDixiePlayer(p); setShowDixiePlayerDetail(true); }}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Mail className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                                <span className="font-medium text-sm">{p.first_name} {p.last_name}</span>
+                                {p.division && <Badge variant="secondary" className="text-xs">{DIVISION_LABELS[p.division] ?? p.division}</Badge>}
+                                {p.source === 'csv_import' && (
+                                  <Badge variant="outline" className="text-xs">CSV Import</Badge>
+                                )}
+                                {p.access_code && (
+                                  <span className="font-mono text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">
+                                    {p.access_code}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                                {p.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{p.email}</span>}
+                                {p.club && <span>{p.club}</span>}
+                                {p.handicap_index != null && <span>HCP {p.handicap_index}</span>}
+                                <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{fmt(p.created_at)}</span>
+                              </div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )
+              )}
+
+              {/* ── REGISTERED tab ──────────────────────────────────────────── */}
+              {playersTab === 'registered' && (
+                filteredRegisteredHub.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
+                    <p className="text-sm font-medium">No registered players yet.</p>
+                    <p className="text-xs mt-1 max-w-md">Players appear here after they complete registration and PayPal payment is captured.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredRegisteredHub.map(p => (
+                      <Card
+                        key={p.id}
+                        className="cursor-pointer hover:bg-accent/50 transition-colors border-l-4 border-l-green-500"
+                        onClick={() => { setSelectedDixiePlayer(p); setShowDixiePlayerDetail(true); }}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                <span className="font-medium text-sm">{p.first_name} {p.last_name}</span>
+                                {p.division && <Badge variant="secondary" className="text-xs">{DIVISION_LABELS[p.division] ?? p.division}</Badge>}
+                                {p.show_on_site && (
+                                  <Badge variant="outline" className="text-xs">On site</Badge>
+                                )}
+                                {p.access_code && (
+                                  <span className="font-mono text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">
+                                    {p.access_code}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                                {p.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{p.email}</span>}
+                                {p.club && <span>{p.club}</span>}
+                                {p.handicap_index != null && <span>HCP {p.handicap_index}</span>}
+                                <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{fmt(p.created_at)}</span>
+                              </div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )
               )}
             </div>
           )}
@@ -1419,7 +1463,7 @@ export function AdminCustomerPreview() {
               {selectedInvitation && (
                 <>
                   <span className="capitalize">{selectedInvitation.status}</span>
-                  {' · '}{formatDivision(selectedInvitation.division, selectedInvitation.birth_year, selectedInvitation.birth_month, selectedInvitation.birth_day) ?? selectedInvitation.division}
+                  {' · '}{DIVISION_LABELS[selectedInvitation.division] ?? selectedInvitation.division}
                   {' · '}Submitted {fmt(selectedInvitation.created_at)}
                 </>
               )}
@@ -1440,7 +1484,7 @@ export function AdminCustomerPreview() {
                   <div className="border rounded-lg divide-y divide-border/30 px-4">
                     <DetailRow label="Email" value={selectedInvitation.email} />
                     <DetailRow label="Phone" value={selectedInvitation.phone} />
-                    <DetailRow label="Division" value={formatDivision(selectedInvitation.division, selectedInvitation.birth_year, selectedInvitation.birth_month, selectedInvitation.birth_day) ?? selectedInvitation.division} />
+                    <DetailRow label="Division" value={DIVISION_LABELS[selectedInvitation.division] ?? selectedInvitation.division} />
                     <DetailRow
                       label="Date of Birth"
                       value={selectedInvitation.birth_month && selectedInvitation.birth_day && selectedInvitation.birth_year
@@ -1517,7 +1561,7 @@ export function AdminCustomerPreview() {
             <SheetDescription className="space-y-1">
               {selectedDixiePlayer && (
                 <>
-                  {selectedDixiePlayer.division && <>{formatDivision(selectedDixiePlayer.division, selectedDixiePlayer.birth_year, selectedDixiePlayer.birth_month, selectedDixiePlayer.birth_day) ?? selectedDixiePlayer.division}</>}
+                  {selectedDixiePlayer.division && <>{DIVISION_LABELS[selectedDixiePlayer.division] ?? selectedDixiePlayer.division}</>}
                   {selectedDixiePlayer.club && <> · {selectedDixiePlayer.club}</>}
                 </>
               )}
@@ -1549,7 +1593,7 @@ export function AdminCustomerPreview() {
                   <div className="border rounded-lg divide-y divide-border/30 px-4">
                     <DetailRow label="Email" value={selectedDixiePlayer.email} />
                     <DetailRow label="Phone" value={selectedDixiePlayer.phone} />
-                    <DetailRow label="Division" value={selectedDixiePlayer.division ? formatDivision(selectedDixiePlayer.division, selectedDixiePlayer.birth_year, selectedDixiePlayer.birth_month, selectedDixiePlayer.birth_day) ?? selectedDixiePlayer.division : null} />
+                    <DetailRow label="Division" value={selectedDixiePlayer.division ? DIVISION_LABELS[selectedDixiePlayer.division] ?? selectedDixiePlayer.division : null} />
                     <DetailRow
                       label="Date of Birth"
                       value={selectedDixiePlayer.birth_month && selectedDixiePlayer.birth_day && selectedDixiePlayer.birth_year
