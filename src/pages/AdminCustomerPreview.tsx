@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { matchesDivisionFilter, SUBDIVISION_FILTER_PREFIX } from '@/lib/dixieDivisions';
 import {
   Eye,
@@ -132,6 +133,7 @@ interface InvitationRow {
   division: string;
   status: string;
   access_code: string | null;
+  tournament_year: number;
   street_address?: string | null;
   city?: string | null;
   state?: string | null;
@@ -174,6 +176,7 @@ interface PlayerRow {
   access_code: string | null;
   registration_status: string;
   show_on_site: boolean;
+  tournament_year: number;
   created_at: string;
   updated_at: string;
 }
@@ -280,6 +283,7 @@ export function AdminCustomerPreview() {
   const [playersTab, setPlayersTab] = useState<PlayersTab>('requested');
   const [playersSearch, setPlayersSearch] = useState('');
   const [divisionTab, setDivisionTab] = useState<string>('mens');
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>(new Date().getFullYear());
 
   const isDixieAmateur = customerId === DIXIE_CUSTOMER_ID;
   const NAV_ITEMS = isDixieAmateur ? [...BASE_NAV_ITEMS, ...DIXIE_NAV_ITEMS] : BASE_NAV_ITEMS;
@@ -590,9 +594,26 @@ export function AdminCustomerPreview() {
   );
 
   // ── Players hub (3-tab lifecycle view, mirrors customer portal) ─────────
-  const requestedInvitations = invitations.filter(i => i.status === 'pending');
-  const invitedPlayers = dixiePlayers.filter(p => p.registration_status === 'invited');
-  const registeredPlayers = dixiePlayers.filter(p => p.registration_status === 'registered');
+
+  // Year dropdown options — always include the current calendar year.
+  const availableYears = (() => {
+    const set = new Set<number>([new Date().getFullYear()]);
+    invitations.forEach(i => set.add(i.tournament_year));
+    dixiePlayers.forEach(p => set.add(p.tournament_year));
+    return Array.from(set).sort((a, b) => b - a);
+  })();
+
+  // Apply year filter BEFORE deriving lifecycle buckets so the badges reflect it.
+  const yearFilteredInvitations = selectedYear === 'all'
+    ? invitations
+    : invitations.filter(i => i.tournament_year === selectedYear);
+  const yearFilteredPlayers = selectedYear === 'all'
+    ? dixiePlayers
+    : dixiePlayers.filter(p => p.tournament_year === selectedYear);
+
+  const requestedInvitations = yearFilteredInvitations.filter(i => i.status === 'pending');
+  const invitedPlayers = yearFilteredPlayers.filter(p => p.registration_status === 'invited');
+  const registeredPlayers = yearFilteredPlayers.filter(p => p.registration_status === 'registered');
 
   const matchSearch = (s: string, first: string, last: string, email?: string | null, club?: string | null) => {
     if (!s.trim()) return true;
@@ -1034,14 +1055,32 @@ export function AdminCustomerPreview() {
                     Manage tournament registrations across every stage of the player lifecycle.
                   </p>
                 </div>
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search name, email, or club…"
-                    value={playersSearch}
-                    onChange={e => setPlayersSearch(e.target.value)}
-                    className="pl-9"
-                  />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Select
+                    value={String(selectedYear)}
+                    onValueChange={(v) => setSelectedYear(v === 'all' ? 'all' : parseInt(v, 10))}
+                  >
+                    <SelectTrigger className="h-9 w-44 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableYears.map((year) => (
+                        <SelectItem key={year} value={String(year)}>
+                          {year === new Date().getFullYear() ? `Current (${year})` : String(year)}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="all">All Years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search name, email, or club…"
+                      value={playersSearch}
+                      onChange={e => setPlayersSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -20,6 +20,7 @@ export interface PlayerInvitation {
   division: Division;
   status: InvitationStatus;
   access_code: string | null;
+  tournament_year: number;
   created_at: string;
   // Full detail fields (populated on single-record fetch)
   street_address?: string | null;
@@ -64,6 +65,7 @@ export interface Player {
   access_code: string | null;
   registration_status: RegistrationStatus;
   show_on_site: boolean;
+  tournament_year: number;
   created_at: string;
   updated_at: string;
 }

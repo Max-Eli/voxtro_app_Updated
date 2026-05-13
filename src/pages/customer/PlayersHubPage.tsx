@@ -172,6 +172,10 @@ export default function PlayersHubPage() {
   const [search, setSearch] = useState("");
   // Division tab values: "mens" | "womens" | "sub:mid-master" | "sub:senior" | "sub:super-senior"
   const [divisionTab, setDivisionTab] = useState<string>("mens");
+  // Tournament year filter — defaults to current calendar year. "all" shows every year.
+  const [selectedYear, setSelectedYear] = useState<number | "all">(
+    new Date().getFullYear()
+  );
 
   // Detail drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -282,17 +286,42 @@ export default function PlayersHubPage() {
   });
 
   // ─── Derived data ─────────────────────────────────────────────────────────
+
+  // Year dropdown options come from every loaded record. Always include the
+  // current calendar year so the dropdown isn't empty on a fresh tournament.
+  const availableYears = useMemo(() => {
+    const set = new Set<number>([new Date().getFullYear()]);
+    invitations.forEach((i) => set.add(i.tournament_year));
+    players.forEach((p) => set.add(p.tournament_year));
+    return Array.from(set).sort((a, b) => b - a);
+  }, [invitations, players]);
+
+  // Apply the year filter BEFORE deriving lifecycle buckets so the tab badges
+  // and division sub-tab counts reflect the selected year.
+  const yearFilteredInvitations = useMemo(
+    () => selectedYear === "all"
+      ? invitations
+      : invitations.filter((i) => i.tournament_year === selectedYear),
+    [invitations, selectedYear]
+  );
+  const yearFilteredPlayers = useMemo(
+    () => selectedYear === "all"
+      ? players
+      : players.filter((p) => p.tournament_year === selectedYear),
+    [players, selectedYear]
+  );
+
   const requested = useMemo(
-    () => invitations.filter((i) => i.status === "pending"),
-    [invitations]
+    () => yearFilteredInvitations.filter((i) => i.status === "pending"),
+    [yearFilteredInvitations]
   );
   const invited = useMemo(
-    () => players.filter((p) => p.registration_status === "invited"),
-    [players]
+    () => yearFilteredPlayers.filter((p) => p.registration_status === "invited"),
+    [yearFilteredPlayers]
   );
   const registered = useMemo(
-    () => players.filter((p) => p.registration_status === "registered"),
-    [players]
+    () => yearFilteredPlayers.filter((p) => p.registration_status === "registered"),
+    [yearFilteredPlayers]
   );
 
   type WithDob = {
@@ -500,6 +529,22 @@ export default function PlayersHubPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Select
+              value={String(selectedYear)}
+              onValueChange={(v) => setSelectedYear(v === "all" ? "all" : parseInt(v, 10))}
+            >
+              <SelectTrigger className="h-9 w-44 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableYears.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year === new Date().getFullYear() ? `Current (${year})` : String(year)}
+                  </SelectItem>
+                ))}
+                <SelectItem value="all">All Years</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCsvImportOpen(true)}>
               <Upload className="h-3.5 w-3.5" />
               Import CSV
