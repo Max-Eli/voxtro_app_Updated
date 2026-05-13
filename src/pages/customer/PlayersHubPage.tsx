@@ -12,7 +12,6 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
-  TabsContent,
 } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -36,7 +35,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -58,7 +56,6 @@ import {
   CheckCircle2,
   Mail,
   Clock,
-  ClipboardList,
 } from "lucide-react";
 import {
   playerInvitationsApi,
@@ -339,8 +336,9 @@ export default function PlayersHubPage() {
   const filteredInvited = useMemo(() => applyFilters(invited), [invited, search, divisionTab]);
   const filteredRegistered = useMemo(() => applyFilters(registered), [registered, search, divisionTab]);
 
-  // Current main tab's full data (before division filter) — used for sub-tab counts
-  const currentTabAll =
+  // Current main tab's full data (before division filter) — used for sub-tab counts.
+  // Typed as WithDob[] (the common shape) since the helpers only read those fields.
+  const currentTabAll: WithDob[] =
     activeTab === "requested" ? requested :
     activeTab === "invited"   ? invited   :
                                 registered;
@@ -438,7 +436,7 @@ export default function PlayersHubPage() {
             out[field] = val;
           }
         }
-        return out as PlayerImportRow;
+        return out as unknown as PlayerImportRow;
       })
       .filter((r) => r.first_name && r.last_name && r.birth_year && r.birth_month && r.birth_day);
 
@@ -615,7 +613,7 @@ export default function PlayersHubPage() {
             {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
           </div>
         ) : currentCount === 0 ? (
-          <EmptyState tab={activeTab} hasActiveFilters={hasActiveFilters} />
+          <EmptyState tab={activeTab} hasActiveFilters={hasActiveSearch} />
         ) : activeTab === "requested" ? (
           <RequestedTable
             items={filteredRequested}
