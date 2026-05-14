@@ -65,7 +65,7 @@ import {
   type Division,
   type PlayerImportRow,
 } from "@/integrations/api/endpoints/playerInvitations";
-import { matchesDivisionFilter, SUBDIVISION_FILTER_PREFIX } from "@/lib/dixieDivisions";
+import { matchesDivisionFilter, SUBDIVISION_FILTER_PREFIX, formatDivision } from "@/lib/dixieDivisions";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -222,6 +222,18 @@ export default function PlayersHubPage() {
     queryKey: ["player-invitation", selectedInvitationId],
     queryFn: () => playerInvitationsApi.getInvitation(selectedInvitationId!),
     enabled: !!selectedInvitationId && drawerOpen,
+  });
+
+  // For players (Invited / Registered tabs), the players table doesn't have
+  // wagr_url / golf_resume / resume_file_url / agree_policy. Those live on
+  // the source invitation (when source === "invitation"). Fetch that record
+  // so the player drawer can display those extra fields too.
+  const selectedPlayerInvitationId =
+    selectedItem?.kind === "player" ? selectedItem.data.invitation_id : null;
+  const { data: playerSourceInvitation } = useQuery({
+    queryKey: ["player-source-invitation", selectedPlayerInvitationId],
+    queryFn: () => playerInvitationsApi.getInvitation(selectedPlayerInvitationId!),
+    enabled: !!selectedPlayerInvitationId && drawerOpen,
   });
 
   const invitations: PlayerInvitation[] = invData?.invitations ?? [];
@@ -752,6 +764,7 @@ export default function PlayersHubPage() {
           {selectedItem?.kind === "player" && (
             <PlayerDetailView
               player={selectedItem.data}
+              sourceInvitation={playerSourceInvitation ?? null}
               onDelete={() => setDeleteConfirmOpen(true)}
             />
           )}
@@ -1012,6 +1025,33 @@ function PlayerTable({ items, onSelect, showAccessCode }: { items: Player[]; onS
   );
 }
 
+function LinkField({ label, href }: { label: string; href?: string | null }) {
+  if (!href) return null;
+  return (
+    <div className="flex flex-col gap-0.5 py-2 border-b border-border/30 last:border-0">
+      <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-sm font-medium text-primary underline hover:no-underline break-all"
+      >
+        {href}
+      </a>
+    </div>
+  );
+}
+
+function dobString(by?: number | null, bm?: number | null, bd?: number | null): string | null {
+  return by && bm && bd ? `${bm}/${bd}/${by}` : null;
+}
+
+function policyValue(agreed?: boolean | null): string | null {
+  if (agreed === true) return "Yes — agreed to withdrawal & refund policy";
+  if (agreed === false) return "No — did not agree";
+  return null;
+}
+
 function InvitationDetailView({
   invitation, onAccept, onDecline, onDelete, isActing,
 }: {
@@ -1043,38 +1083,58 @@ function InvitationDetailView({
           </div>
         )}
 
+        {/* ── Personal ────────────────────────────────────────────────── */}
         <section>
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Player Info</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Personal</h3>
           <div className="rounded-lg border divide-y divide-border/30 px-4">
             <DetailField label="Name" value={`${invitation.first_name} ${invitation.last_name}`} />
+            <DetailField
+              label="Division"
+              value={formatDivision(invitation.division, invitation.birth_year, invitation.birth_month, invitation.birth_day) ?? invitation.division}
+            />
             <DetailField label="Email" value={invitation.email} />
             <DetailField label="Phone" value={invitation.phone} />
-            <DetailField label="Division" value={DIVISION_LABELS[invitation.division] ?? invitation.division} />
-            <DetailField label="Club" value={invitation.club} />
-            <DetailField label="Handicap" value={invitation.handicap_index} />
-            <DetailField label="WAGR" value={invitation.wagr} />
+            <DetailField
+              label="Date of Birth"
+              value={dobString(invitation.birth_year, invitation.birth_month, invitation.birth_day)}
+            />
             <DetailField label="Shirt Size" value={invitation.shirt_size} />
           </div>
         </section>
 
-        {(invitation.street_address || invitation.city) && (
-          <section>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Address</h3>
-            <div className="rounded-lg border divide-y divide-border/30 px-4">
-              <DetailField label="Street" value={invitation.street_address} />
-              <DetailField label="City" value={invitation.city} />
-              <DetailField label="State" value={invitation.state} />
-              <DetailField label="Country" value={invitation.country} />
-              <DetailField label="ZIP" value={invitation.zip} />
-            </div>
-          </section>
-        )}
+        {/* ── Address ─────────────────────────────────────────────────── */}
+        <section>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Address</h3>
+          <div className="rounded-lg border divide-y divide-border/30 px-4">
+            <DetailField label="Street" value={invitation.street_address} />
+            <DetailField label="City" value={invitation.city} />
+            <DetailField label="State / Province" value={invitation.state} />
+            <DetailField label="Country" value={invitation.country} />
+            <DetailField label="ZIP / Postal Code" value={invitation.zip} />
+          </div>
+        </section>
 
+        {/* ── Golf Profile ────────────────────────────────────────────── */}
+        <section>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Golf Profile</h3>
+          <div className="rounded-lg border divide-y divide-border/30 px-4">
+            <DetailField label="Primary Club" value={invitation.club} />
+            <DetailField label="Handicap Index" value={invitation.handicap_index} />
+            <DetailField label="WAGR Ranking" value={invitation.wagr} />
+            <LinkField label="WAGR Profile" href={invitation.wagr_url} />
+            <DetailField label="Golf Resume" value={invitation.golf_resume} />
+            <LinkField label="Resume File" href={invitation.resume_file_url} />
+          </div>
+        </section>
+
+        {/* ── Record ──────────────────────────────────────────────────── */}
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Record</h3>
           <div className="rounded-lg border divide-y divide-border/30 px-4">
-            <DetailField label="Requested" value={formatDate(invitation.created_at)} />
+            <DetailField label="Date Requested" value={formatDate(invitation.created_at)} />
             <DetailField label="Status" value={invitation.status} />
+            <DetailField label="Access Code" value={invitation.access_code} />
+            <DetailField label="Policy" value={policyValue(invitation.agree_policy)} />
           </div>
         </section>
 
@@ -1088,9 +1148,13 @@ function InvitationDetailView({
 }
 
 function PlayerDetailView({
-  player, onDelete,
+  player, sourceInvitation, onDelete,
 }: {
   player: Player;
+  // The original invitation record (when player.source === "invitation"). Provides
+  // the wagr_url / golf_resume / resume_file_url / agree_policy fields that aren't
+  // copied to the players table on accept.
+  sourceInvitation: PlayerInvitation | null;
   onDelete: () => void;
 }) {
   const isRegistered = player.registration_status === "registered";
@@ -1118,54 +1182,63 @@ function PlayerDetailView({
         </SheetTitle>
       </SheetHeader>
       <div className="px-6 py-5 space-y-6">
+        {/* ── Personal ────────────────────────────────────────────────── */}
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Personal</h3>
           <div className="rounded-lg border divide-y divide-border/30 px-4">
             <DetailField label="Name" value={`${player.first_name} ${player.last_name}`} />
-            <DetailField label="Email" value={player.email} />
-            <DetailField label="Phone" value={player.phone} />
-            <DetailField label="Division" value={player.division ? DIVISION_LABELS[player.division] ?? player.division : null} />
-            <DetailField label="Shirt Size" value={player.shirt_size} />
             <DetailField
-              label="Date of Birth"
+              label="Division"
               value={
-                player.birth_month && player.birth_day && player.birth_year
-                  ? `${player.birth_month}/${player.birth_day}/${player.birth_year}`
+                player.division
+                  ? formatDivision(player.division, player.birth_year, player.birth_month, player.birth_day) ?? player.division
                   : null
               }
             />
+            <DetailField label="Email" value={player.email} />
+            <DetailField label="Phone" value={player.phone} />
+            <DetailField
+              label="Date of Birth"
+              value={dobString(player.birth_year, player.birth_month, player.birth_day)}
+            />
+            <DetailField label="Shirt Size" value={player.shirt_size} />
           </div>
         </section>
 
-        {(player.street_address || player.city || player.country) && (
-          <section>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Address</h3>
-            <div className="rounded-lg border divide-y divide-border/30 px-4">
-              <DetailField label="Street" value={player.street_address} />
-              <DetailField label="City" value={player.city} />
-              <DetailField label="State" value={player.state} />
-              <DetailField label="Country" value={player.country} />
-              <DetailField label="ZIP" value={player.zip} />
-            </div>
-          </section>
-        )}
+        {/* ── Address ─────────────────────────────────────────────────── */}
+        <section>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Address</h3>
+          <div className="rounded-lg border divide-y divide-border/30 px-4">
+            <DetailField label="Street" value={player.street_address} />
+            <DetailField label="City" value={player.city} />
+            <DetailField label="State / Province" value={player.state} />
+            <DetailField label="Country" value={player.country} />
+            <DetailField label="ZIP / Postal Code" value={player.zip} />
+          </div>
+        </section>
 
+        {/* ── Golf Profile ────────────────────────────────────────────── */}
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Golf Profile</h3>
           <div className="rounded-lg border divide-y divide-border/30 px-4">
             <DetailField label="Primary Club" value={player.club} />
-            <DetailField label="Handicap" value={player.handicap_index} />
-            <DetailField label="WAGR" value={player.wagr} />
+            <DetailField label="Handicap Index" value={player.handicap_index} />
+            <DetailField label="WAGR Ranking" value={player.wagr} />
+            <LinkField label="WAGR Profile" href={sourceInvitation?.wagr_url} />
+            <DetailField label="Golf Resume" value={sourceInvitation?.golf_resume} />
+            <LinkField label="Resume File" href={sourceInvitation?.resume_file_url} />
           </div>
         </section>
 
+        {/* ── Record ──────────────────────────────────────────────────── */}
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Record</h3>
           <div className="rounded-lg border divide-y divide-border/30 px-4">
-            <DetailField label="Added" value={formatDate(player.created_at)} />
+            <DetailField label="Date Added" value={formatDate(player.created_at)} />
             <DetailField label="Source" value={player.source === "invitation" ? "Tournament Invitation" : "CSV Import"} />
             <DetailField label="Access Code" value={player.access_code} />
             <DetailField label="Status" value={player.registration_status} />
+            <DetailField label="Policy" value={policyValue(sourceInvitation?.agree_policy)} />
           </div>
         </section>
 
