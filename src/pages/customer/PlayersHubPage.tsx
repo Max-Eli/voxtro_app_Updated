@@ -213,6 +213,17 @@ export default function PlayersHubPage() {
     queryFn: () => playerInvitationsApi.listPlayers(),
   });
 
+  // The invitations list endpoint returns a slim payload (no phone, address,
+  // club, handicap, etc.). Refetch the full record when an invitation is
+  // opened in the drawer so every field the player submitted is visible.
+  const selectedInvitationId =
+    selectedItem?.kind === "invitation" ? selectedItem.data.id : null;
+  const { data: invitationDetail } = useQuery({
+    queryKey: ["player-invitation", selectedInvitationId],
+    queryFn: () => playerInvitationsApi.getInvitation(selectedInvitationId!),
+    enabled: !!selectedInvitationId && drawerOpen,
+  });
+
   const invitations: PlayerInvitation[] = invData?.invitations ?? [];
   const players: Player[] = playersData?.players ?? [];
 
@@ -728,7 +739,10 @@ export default function PlayersHubPage() {
         <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-0">
           {selectedItem?.kind === "invitation" && (
             <InvitationDetailView
-              invitation={selectedItem.data}
+              // Prefer the full record from /invitations/{id}; fall back to the
+              // slim list row while the detail fetch is in flight so the drawer
+              // never flashes empty.
+              invitation={invitationDetail ?? selectedItem.data}
               onAccept={() => acceptMutation.mutate(selectedItem.data.id)}
               onDecline={() => declineMutation.mutate(selectedItem.data.id)}
               onDelete={() => setDeleteConfirmOpen(true)}
