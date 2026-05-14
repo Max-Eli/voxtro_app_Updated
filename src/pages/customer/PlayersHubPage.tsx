@@ -292,26 +292,33 @@ export default function PlayersHubPage() {
 
   // Year dropdown options come from every loaded record. Always include the
   // current calendar year so the dropdown isn't empty on a fresh tournament.
+  // Missing/null tournament_year is treated as the current year (defensive —
+  // covers any legacy rows that pre-date the migration or any API endpoint
+  // that forgets to return the field).
+  const currentYear = new Date().getFullYear();
+  const yearOf = (x: { tournament_year?: number | null }): number =>
+    x.tournament_year ?? currentYear;
+
   const availableYears = useMemo(() => {
-    const set = new Set<number>([new Date().getFullYear()]);
-    invitations.forEach((i) => set.add(i.tournament_year));
-    players.forEach((p) => set.add(p.tournament_year));
+    const set = new Set<number>([currentYear]);
+    invitations.forEach((i) => set.add(yearOf(i)));
+    players.forEach((p) => set.add(yearOf(p)));
     return Array.from(set).sort((a, b) => b - a);
-  }, [invitations, players]);
+  }, [invitations, players, currentYear]);
 
   // Apply the year filter BEFORE deriving lifecycle buckets so the tab badges
   // and division sub-tab counts reflect the selected year.
   const yearFilteredInvitations = useMemo(
     () => selectedYear === "all"
       ? invitations
-      : invitations.filter((i) => i.tournament_year === selectedYear),
-    [invitations, selectedYear]
+      : invitations.filter((i) => yearOf(i) === selectedYear),
+    [invitations, selectedYear, currentYear]
   );
   const yearFilteredPlayers = useMemo(
     () => selectedYear === "all"
       ? players
-      : players.filter((p) => p.tournament_year === selectedYear),
-    [players, selectedYear]
+      : players.filter((p) => yearOf(p) === selectedYear),
+    [players, selectedYear, currentYear]
   );
 
   const requested = useMemo(

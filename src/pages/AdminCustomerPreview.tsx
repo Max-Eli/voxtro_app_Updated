@@ -598,20 +598,25 @@ export function AdminCustomerPreview() {
   // ── Players hub (3-tab lifecycle view, mirrors customer portal) ─────────
 
   // Year dropdown options — always include the current calendar year.
+  // Missing/null tournament_year is treated as the current year (defensive).
+  const currentYear = new Date().getFullYear();
+  const yearOf = (x: { tournament_year?: number | null }): number =>
+    x.tournament_year ?? currentYear;
+
   const availableYears = (() => {
-    const set = new Set<number>([new Date().getFullYear()]);
-    invitations.forEach(i => set.add(i.tournament_year));
-    dixiePlayers.forEach(p => set.add(p.tournament_year));
+    const set = new Set<number>([currentYear]);
+    invitations.forEach(i => set.add(yearOf(i)));
+    dixiePlayers.forEach(p => set.add(yearOf(p)));
     return Array.from(set).sort((a, b) => b - a);
   })();
 
   // Apply year filter BEFORE deriving lifecycle buckets so the badges reflect it.
   const yearFilteredInvitations = selectedYear === 'all'
     ? invitations
-    : invitations.filter(i => i.tournament_year === selectedYear);
+    : invitations.filter(i => yearOf(i) === selectedYear);
   const yearFilteredPlayers = selectedYear === 'all'
     ? dixiePlayers
-    : dixiePlayers.filter(p => p.tournament_year === selectedYear);
+    : dixiePlayers.filter(p => yearOf(p) === selectedYear);
 
   const requestedInvitations = yearFilteredInvitations.filter(i => i.status === 'pending');
   const invitedPlayers = yearFilteredPlayers.filter(p => p.registration_status === 'invited');
