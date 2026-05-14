@@ -170,12 +170,15 @@ export default function PlayersHubPage() {
   // Tab + search state
   const [activeTab, setActiveTab] = useState<TabValue>("requested");
   const [search, setSearch] = useState("");
-  // Division tab values: "mens" | "womens" | "sub:mid-master" | "sub:senior" | "sub:super-senior"
-  const [divisionTab, setDivisionTab] = useState<string>("mens");
+  // Division tab values: "all" | "mens" | "womens" | "sub:mid-master" | "sub:senior" | "sub:super-senior"
+  const [divisionTab, setDivisionTab] = useState<string>("all");
   // Tournament year filter — defaults to current calendar year. "all" shows every year.
   const [selectedYear, setSelectedYear] = useState<number | "all">(
     new Date().getFullYear()
   );
+  // Sort field — applied after search/division/year filters
+  type SortValue = "name_asc" | "name_desc" | "date_desc" | "date_asc" | "division" | "club_asc";
+  const [sortBy, setSortBy] = useState<SortValue>("name_asc");
 
   // Detail drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -352,8 +355,31 @@ export default function PlayersHubPage() {
     );
   }
 
-  function applyFilters<T extends WithDob>(items: T[]): T[] {
-    return bySearch(byDivisionTab(items, divisionTab));
+  function sortItems<T extends WithDob & { created_at: string }>(items: T[]): T[] {
+    const sorted = [...items];
+    sorted.sort((a, b) => {
+      switch (sortBy) {
+        case "name_asc":
+          return `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`);
+        case "name_desc":
+          return `${b.last_name} ${b.first_name}`.localeCompare(`${a.last_name} ${a.first_name}`);
+        case "date_desc":
+          return b.created_at.localeCompare(a.created_at);
+        case "date_asc":
+          return a.created_at.localeCompare(b.created_at);
+        case "division":
+          return (a.division ?? "").localeCompare(b.division ?? "");
+        case "club_asc":
+          return (a.club ?? "").localeCompare(b.club ?? "");
+        default:
+          return 0;
+      }
+    });
+    return sorted;
+  }
+
+  function applyFilters<T extends WithDob & { created_at: string }>(items: T[]): T[] {
+    return sortItems(bySearch(byDivisionTab(items, divisionTab)));
   }
 
   // Per-division counts for sub-tab badges (search-aware so badges match what's visible)
@@ -361,9 +387,9 @@ export default function PlayersHubPage() {
     return bySearch(byDivisionTab(items, divValue)).length;
   }
 
-  const filteredRequested = useMemo(() => applyFilters(requested), [requested, search, divisionTab]);
-  const filteredInvited = useMemo(() => applyFilters(invited), [invited, search, divisionTab]);
-  const filteredRegistered = useMemo(() => applyFilters(registered), [registered, search, divisionTab]);
+  const filteredRequested = useMemo(() => applyFilters(requested), [requested, search, divisionTab, sortBy]);
+  const filteredInvited = useMemo(() => applyFilters(invited), [invited, search, divisionTab, sortBy]);
+  const filteredRegistered = useMemo(() => applyFilters(registered), [registered, search, divisionTab, sortBy]);
 
   // Current main tab's full data (before division filter) — used for sub-tab counts.
   // Typed as WithDob[] (the common shape) since the helpers only read those fields.
@@ -581,7 +607,13 @@ export default function PlayersHubPage() {
       {/* ── Division sub-tabs ─────────────────────────────────────────── */}
       <div className="px-6 pt-3 pb-2 border-b shrink-0 bg-background">
         <Tabs value={divisionTab} onValueChange={setDivisionTab}>
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-6 w-full">
+            <TabsTrigger value="all" className="gap-1.5 text-xs sm:text-sm">
+              All
+              <span className="text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">
+                {countByDivision(currentTabAll, "all")}
+              </span>
+            </TabsTrigger>
             <TabsTrigger value="mens" className="gap-1.5 text-xs sm:text-sm">
               Men's
               <span className="text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">
@@ -641,6 +673,19 @@ export default function PlayersHubPage() {
             Clear
           </Button>
         )}
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortValue)}>
+          <SelectTrigger className="h-9 w-48 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name_asc">Name (A→Z)</SelectItem>
+            <SelectItem value="name_desc">Name (Z→A)</SelectItem>
+            <SelectItem value="date_desc">Date Added (Newest)</SelectItem>
+            <SelectItem value="date_asc">Date Added (Oldest)</SelectItem>
+            <SelectItem value="division">Division</SelectItem>
+            <SelectItem value="club_asc">Club (A→Z)</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="flex-1" />
         <span className="text-xs text-muted-foreground">
           {isLoading ? "Loading…" : `${currentCount}${currentCount !== totalForDivision ? ` of ${totalForDivision}` : ""}`}

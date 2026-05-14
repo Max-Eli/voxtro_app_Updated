@@ -282,8 +282,10 @@ export function AdminCustomerPreview() {
   const [leadSearch, setLeadSearch] = useState('');
   const [playersTab, setPlayersTab] = useState<PlayersTab>('requested');
   const [playersSearch, setPlayersSearch] = useState('');
-  const [divisionTab, setDivisionTab] = useState<string>('mens');
+  const [divisionTab, setDivisionTab] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<number | 'all'>(new Date().getFullYear());
+  type SortValue = 'name_asc' | 'name_desc' | 'date_desc' | 'date_asc' | 'division' | 'club_asc';
+  const [sortBy, setSortBy] = useState<SortValue>('name_asc');
 
   const isDixieAmateur = customerId === DIXIE_CUSTOMER_ID;
   const NAV_ITEMS = isDixieAmateur ? [...BASE_NAV_ITEMS, ...DIXIE_NAV_ITEMS] : BASE_NAV_ITEMS;
@@ -628,12 +630,29 @@ export function AdminCustomerPreview() {
     items.filter(p => matchesDivisionFilter(divValue, p.division, p.birth_year, p.birth_month, p.birth_day));
   const bySearch = <T extends { first_name: string; last_name: string; email?: string | null; club?: string | null }>(items: T[]): T[] =>
     items.filter(p => matchSearch(playersSearch, p.first_name, p.last_name, p.email, p.club));
-  const applyAll = <T extends WithDob>(items: T[]): T[] => bySearch(byDivision(items, divisionTab));
+  const sortItems = <T extends WithDob & { created_at: string }>(items: T[]): T[] => {
+    const sorted = [...items];
+    sorted.sort((a, b) => {
+      switch (sortBy) {
+        case 'name_asc':  return `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`);
+        case 'name_desc': return `${b.last_name} ${b.first_name}`.localeCompare(`${a.last_name} ${a.first_name}`);
+        case 'date_desc': return b.created_at.localeCompare(a.created_at);
+        case 'date_asc':  return a.created_at.localeCompare(b.created_at);
+        case 'division':  return (a.division ?? '').localeCompare(b.division ?? '');
+        case 'club_asc':  return (a.club ?? '').localeCompare(b.club ?? '');
+        default:          return 0;
+      }
+    });
+    return sorted;
+  };
+  const applyAll = <T extends WithDob & { created_at: string }>(items: T[]): T[] =>
+    sortItems(bySearch(byDivision(items, divisionTab)));
   const countDiv = <T extends WithDob>(items: T[], divValue: string): number => bySearch(byDivision(items, divValue)).length;
 
-  const filteredRequested = applyAll(requestedInvitations as WithDob[]) as typeof requestedInvitations;
-  const filteredInvited = applyAll(invitedPlayers as WithDob[]) as typeof invitedPlayers;
-  const filteredRegisteredHub = applyAll(registeredPlayers as WithDob[]) as typeof registeredPlayers;
+  type WithDobAndDate = WithDob & { created_at: string };
+  const filteredRequested = applyAll(requestedInvitations as WithDobAndDate[]) as typeof requestedInvitations;
+  const filteredInvited = applyAll(invitedPlayers as WithDobAndDate[]) as typeof invitedPlayers;
+  const filteredRegisteredHub = applyAll(registeredPlayers as WithDobAndDate[]) as typeof registeredPlayers;
 
   // Pick the current tab's full data (before division filter) for sub-tab counts
   const currentTabAll: WithDob[] =
@@ -1081,6 +1100,19 @@ export function AdminCustomerPreview() {
                       className="pl-9"
                     />
                   </div>
+                  <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortValue)}>
+                    <SelectTrigger className="h-9 w-48 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name_asc">Name (A→Z)</SelectItem>
+                      <SelectItem value="name_desc">Name (Z→A)</SelectItem>
+                      <SelectItem value="date_desc">Date Added (Newest)</SelectItem>
+                      <SelectItem value="date_asc">Date Added (Oldest)</SelectItem>
+                      <SelectItem value="division">Division</SelectItem>
+                      <SelectItem value="club_asc">Club (A→Z)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -1104,9 +1136,13 @@ export function AdminCustomerPreview() {
                 </TabsList>
               </Tabs>
 
-              {/* ── Division sub-tabs (5 divisions, mirroring customer portal) ─── */}
+              {/* ── Division sub-tabs (mirroring customer portal) ─── */}
               <Tabs value={divisionTab} onValueChange={setDivisionTab}>
-                <TabsList className="grid grid-cols-5 w-full">
+                <TabsList className="grid grid-cols-6 w-full">
+                  <TabsTrigger value="all" className="gap-1.5 text-xs sm:text-sm">
+                    All
+                    <span className="text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">{countDiv(currentTabAll, 'all')}</span>
+                  </TabsTrigger>
                   <TabsTrigger value="mens" className="gap-1.5 text-xs sm:text-sm">
                     Men's
                     <span className="text-xs bg-muted-foreground/15 px-1.5 py-0.5 rounded">{countDiv(currentTabAll, 'mens')}</span>
