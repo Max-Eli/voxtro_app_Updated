@@ -57,6 +57,7 @@ import CustomerLeadsPage from "./pages/customer/CustomerLeadsPage";
 import PlayerInvitationsPage from "./pages/customer/PlayerInvitationsPage";
 import PlayersPage from "./pages/customer/PlayersPage";
 import PlayersHubPage from "./pages/customer/PlayersHubPage";
+import CustomerContactMessagesPage from "./pages/customer/CustomerContactMessagesPage";
 import Teams from "./pages/Teams";
 import AcceptInvite from "./pages/AcceptInvite";
 import { AdminCustomerPreview } from "./pages/AdminCustomerPreview";
@@ -122,6 +123,7 @@ const App = () => (
                   <Route path="analytics" element={<CustomerAnalyticsPage />} />
                   <Route path="settings" element={<CustomerSettingsPage />} />
                   <Route path="players" element={<PlayersHubPage />} />
+                  <Route path="contact-messages" element={<CustomerContactMessagesPage />} />
                   {/* Legacy routes kept for any bookmarked links — all redirect to the consolidated hub */}
                   <Route path="player-invitations" element={<PlayersHubPage />} />
                   <Route path="registered-players" element={<PlayersHubPage />} />

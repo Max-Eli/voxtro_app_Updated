@@ -10,6 +10,7 @@ import {
   MessageCircle,
   Ticket,
   Users,
+  Mail,
 } from "lucide-react";
 import {
   Sidebar,
@@ -114,6 +115,19 @@ export function CustomerSidebar({ customLogo }: CustomerSidebarProps) {
                     >
                       <Users className="h-4 w-4" />
                       {!collapsed && <span>Players</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {isDixieAmateur && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/customer-dashboard/contact-messages"
+                      className={getNavClass("/customer-dashboard/contact-messages")}
+                    >
+                      <Mail className="h-4 w-4" />
+                      {!collapsed && <span>Contact Messages</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
