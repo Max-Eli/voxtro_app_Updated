@@ -58,7 +58,7 @@ export default function CustomerContactMessagesPage() {
           <div>
             <h1 className="text-xl font-semibold">Contact Messages</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Messages submitted through the Contact Us form on dixieamateur.com, newest first.
+              Messages submitted through the Contact Us form on the website.
             </p>
           </div>
           <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -81,10 +81,6 @@ export default function CustomerContactMessagesPage() {
           <div className="flex flex-col items-center justify-center h-full py-20 text-center px-6">
             <Mail className="h-10 w-10 text-muted-foreground/50 mb-3" />
             <p className="text-sm font-medium">No contact messages yet</p>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              Submissions from the dixieamateur.com Contact Us form will appear here. Bot
-              submissions are filtered out automatically.
-            </p>
           </div>
         ) : (
           <Table>
