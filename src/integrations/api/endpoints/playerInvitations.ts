@@ -98,6 +98,27 @@ export interface CreateInvitationData {
   zip?: string;
 }
 
+export interface CreatePlayerData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  division: Division;
+  // Required — used to bucket senior players into Mid-Master / Senior / Super Senior.
+  birth_year: number;
+  birth_month: number;
+  birth_day: number;
+  phone?: string;
+  club?: string;
+  handicap_index?: number;
+  shirt_size?: string;
+  wagr?: string;
+  street_address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip?: string;
+}
+
 export interface PlayerImportRow {
   first_name: string;
   last_name: string;
@@ -144,6 +165,11 @@ export const playerInvitationsApi = {
   /** Bulk import players from CSV (after field mapping in the UI) */
   importPlayers: (players: PlayerImportRow[]): Promise<{ success: boolean; imported: number }> =>
     apiClient.post('/api/customers/players/import', { players }),
+
+  /** Manually add a single player — bypasses invitation flow,
+   *  immediately marked registered and visible on dixieamateur.com. */
+  createPlayer: (data: CreatePlayerData): Promise<Player> =>
+    apiClient.post('/api/customers/players', data),
 
   /** Update editable fields on a player record */
   updatePlayer: (id: string, updates: PlayerUpdateFields): Promise<Player> =>

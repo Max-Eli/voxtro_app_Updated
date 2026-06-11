@@ -56,12 +56,14 @@ import {
   CheckCircle2,
   Mail,
   Clock,
+  UserPlus,
 } from "lucide-react";
 import {
   playerInvitationsApi,
   type Player,
   type PlayerInvitation,
   type CreateInvitationData,
+  type CreatePlayerData,
   type Division,
   type PlayerImportRow,
 } from "@/integrations/api/endpoints/playerInvitations";
@@ -190,6 +192,7 @@ export default function PlayersHubPage() {
 
   // Dialog state
   const [newInviteOpen, setNewInviteOpen] = useState(false);
+  const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
@@ -197,6 +200,17 @@ export default function PlayersHubPage() {
   const [newInvite, setNewInvite] = useState<CreateInvitationData>({
     first_name: "", last_name: "", email: "", division: "mens" as Division,
   });
+
+  // Manual add-player form (goes straight to registered + visible on site)
+  const emptyNewPlayer = (): CreatePlayerData => ({
+    first_name: "", last_name: "", email: "", division: "mens" as Division,
+    birth_year: undefined as unknown as number,
+    birth_month: undefined as unknown as number,
+    birth_day: undefined as unknown as number,
+    phone: "", club: "", handicap_index: undefined,
+    city: "", state: "", country: "",
+  });
+  const [newPlayer, setNewPlayer] = useState<CreatePlayerData>(emptyNewPlayer());
 
   // CSV import state
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
@@ -277,6 +291,17 @@ export default function PlayersHubPage() {
       setNewInvite({ first_name: "", last_name: "", email: "", division: "mens" as Division });
     },
     onError: (e: Error) => toast.error(`Create failed: ${e.message}`),
+  });
+
+  const addPlayerMutation = useMutation({
+    mutationFn: (d: CreatePlayerData) => playerInvitationsApi.createPlayer(d),
+    onSuccess: () => {
+      invalidateAll();
+      toast.success("Player added — now visible on dixieamateur.com.");
+      setAddPlayerOpen(false);
+      setNewPlayer(emptyNewPlayer());
+    },
+    onError: (e: Error) => toast.error(`Add player failed: ${e.message}`),
   });
 
   const deleteInvitationMutation = useMutation({
@@ -457,6 +482,24 @@ export default function PlayersHubPage() {
     createMutation.mutate(newInvite);
   }
 
+  function handleSubmitAddPlayer(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newPlayer.first_name.trim() || !newPlayer.last_name.trim() || !newPlayer.email.trim()) {
+      toast.error("First name, last name, and email are required.");
+      return;
+    }
+    if (!newPlayer.birth_year || !newPlayer.birth_month || !newPlayer.birth_day) {
+      toast.error("Date of birth is required.");
+      return;
+    }
+    // Strip empty optional strings so they go to the API as undefined rather
+    // than blank strings — keeps DB rows clean.
+    const cleaned: CreatePlayerData = { ...newPlayer };
+    (["phone", "club", "shirt_size", "wagr", "street_address", "city", "state", "country", "zip"] as const)
+      .forEach((k) => { if (cleaned[k] === "") cleaned[k] = undefined; });
+    addPlayerMutation.mutate(cleaned);
+  }
+
   function handleCsvFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -604,6 +647,10 @@ export default function PlayersHubPage() {
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCsvImportOpen(true)}>
               <Upload className="h-3.5 w-3.5" />
               Import CSV
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAddPlayerOpen(true)}>
+              <UserPlus className="h-3.5 w-3.5" />
+              Add Player
             </Button>
             <Button size="sm" className="gap-1.5" onClick={() => setNewInviteOpen(true)}>
               <Plus className="h-3.5 w-3.5" />
@@ -839,6 +886,129 @@ export default function PlayersHubPage() {
               <Button type="button" variant="outline" onClick={() => setNewInviteOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending ? "Creating…" : "Create Invitation"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Add Player Dialog ───────────────────────────────────────── */}
+      <Dialog open={addPlayerOpen} onOpenChange={setAddPlayerOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Player Manually</DialogTitle>
+            <DialogDescription>
+              Skips the invitation + PayPal flow. The player is added directly
+              to your roster as <strong>registered</strong> and will appear on{" "}
+              <strong>dixieamateur.com</strong> immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitAddPlayer} className="space-y-4">
+            {/* Personal */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Personal</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="ap-fn">First Name *</Label>
+                  <Input id="ap-fn" value={newPlayer.first_name}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, first_name: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="ap-ln">Last Name *</Label>
+                  <Input id="ap-ln" value={newPlayer.last_name}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, last_name: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="ap-em">Email *</Label>
+                  <Input id="ap-em" type="email" value={newPlayer.email}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, email: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="ap-ph">Phone</Label>
+                  <Input id="ap-ph" value={newPlayer.phone ?? ""}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, phone: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label>Division *</Label>
+                <Select value={newPlayer.division}
+                  onValueChange={(v) => setNewPlayer({ ...newPlayer, division: v as Division })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mens">Men's</SelectItem>
+                    <SelectItem value="womens">Women's</SelectItem>
+                    <SelectItem value="senior">Senior / Mid-Master</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Date of Birth *</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Input type="number" placeholder="Month" min={1} max={12}
+                    value={newPlayer.birth_month ?? ""}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, birth_month: e.target.value ? parseInt(e.target.value, 10) : undefined as unknown as number })} />
+                  <Input type="number" placeholder="Day" min={1} max={31}
+                    value={newPlayer.birth_day ?? ""}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, birth_day: e.target.value ? parseInt(e.target.value, 10) : undefined as unknown as number })} />
+                  <Input type="number" placeholder="Year" min={1900} max={2026}
+                    value={newPlayer.birth_year ?? ""}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, birth_year: e.target.value ? parseInt(e.target.value, 10) : undefined as unknown as number })} />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Required — used to bucket senior players into Mid-Master / Senior / Super Senior.
+                </p>
+              </div>
+            </div>
+
+            {/* Address — fills in the location shown on dixieamateur.com */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Address</h4>
+              <p className="text-xs text-muted-foreground -mt-1">
+                Optional — but the website roster shows "City, State/Country" per player.
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label htmlFor="ap-city">City</Label>
+                  <Input id="ap-city" value={newPlayer.city ?? ""}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, city: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="ap-state">State / Province</Label>
+                  <Input id="ap-state" value={newPlayer.state ?? ""}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, state: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="ap-country">Country</Label>
+                  <Input id="ap-country" value={newPlayer.country ?? ""}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, country: e.target.value })} />
+                </div>
+              </div>
+            </div>
+
+            {/* Golf */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Golf Profile</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="ap-club">Primary Club</Label>
+                  <Input id="ap-club" value={newPlayer.club ?? ""}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, club: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="ap-hcp">Handicap Index</Label>
+                  <Input id="ap-hcp" type="number" step="0.1"
+                    value={newPlayer.handicap_index ?? ""}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, handicap_index: e.target.value ? parseFloat(e.target.value) : undefined })} />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAddPlayerOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={addPlayerMutation.isPending}>
+                {addPlayerMutation.isPending ? "Adding…" : "Add Player"}
               </Button>
             </DialogFooter>
           </form>
