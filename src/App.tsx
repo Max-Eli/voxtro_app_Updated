@@ -30,6 +30,7 @@ import { CustomerOverview } from "./pages/customer/CustomerOverview";
 import { CustomerConversationsPage } from "./pages/customer/CustomerConversationsPage";
 import CustomerVoiceAssistantsPage from "./pages/customer/CustomerVoiceAssistantsPage";
 import CustomerWhatsAppAgentsPage from "./pages/customer/CustomerWhatsAppAgentsPage";
+import CustomerSMSAgentsPage from "./pages/customer/CustomerSMSAgentsPage";
 import { CustomerFormsPage } from "./pages/customer/CustomerFormsPage";
 import { CustomerAnalyticsPage } from "./pages/customer/CustomerAnalyticsPage";
 import { CustomerSettingsPage } from "./pages/customer/CustomerSettingsPage";
@@ -117,6 +118,7 @@ const App = () => (
                   <Route path="conversations" element={<CustomerConversationsPage />} />
                   <Route path="voice-assistants" element={<CustomerVoiceAssistantsPage />} />
                   <Route path="whatsapp-agents" element={<CustomerWhatsAppAgentsPage />} />
+                  <Route path="sms-agents" element={<CustomerSMSAgentsPage />} />
                   <Route path="leads" element={<CustomerLeadsPage />} />
                   <Route path="support-tickets" element={<CustomerSupportTicketsPage />} />
                   <Route path="forms" element={<CustomerFormsPage />} />

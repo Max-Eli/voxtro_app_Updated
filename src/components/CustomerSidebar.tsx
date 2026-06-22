@@ -35,6 +35,7 @@ const menuItems = [
   { title: "Chatbots", url: "/customer-dashboard/conversations", icon: Bot },
   { title: "Voice Assistants", url: "/customer-dashboard/voice-assistants", icon: Phone },
   { title: "WhatsApp Agents", url: "/customer-dashboard/whatsapp-agents", icon: MessageCircle },
+  { title: "SMS Agents", url: "/customer-dashboard/sms-agents", icon: MessageSquare },
   { title: "Leads", url: "/customer-dashboard/leads", icon: Users },
   { title: "Support Tickets", url: "/customer-dashboard/support-tickets", icon: Ticket },
   { title: "Analytics", url: "/customer-dashboard/analytics", icon: BarChart3 },
