@@ -60,6 +60,11 @@ export interface Player {
   state: string | null;
   country: string | null;
   zip: string | null;
+  // Public-roster location override. When any is set, dixieamateur.com shows
+  // this location (+ flag) instead of the mailing address above.
+  display_city: string | null;
+  display_state: string | null;
+  display_country: string | null;
   source: PlayerSource;
   invitation_id: string | null;
   access_code: string | null;
@@ -73,7 +78,8 @@ export interface Player {
 export type PlayerUpdateFields = Partial<Pick<Player,
   'first_name' | 'last_name' | 'email' | 'phone' | 'division' | 'club' |
   'handicap_index' | 'birth_year' | 'birth_month' | 'birth_day' |
-  'shirt_size' | 'wagr' | 'street_address' | 'city' | 'state' | 'country' | 'zip'
+  'shirt_size' | 'wagr' | 'street_address' | 'city' | 'state' | 'country' | 'zip' |
+  'display_city' | 'display_state' | 'display_country'
 >>;
 
 export interface CreateInvitationData {

@@ -131,32 +131,32 @@ function Flag({ code, name, size = 20 }: { code: string | null; name?: string | 
   );
 }
 
-// Flag + normalized location string for a player table row.
+// The location shown on the public dixieamateur.com roster. An admin-set
+// override (display_*) wins over the player's mailing address; otherwise the
+// mailing address is used. Mirrors the backend's /api/players logic.
+function rosterLocation(p: Player) {
+  const hasOverride = !!(p.display_city || p.display_state || p.display_country);
+  const n = hasOverride
+    ? normalizeLocation(p.display_city, p.display_state, p.display_country)
+    : normalizeLocation(p.city, p.state, p.country);
+  return { ...n, isOverride: hasOverride };
+}
+
+// Flag + normalized roster location for a player table row.
 function LocationCell({ p }: { p: Player }) {
-  const n = normalizeLocation(p.city, p.state, p.country);
+  const n = rosterLocation(p);
   if (!n.location && !n.countryCode) {
     return <span className="text-muted-foreground">—</span>;
   }
   return (
-    <span className="inline-flex items-center gap-2">
+    <span
+      className="inline-flex items-center gap-2"
+      title={n.isOverride ? "Custom roster location (differs from mailing address)" : undefined}
+    >
       <Flag code={n.countryCode} name={n.country} />
       <span>{n.location || "—"}</span>
+      {n.isOverride && <span className="text-[10px] text-muted-foreground">(custom)</span>}
     </span>
-  );
-}
-
-// Normalized "Location" row (flag + composed string) for the player drawer.
-function LocationSummaryField({ player }: { player: Player }) {
-  const n = normalizeLocation(player.city, player.state, player.country);
-  if (!n.location && !n.countryCode) return null;
-  return (
-    <div className="flex flex-col gap-0.5 py-2 border-b border-border/30">
-      <span className="text-xs text-muted-foreground uppercase tracking-wide">Location</span>
-      <span className="text-sm font-medium inline-flex items-center gap-2">
-        <Flag code={n.countryCode} name={n.country} />
-        {n.location || "—"}
-      </span>
-    </div>
   );
 }
 
@@ -1424,7 +1424,8 @@ type PlayerEditForm = Record<
   | "first_name" | "last_name" | "email" | "phone" | "division"
   | "birth_month" | "birth_day" | "birth_year" | "shirt_size"
   | "street_address" | "city" | "state" | "country" | "zip"
-  | "club" | "handicap_index" | "wagr",
+  | "club" | "handicap_index" | "wagr"
+  | "display_city" | "display_state" | "display_country",
   string
 >;
 
@@ -1449,6 +1450,9 @@ function playerToForm(p: Player): PlayerEditForm {
     club: s(p.club),
     handicap_index: s(p.handicap_index),
     wagr: s(p.wagr),
+    display_city: s(p.display_city),
+    display_state: s(p.display_state),
+    display_country: s(p.display_country),
   };
 }
 
@@ -1515,6 +1519,13 @@ function PlayerDetailView({
       club: text(form.club),
       handicap_index: num(form.handicap_index),
       wagr: text(form.wagr),
+      // Public-roster override. Sent as raw (possibly empty) strings, not null,
+      // so clearing a field actually clears the override on the backend (which
+      // ignores nulls but treats "" as "clear"). Empty across all three = no
+      // override, and the roster falls back to the mailing address.
+      display_city: form.display_city.trim(),
+      display_state: form.display_state.trim(),
+      display_country: form.display_country.trim(),
     };
     onSave(updates);
     setEditMode(false);
@@ -1629,9 +1640,43 @@ function PlayerDetailView({
           </div>
         </section>
 
-        {/* ── Address ─────────────────────────────────────────────────── */}
+        {/* ── Roster Location (shown publicly on dixieamateur.com) ───────── */}
         <section>
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Address</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Roster Location</h3>
+          <div className="rounded-lg border divide-y divide-border/30 px-4">
+            {editMode ? (
+              <>
+                <p className="text-[11px] text-muted-foreground py-2">
+                  What shows (with a flag) on the public dixieamateur.com roster. Leave all three
+                  blank to use the mailing address below — the mailing address is never shown
+                  publicly and is unaffected by these fields.
+                </p>
+                <EditField label="Public City" value={form.display_city} onChange={setField("display_city")} placeholder="e.g. Abu Dhabi" />
+                <EditField label="Public State / Region" value={form.display_state} onChange={setField("display_state")} />
+                <EditField label="Public Country" value={form.display_country} onChange={setField("display_country")} placeholder="e.g. United Arab Emirates" />
+              </>
+            ) : (() => {
+              const n = rosterLocation(player);
+              return (
+                <div className="flex flex-col gap-1 py-2">
+                  <span className="text-sm font-medium inline-flex items-center gap-2">
+                    <Flag code={n.countryCode} name={n.country} />
+                    {n.location || "—"}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {n.isOverride
+                      ? "Custom location shown on dixieamateur.com — the mailing address below is unaffected."
+                      : "Using the mailing address. Edit to show a different public location."}
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
+        </section>
+
+        {/* ── Mailing Address (private — never shown publicly) ───────────── */}
+        <section>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Mailing Address</h3>
           <div className="rounded-lg border divide-y divide-border/30 px-4">
             {editMode ? (
               <>
@@ -1643,7 +1688,6 @@ function PlayerDetailView({
               </>
             ) : (
               <>
-                <LocationSummaryField player={player} />
                 <DetailField label="Street" value={player.street_address} />
                 <DetailField label="City" value={player.city} />
                 <DetailField label="State / Province" value={player.state} />
