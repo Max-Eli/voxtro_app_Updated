@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { User, Bell, Shield, Save, Users, Bot, Plus, Trash2, MessageCircle, Sun, Moon, Palette, Link2, ChevronRight } from "lucide-react";
+import { User, Bell, Shield, Save, Users, Bot, Plus, Trash2, MessageCircle, MessageSquare, Sun, Moon, Palette, Link2, ChevronRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { BrandingSettings } from "@/components/BrandingSettings";
 import { CustomDomainSettings } from "@/components/CustomDomainSettings";
@@ -59,6 +59,15 @@ interface OpenAIConnection {
   created_at: string;
 }
 
+interface SmsConnection {
+  id: string;
+  user_id: string;
+  api_key: string;
+  org_name: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 const Settings = () => {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -101,6 +110,13 @@ const Settings = () => {
   const [newOpenAIOrgName, setNewOpenAIOrgName, clearNewOpenAIOrgName] = usePersistedState("settings_newOpenAIOrgName", "");
   const [validatingOpenAI, setValidatingOpenAI] = useState(false);
   const [showOpenAIAddForm, setShowOpenAIAddForm] = useState(false);
+
+  // SMS platform (build.voxtro.io) connection state — mirrors ElevenLabs
+  const [smsConnections, setSmsConnections] = useState<SmsConnection[]>([]);
+  const [newSmsApiKey, setNewSmsApiKey, clearNewSmsApiKey] = usePersistedState("settings_newSmsApiKey", "");
+  const [newSmsOrgName, setNewSmsOrgName, clearNewSmsOrgName] = usePersistedState("settings_newSmsOrgName", "");
+  const [savingSms, setSavingSms] = useState(false);
+  const [showSmsAddForm, setShowSmsAddForm] = useState(false);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -196,6 +212,21 @@ const Settings = () => {
     }
   };
 
+  const fetchSmsConnections = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('sms_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      setSmsConnections(data || []);
+    } catch (error: any) {
+      console.error('Error fetching SMS connections:', error);
+    }
+  };
+
   const fetchOpenAIConnections = async () => {
     if (!user) return;
 
@@ -215,7 +246,7 @@ const Settings = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    await Promise.all([fetchProfile(), fetchNotificationPreferences(), fetchVoiceConnections(), fetchElevenLabsConnections(), fetchOpenAIConnections()]);
+    await Promise.all([fetchProfile(), fetchNotificationPreferences(), fetchVoiceConnections(), fetchElevenLabsConnections(), fetchSmsConnections(), fetchOpenAIConnections()]);
     setLoading(false);
   };
 
@@ -704,6 +735,80 @@ const Settings = () => {
         description: "Failed to remove connection",
         variant: "destructive",
       });
+    }
+  };
+
+  // ── SMS Platform (build.voxtro.io) connection handlers ───────────────────
+  const handleAddSmsConnection = async () => {
+    if (!newSmsApiKey.trim()) {
+      toast({ title: "Error", description: "Please enter an API key", variant: "destructive" });
+      return;
+    }
+    if (!newSmsOrgName.trim()) {
+      toast({ title: "Error", description: "Please enter a connection name", variant: "destructive" });
+      return;
+    }
+    if (!user) return;
+
+    setSavingSms(true);
+    try {
+      const isFirst = smsConnections.length === 0;
+      const { error } = await supabase
+        .from('sms_connections')
+        .insert({
+          user_id: user.id,
+          api_key: newSmsApiKey.trim(),
+          org_name: newSmsOrgName.trim(),
+          is_active: isFirst,
+        });
+      if (error) throw error;
+
+      toast({
+        title: "Connection added",
+        description: `"${newSmsOrgName}" saved.`,
+      });
+
+      clearNewSmsApiKey();
+      clearNewSmsOrgName();
+      setShowSmsAddForm(false);
+      await fetchSmsConnections();
+    } catch (error: any) {
+      console.error('Error adding SMS connection:', error);
+      toast({
+        title: "Error",
+        description: error?.message ?? "Failed to save connection",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSms(false);
+    }
+  };
+
+  const handleRemoveSmsConnection = async (connectionId: string) => {
+    const connection = smsConnections.find(c => c.id === connectionId);
+    if (!connection) return;
+    try {
+      const { error } = await supabase
+        .from('sms_connections')
+        .delete()
+        .eq('id', connectionId);
+      if (error) throw error;
+
+      if (connection.is_active && smsConnections.length > 1) {
+        const remaining = smsConnections.filter(c => c.id !== connectionId);
+        if (remaining.length > 0) {
+          await supabase
+            .from('sms_connections')
+            .update({ is_active: true })
+            .eq('id', remaining[0].id);
+        }
+      }
+
+      toast({ title: "Removed", description: `"${connection.org_name}" removed` });
+      await fetchSmsConnections();
+    } catch (error: any) {
+      console.error('Error removing SMS connection:', error);
+      toast({ title: "Error", description: "Failed to remove connection", variant: "destructive" });
     }
   };
 
@@ -1334,6 +1439,91 @@ const Settings = () => {
                               disabled={validatingElevenLabs || !newElevenLabsApiKey.trim() || !newElevenLabsOrgName.trim()}
                             >
                               {validatingElevenLabs ? "Validating..." : "Connect"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SMS Platform (build.voxtro.io) */}
+              <div className="border rounded-lg">
+                <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center">
+                      <MessageSquare className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">SMS Platform</p>
+                      <p className="text-xs text-muted-foreground">SMS agents (build.voxtro.io)</p>
+                    </div>
+                  </div>
+                  {smsConnections.length > 0 && !showSmsAddForm && (
+                    <Button variant="outline" size="sm" onClick={() => setShowSmsAddForm(true)}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                <div className="p-4">
+                  {smsConnections.length === 0 && !showSmsAddForm ? (
+                    <Button variant="outline" size="sm" onClick={() => setShowSmsAddForm(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Connect SMS Platform
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      {smsConnections.map((connection) => (
+                        <div key={connection.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                          <div className="flex items-center gap-2">
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">{connection.org_name || 'Unnamed'}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveSmsConnection(connection.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+
+                      {showSmsAddForm && (
+                        <div className="space-y-3 pt-3 border-t">
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <Input
+                              placeholder="Connection name"
+                              value={newSmsOrgName}
+                              onChange={(e) => setNewSmsOrgName(e.target.value)}
+                            />
+                            <Input
+                              type="password"
+                              placeholder="vxt_live_…"
+                              value={newSmsApiKey}
+                              onChange={(e) => setNewSmsApiKey(e.target.value)}
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setShowSmsAddForm(false);
+                                clearNewSmsApiKey();
+                                clearNewSmsOrgName();
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleAddSmsConnection}
+                              disabled={savingSms || !newSmsApiKey.trim() || !newSmsOrgName.trim()}
+                            >
+                              {savingSms ? "Saving..." : "Connect"}
                             </Button>
                           </div>
                         </div>
