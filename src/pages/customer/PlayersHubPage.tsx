@@ -57,6 +57,8 @@ import {
   Mail,
   Clock,
   UserPlus,
+  Pencil,
+  Save,
 } from "lucide-react";
 import {
   playerInvitationsApi,
@@ -66,8 +68,10 @@ import {
   type CreatePlayerData,
   type Division,
   type PlayerImportRow,
+  type PlayerUpdateFields,
 } from "@/integrations/api/endpoints/playerInvitations";
 import { matchesDivisionFilter, SUBDIVISION_FILTER_PREFIX, formatDivision } from "@/lib/dixieDivisions";
+import { normalizeLocation, flagSrc } from "@/lib/locations";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -109,12 +113,85 @@ function formatDate(iso: string) {
   });
 }
 
+// Self-hosted country flag (3x2 SVG under /public/flags). Renders nothing when
+// the country is unknown so rows simply show no flag.
+function Flag({ code, name, size = 20 }: { code: string | null; name?: string | null; size?: number }) {
+  const src = flagSrc(code);
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={name ?? ""}
+      title={name ?? undefined}
+      width={size}
+      height={Math.round((size * 2) / 3)}
+      loading="lazy"
+      style={{ borderRadius: 2, boxShadow: "0 0 0 1px rgba(0,0,0,.12)", objectFit: "cover", flex: "0 0 auto" }}
+    />
+  );
+}
+
+// Flag + normalized location string for a player table row.
+function LocationCell({ p }: { p: Player }) {
+  const n = normalizeLocation(p.city, p.state, p.country);
+  if (!n.location && !n.countryCode) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <span className="inline-flex items-center gap-2">
+      <Flag code={n.countryCode} name={n.country} />
+      <span>{n.location || "—"}</span>
+    </span>
+  );
+}
+
+// Normalized "Location" row (flag + composed string) for the player drawer.
+function LocationSummaryField({ player }: { player: Player }) {
+  const n = normalizeLocation(player.city, player.state, player.country);
+  if (!n.location && !n.countryCode) return null;
+  return (
+    <div className="flex flex-col gap-0.5 py-2 border-b border-border/30">
+      <span className="text-xs text-muted-foreground uppercase tracking-wide">Location</span>
+      <span className="text-sm font-medium inline-flex items-center gap-2">
+        <Flag code={n.countryCode} name={n.country} />
+        {n.location || "—"}
+      </span>
+    </div>
+  );
+}
+
 function DetailField({ label, value }: { label: string; value?: string | number | null }) {
   if (value === null || value === undefined || value === "") return null;
   return (
     <div className="flex flex-col gap-0.5 py-2 border-b border-border/30 last:border-0">
       <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
       <span className="text-sm font-medium">{String(value)}</span>
+    </div>
+  );
+}
+
+// Labelled input used inside the player edit form. Mirrors DetailField's
+// label styling so switching between view/edit feels seamless.
+function EditField({
+  label, value, onChange, type = "text", placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1 py-2 border-b border-border/30 last:border-0">
+      <Label className="text-xs text-muted-foreground uppercase tracking-wide">{label}</Label>
+      <Input
+        className="h-8 text-sm"
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        {...(type === "number" ? { step: label === "Handicap Index" ? "0.1" : "1" } : {})}
+      />
     </div>
   );
 }
@@ -324,6 +401,23 @@ export default function PlayersHubPage() {
       closeDrawer();
     },
     onError: (e: Error) => toast.error(`Delete failed: ${e.message}`),
+  });
+
+  const updatePlayerMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: PlayerUpdateFields }) =>
+      playerInvitationsApi.updatePlayer(id, updates),
+    onSuccess: (updated) => {
+      invalidateAll();
+      // Keep the open drawer in sync with the saved record so it shows the
+      // new values immediately (and the next edit starts from fresh data).
+      setSelectedItem({ kind: "player", data: updated });
+      toast.success(
+        updated.registration_status === "registered" && updated.show_on_site
+          ? "Player updated — changes are now live on dixieamateur.com."
+          : "Player updated."
+      );
+    },
+    onError: (e: Error) => toast.error(`Update failed: ${e.message}`),
   });
 
   const importMutation = useMutation({
@@ -810,9 +904,14 @@ export default function PlayersHubPage() {
           )}
           {selectedItem?.kind === "player" && (
             <PlayerDetailView
+              key={selectedItem.data.id}
               player={selectedItem.data}
               sourceInvitation={playerSourceInvitation ?? null}
               onDelete={() => setDeleteConfirmOpen(true)}
+              onSave={(updates) =>
+                updatePlayerMutation.mutate({ id: selectedItem.data.id, updates })
+              }
+              isSaving={updatePlayerMutation.isPending}
             />
           )}
         </SheetContent>
@@ -1164,6 +1263,7 @@ function PlayerTable({ items, onSelect, showAccessCode }: { items: Player[]; onS
       <TableHeader>
         <TableRow>
           <TableHead>Name</TableHead>
+          <TableHead>Location</TableHead>
           <TableHead>Email</TableHead>
           <TableHead>Division</TableHead>
           <TableHead>Club</TableHead>
@@ -1176,6 +1276,7 @@ function PlayerTable({ items, onSelect, showAccessCode }: { items: Player[]; onS
         {items.map((p) => (
           <TableRow key={p.id} className="cursor-pointer hover:bg-muted/40" onClick={() => onSelect(p)}>
             <TableCell className="font-medium">{p.first_name} {p.last_name}</TableCell>
+            <TableCell className="text-sm"><LocationCell p={p} /></TableCell>
             <TableCell className="text-sm text-muted-foreground">{p.email ?? "—"}</TableCell>
             <TableCell className="text-sm">{p.division ? DIVISION_LABELS[p.division] ?? p.division : "—"}</TableCell>
             <TableCell className="text-sm text-muted-foreground">{p.club ?? "—"}</TableCell>
@@ -1317,8 +1418,42 @@ function InvitationDetailView({
   );
 }
 
+// Form state for the player edit mode — every editable field held as a string
+// so inputs stay controlled; converted back to the API's types on save.
+type PlayerEditForm = Record<
+  | "first_name" | "last_name" | "email" | "phone" | "division"
+  | "birth_month" | "birth_day" | "birth_year" | "shirt_size"
+  | "street_address" | "city" | "state" | "country" | "zip"
+  | "club" | "handicap_index" | "wagr",
+  string
+>;
+
+function playerToForm(p: Player): PlayerEditForm {
+  const s = (v: string | number | null | undefined) =>
+    v === null || v === undefined ? "" : String(v);
+  return {
+    first_name: s(p.first_name),
+    last_name: s(p.last_name),
+    email: s(p.email),
+    phone: s(p.phone),
+    division: p.division ?? "mens",
+    birth_month: s(p.birth_month),
+    birth_day: s(p.birth_day),
+    birth_year: s(p.birth_year),
+    shirt_size: s(p.shirt_size),
+    street_address: s(p.street_address),
+    city: s(p.city),
+    state: s(p.state),
+    country: s(p.country),
+    zip: s(p.zip),
+    club: s(p.club),
+    handicap_index: s(p.handicap_index),
+    wagr: s(p.wagr),
+  };
+}
+
 function PlayerDetailView({
-  player, sourceInvitation, onDelete,
+  player, sourceInvitation, onDelete, onSave, isSaving,
 }: {
   player: Player;
   // The original invitation record (when player.source === "invitation"). Provides
@@ -1326,8 +1461,65 @@ function PlayerDetailView({
   // copied to the players table on accept.
   sourceInvitation: PlayerInvitation | null;
   onDelete: () => void;
+  onSave: (updates: PlayerUpdateFields) => void;
+  isSaving: boolean;
 }) {
   const isRegistered = player.registration_status === "registered";
+  const isLiveOnSite = isRegistered && player.show_on_site;
+
+  const [editMode, setEditMode] = useState(false);
+  const [form, setForm] = useState<PlayerEditForm>(() => playerToForm(player));
+
+  // Per-field setter for controlled inputs. startEdit re-seeds `form` from the
+  // latest record each time edit mode opens, so it always reflects saved data.
+  const setField = (key: keyof PlayerEditForm) => (v: string) =>
+    setForm((f) => ({ ...f, [key]: v }));
+
+  function startEdit() {
+    setForm(playerToForm(player));
+    setEditMode(true);
+  }
+  function cancelEdit() {
+    setForm(playerToForm(player));
+    setEditMode(false);
+  }
+
+  function handleSave() {
+    if (!form.first_name.trim() || !form.last_name.trim()) {
+      toast.error("First and last name are required.");
+      return;
+    }
+    // Convert form strings back to the API's field types. Empty text fields
+    // become null (clears the value); empty numbers become null too.
+    const text = (v: string): string | null => (v.trim() === "" ? null : v.trim());
+    const num = (v: string): number | null => {
+      if (v.trim() === "") return null;
+      const n = parseFloat(v);
+      return isNaN(n) ? null : n;
+    };
+    const updates: PlayerUpdateFields = {
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      email: text(form.email),
+      phone: text(form.phone),
+      division: form.division as Division,
+      birth_month: num(form.birth_month),
+      birth_day: num(form.birth_day),
+      birth_year: num(form.birth_year),
+      shirt_size: text(form.shirt_size),
+      street_address: text(form.street_address),
+      city: text(form.city),
+      state: text(form.state),
+      country: text(form.country),
+      zip: text(form.zip),
+      club: text(form.club),
+      handicap_index: num(form.handicap_index),
+      wagr: text(form.wagr),
+    };
+    onSave(updates);
+    setEditMode(false);
+  }
+
   return (
     <>
       <SheetHeader className="px-6 pt-6 pb-4 border-b">
@@ -1350,28 +1542,90 @@ function PlayerDetailView({
             </span>
           )}
         </SheetTitle>
+        {/* Edit / Save / Cancel controls */}
+        <div className="flex items-center gap-2 pt-2">
+          {editMode ? (
+            <>
+              <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={isSaving}>
+                <Save className="h-3.5 w-3.5" />
+                {isSaving ? "Saving…" : "Save Changes"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={cancelEdit} disabled={isSaving}>
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={startEdit}>
+              <Pencil className="h-3.5 w-3.5" />
+              Edit Details
+            </Button>
+          )}
+        </div>
+        {editMode && isLiveOnSite && (
+          <p className="text-xs text-muted-foreground pt-1">
+            This player is live on <strong>dixieamateur.com</strong> — saved changes to name,
+            division, or location update the public roster.
+          </p>
+        )}
       </SheetHeader>
       <div className="px-6 py-5 space-y-6">
         {/* ── Personal ────────────────────────────────────────────────── */}
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Personal</h3>
           <div className="rounded-lg border divide-y divide-border/30 px-4">
-            <DetailField label="Name" value={`${player.first_name} ${player.last_name}`} />
-            <DetailField
-              label="Division"
-              value={
-                player.division
-                  ? formatDivision(player.division, player.birth_year, player.birth_month, player.birth_day) ?? player.division
-                  : null
-              }
-            />
-            <DetailField label="Email" value={player.email} />
-            <DetailField label="Phone" value={player.phone} />
-            <DetailField
-              label="Date of Birth"
-              value={dobString(player.birth_year, player.birth_month, player.birth_day)}
-            />
-            <DetailField label="Shirt Size" value={player.shirt_size} />
+            {editMode ? (
+              <>
+                <EditField label="First Name" value={form.first_name} onChange={setField("first_name")} />
+                <EditField label="Last Name" value={form.last_name} onChange={setField("last_name")} />
+                <div className="flex flex-col gap-1 py-2 border-b border-border/30">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">Division</Label>
+                  <Select value={form.division} onValueChange={setField("division")}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mens">Men's</SelectItem>
+                      <SelectItem value="womens">Women's</SelectItem>
+                      <SelectItem value="senior">Senior / Mid-Master</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <EditField label="Email" value={form.email} onChange={setField("email")} type="email" />
+                <EditField label="Phone" value={form.phone} onChange={setField("phone")} />
+                <div className="flex flex-col gap-1 py-2 border-b border-border/30">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">Date of Birth</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input className="h-8 text-sm" type="number" placeholder="Month" min={1} max={12}
+                      value={form.birth_month} onChange={(e) => setField("birth_month")(e.target.value)} />
+                    <Input className="h-8 text-sm" type="number" placeholder="Day" min={1} max={31}
+                      value={form.birth_day} onChange={(e) => setField("birth_day")(e.target.value)} />
+                    <Input className="h-8 text-sm" type="number" placeholder="Year" min={1900} max={2026}
+                      value={form.birth_year} onChange={(e) => setField("birth_year")(e.target.value)} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Buckets senior players into Mid-Master / Senior / Super Senior on the site.
+                  </p>
+                </div>
+                <EditField label="Shirt Size" value={form.shirt_size} onChange={setField("shirt_size")} />
+              </>
+            ) : (
+              <>
+                <DetailField label="Name" value={`${player.first_name} ${player.last_name}`} />
+                <DetailField
+                  label="Division"
+                  value={
+                    player.division
+                      ? formatDivision(player.division, player.birth_year, player.birth_month, player.birth_day) ?? player.division
+                      : null
+                  }
+                />
+                <DetailField label="Email" value={player.email} />
+                <DetailField label="Phone" value={player.phone} />
+                <DetailField
+                  label="Date of Birth"
+                  value={dobString(player.birth_year, player.birth_month, player.birth_day)}
+                />
+                <DetailField label="Shirt Size" value={player.shirt_size} />
+              </>
+            )}
           </div>
         </section>
 
@@ -1379,11 +1633,24 @@ function PlayerDetailView({
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Address</h3>
           <div className="rounded-lg border divide-y divide-border/30 px-4">
-            <DetailField label="Street" value={player.street_address} />
-            <DetailField label="City" value={player.city} />
-            <DetailField label="State / Province" value={player.state} />
-            <DetailField label="Country" value={player.country} />
-            <DetailField label="ZIP / Postal Code" value={player.zip} />
+            {editMode ? (
+              <>
+                <EditField label="Street" value={form.street_address} onChange={setField("street_address")} />
+                <EditField label="City" value={form.city} onChange={setField("city")} />
+                <EditField label="State / Province" value={form.state} onChange={setField("state")} />
+                <EditField label="Country" value={form.country} onChange={setField("country")} />
+                <EditField label="ZIP / Postal Code" value={form.zip} onChange={setField("zip")} />
+              </>
+            ) : (
+              <>
+                <LocationSummaryField player={player} />
+                <DetailField label="Street" value={player.street_address} />
+                <DetailField label="City" value={player.city} />
+                <DetailField label="State / Province" value={player.state} />
+                <DetailField label="Country" value={player.country} />
+                <DetailField label="ZIP / Postal Code" value={player.zip} />
+              </>
+            )}
           </div>
         </section>
 
@@ -1391,9 +1658,20 @@ function PlayerDetailView({
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Golf Profile</h3>
           <div className="rounded-lg border divide-y divide-border/30 px-4">
-            <DetailField label="Primary Club" value={player.club} />
-            <DetailField label="Handicap Index" value={player.handicap_index} />
-            <DetailField label="WAGR Ranking" value={player.wagr} />
+            {editMode ? (
+              <>
+                <EditField label="Primary Club" value={form.club} onChange={setField("club")} />
+                <EditField label="Handicap Index" value={form.handicap_index} onChange={setField("handicap_index")} type="number" />
+                <EditField label="WAGR Ranking" value={form.wagr} onChange={setField("wagr")} />
+              </>
+            ) : (
+              <>
+                <DetailField label="Primary Club" value={player.club} />
+                <DetailField label="Handicap Index" value={player.handicap_index} />
+                <DetailField label="WAGR Ranking" value={player.wagr} />
+              </>
+            )}
+            {/* WAGR profile / resume links live on the source invitation and are read-only here. */}
             <LinkField label="WAGR Profile" href={sourceInvitation?.wagr_url} />
             <DetailField label="Golf Resume" value={sourceInvitation?.golf_resume} />
             <LinkField label="Resume File" href={sourceInvitation?.resume_file_url} />
@@ -1412,10 +1690,12 @@ function PlayerDetailView({
           </div>
         </section>
 
-        <Button variant="outline" onClick={onDelete} className="w-full gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10">
-          <Trash2 className="h-4 w-4" />
-          Remove Player
-        </Button>
+        {!editMode && (
+          <Button variant="outline" onClick={onDelete} className="w-full gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10">
+            <Trash2 className="h-4 w-4" />
+            Remove Player
+          </Button>
+        )}
       </div>
     </>
   );
