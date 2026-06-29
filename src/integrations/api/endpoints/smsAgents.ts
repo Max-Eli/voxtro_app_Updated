@@ -35,8 +35,9 @@ export interface SmsMessagesResponse {
   total: number;
   limit?: number;
   offset?: number;
-  assigned_agents: SmsAgentSummary[];
-  /** Present when the SMS platform isn't configured yet (env var missing). */
+  /** Only set by the customer-portal endpoint, not by the admin endpoint. */
+  assigned_agents?: SmsAgentSummary[];
+  /** Present when the SMS platform connection isn't configured / disabled. */
   error?: string;
 }
 
@@ -75,9 +76,30 @@ export const smsAgentsApi = {
     return apiClient.get(`/api/customers/portal/sms-messages${qs ? `?${qs}` : ''}`);
   },
 
-  /** Admin: list every SMS agent in the configured build.voxtro.io org. */
-  listPlatformAgents: (): Promise<{ agents: SmsPlatformAgent[]; error?: string }> =>
-    apiClient.get('/api/customers/sms-platform-agents'),
+  /** Admin: list every SMS agent reachable through one of the caller's
+   *  saved sms_connections. The admin picks the connection. */
+  listPlatformAgents: (connectionId: string): Promise<{ agents: SmsPlatformAgent[]; error?: string }> =>
+    apiClient.get(`/api/customers/sms-platform-agents?connection_id=${encodeURIComponent(connectionId)}`),
+
+  /** Admin: list SMS messages from one of the caller's saved connections.
+   *  Unlike the customer-portal endpoint this is NOT scoped to assignments —
+   *  it returns logs for every agent in the org behind the connection. */
+  listPlatformMessages: (opts: {
+    connection_id: string;
+    agent_id?: string;
+    direction?: 'inbound' | 'outbound';
+    contact?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<SmsMessagesResponse> => {
+    const p = new URLSearchParams({ connection_id: opts.connection_id });
+    if (opts.agent_id) p.set('agent_id', opts.agent_id);
+    if (opts.direction) p.set('direction', opts.direction);
+    if (opts.contact) p.set('contact', opts.contact);
+    if (opts.limit !== undefined) p.set('limit', String(opts.limit));
+    if (opts.offset !== undefined) p.set('offset', String(opts.offset));
+    return apiClient.get(`/api/customers/sms-platform-messages?${p.toString()}`);
+  },
 
   /** Admin: get a customer's current SMS agent assignments. */
   getAssignments: (customerId: string): Promise<{ assignments: SmsAgentAssignmentRow[] }> =>

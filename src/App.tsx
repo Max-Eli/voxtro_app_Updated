@@ -38,6 +38,7 @@ import { CustomerManagement } from "./pages/CustomerManagement";
 import VoiceAssistants from "./pages/VoiceAssistants";
 import EditVoiceAssistant from "./pages/EditVoiceAssistant";
 import WhatsAppAgents from "./pages/WhatsAppAgents";
+import SmsAgents from "./pages/SmsAgents";
 import Documentation from "./pages/Documentation";
 import ApiReference from "./pages/ApiReference";
 import Guides from "./pages/Guides";
@@ -99,6 +100,7 @@ const App = () => (
                 <Route path="/voice-assistants/:assistantId/edit" element={<EditVoiceAssistant />} />
                 <Route path="/voice-tasks" element={<DashboardLayout><VoiceAssistantTasks /></DashboardLayout>} />
                 <Route path="/whatsapp-agents" element={<DashboardLayout><WhatsAppAgents /></DashboardLayout>} />
+                <Route path="/sms-agents" element={<DashboardLayout><SmsAgents /></DashboardLayout>} />
                 <Route path="/usage" element={<DashboardLayout><Usage /></DashboardLayout>} />
                 <Route path="/support-tickets" element={<DashboardLayout><SupportTickets /></DashboardLayout>} />
                 <Route path="/settings" element={<DashboardLayout><Settings /></DashboardLayout>} />

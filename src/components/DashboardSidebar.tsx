@@ -1,4 +1,4 @@
-import { Home, Settings, BarChart3, Users, FileText, Bot, Phone, ClipboardList, CheckSquare, MessageCircle, Ticket, LogOut, Mic, ExternalLink, Building2 } from "lucide-react";
+import { Home, Settings, BarChart3, Users, FileText, Bot, Phone, ClipboardList, CheckSquare, MessageCircle, MessageSquare, Ticket, LogOut, Mic, ExternalLink, Building2 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -33,6 +33,11 @@ const navigationItems = [
     title: "WhatsApp Agents",
     url: "/whatsapp-agents",
     icon: MessageCircle,
+  },
+  {
+    title: "SMS Agents",
+    url: "/sms-agents",
+    icon: MessageSquare,
   },
   {
     title: "Chatbots",
