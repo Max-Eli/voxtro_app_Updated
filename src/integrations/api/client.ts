@@ -84,6 +84,17 @@ class ApiClient {
   }
 
   /**
+   * POST a multipart/form-data body (file uploads). Lets axios set the
+   * multipart boundary instead of the instance default JSON content type.
+   */
+  async postForm<T>(url: string, formData: FormData): Promise<T> {
+    const response = await this.client.post<T>(url, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
+  /**
    * DELETE request
    */
   async delete<T>(url: string): Promise<T> {

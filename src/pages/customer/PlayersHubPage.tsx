@@ -59,7 +59,11 @@ import {
   UserPlus,
   Pencil,
   Save,
+  Camera,
+  ImageOff,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { PhotoCropperDialog } from "@/components/PhotoCropperDialog";
 import {
   playerInvitationsApi,
   type Player,
@@ -131,6 +135,31 @@ function Flag({ code, name, size = 20 }: { code: string | null; name?: string | 
   );
 }
 
+// Circular player avatar — profile photo when present, else a neutral initial.
+function PlayerAvatar({ p, size = 30 }: { p: Player; size?: number }) {
+  const initial = (p.first_name || p.last_name || "?").trim().charAt(0).toUpperCase() || "?";
+  if (p.profile_picture_url) {
+    return (
+      <img
+        src={p.profile_picture_url}
+        alt=""
+        width={size}
+        height={size}
+        loading="lazy"
+        style={{ borderRadius: "50%", objectFit: "cover", flex: "0 0 auto", boxShadow: "0 0 0 1px rgba(0,0,0,.1)" }}
+      />
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full bg-primary/15 text-primary font-semibold"
+      style={{ width: size, height: size, fontSize: size * 0.42, flex: "0 0 auto" }}
+    >
+      {initial}
+    </span>
+  );
+}
+
 // The location shown on the public dixieamateur.com roster. An admin-set
 // override (display_*) wins over the player's mailing address; otherwise the
 // mailing address is used. Mirrors the backend's /api/players logic.
@@ -149,13 +178,9 @@ function LocationCell({ p }: { p: Player }) {
     return <span className="text-muted-foreground">—</span>;
   }
   return (
-    <span
-      className="inline-flex items-center gap-2"
-      title={n.isOverride ? "Custom roster location (differs from mailing address)" : undefined}
-    >
+    <span className="inline-flex items-center gap-2">
       <Flag code={n.countryCode} name={n.country} />
       <span>{n.location || "—"}</span>
-      {n.isOverride && <span className="text-[10px] text-muted-foreground">(custom)</span>}
     </span>
   );
 }
@@ -272,6 +297,7 @@ export default function PlayersHubPage() {
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
 
   // New invitation form
   const [newInvite, setNewInvite] = useState<CreateInvitationData>({
@@ -418,6 +444,46 @@ export default function PlayersHubPage() {
       );
     },
     onError: (e: Error) => toast.error(`Update failed: ${e.message}`),
+  });
+
+  const syncDrawerPlayer = (updated: Player) => setSelectedItem({ kind: "player", data: updated });
+
+  const uploadPhotoMutation = useMutation({
+    mutationFn: ({ id, blob }: { id: string; blob: Blob }) =>
+      playerInvitationsApi.uploadPlayerPhoto(id, blob),
+    onSuccess: (updated) => {
+      invalidateAll();
+      syncDrawerPlayer(updated);
+      setPhotoDialogOpen(false);
+      toast.success("Profile photo updated.");
+    },
+    onError: (e: Error) => toast.error(`Photo upload failed: ${e.message}`),
+  });
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: (id: string) => playerInvitationsApi.deletePlayerPhoto(id),
+    onSuccess: (updated) => {
+      invalidateAll();
+      syncDrawerPlayer(updated);
+      toast.success("Profile photo removed.");
+    },
+    onError: (e: Error) => toast.error(`Remove failed: ${e.message}`),
+  });
+
+  const showPhotoMutation = useMutation({
+    mutationFn: ({ id, show }: { id: string; show: boolean }) =>
+      playerInvitationsApi.updateShowProfilePicture(id, show),
+    onSuccess: (updated) => {
+      invalidateAll();
+      syncDrawerPlayer(updated);
+    },
+    onError: (e: Error) => toast.error(`Update failed: ${e.message}`),
+  });
+
+  const resendCodeMutation = useMutation({
+    mutationFn: (id: string) => playerInvitationsApi.resendPlayerCode(id),
+    onSuccess: () => toast.success("Access code email resent."),
+    onError: (e: Error) => toast.error(`Resend failed: ${e.message}`),
   });
 
   const importMutation = useMutation({
@@ -912,10 +978,30 @@ export default function PlayersHubPage() {
                 updatePlayerMutation.mutate({ id: selectedItem.data.id, updates })
               }
               isSaving={updatePlayerMutation.isPending}
+              onEditPhoto={() => setPhotoDialogOpen(true)}
+              onRemovePhoto={() => deletePhotoMutation.mutate(selectedItem.data.id)}
+              onToggleShowPhoto={(show) =>
+                showPhotoMutation.mutate({ id: selectedItem.data.id, show })
+              }
+              photoBusy={deletePhotoMutation.isPending || showPhotoMutation.isPending}
+              onResendCode={() => resendCodeMutation.mutate(selectedItem.data.id)}
+              resendingCode={resendCodeMutation.isPending}
             />
           )}
         </SheetContent>
       </Sheet>
+
+      {/* ── Profile Photo Cropper ───────────────────────────────────── */}
+      <PhotoCropperDialog
+        open={photoDialogOpen}
+        onOpenChange={setPhotoDialogOpen}
+        busy={uploadPhotoMutation.isPending}
+        onCropped={(blob) => {
+          if (selectedItem?.kind === "player") {
+            uploadPhotoMutation.mutate({ id: selectedItem.data.id, blob });
+          }
+        }}
+      />
 
       {/* ── New Invitation Dialog ───────────────────────────────────── */}
       <Dialog open={newInviteOpen} onOpenChange={setNewInviteOpen}>
@@ -1275,7 +1361,12 @@ function PlayerTable({ items, onSelect, showAccessCode }: { items: Player[]; onS
       <TableBody>
         {items.map((p) => (
           <TableRow key={p.id} className="cursor-pointer hover:bg-muted/40" onClick={() => onSelect(p)}>
-            <TableCell className="font-medium">{p.first_name} {p.last_name}</TableCell>
+            <TableCell className="font-medium">
+              <span className="inline-flex items-center gap-2.5">
+                <PlayerAvatar p={p} />
+                <span>{p.first_name} {p.last_name}</span>
+              </span>
+            </TableCell>
             <TableCell className="text-sm"><LocationCell p={p} /></TableCell>
             <TableCell className="text-sm text-muted-foreground">{p.email ?? "—"}</TableCell>
             <TableCell className="text-sm">{p.division ? DIVISION_LABELS[p.division] ?? p.division : "—"}</TableCell>
@@ -1458,6 +1549,8 @@ function playerToForm(p: Player): PlayerEditForm {
 
 function PlayerDetailView({
   player, sourceInvitation, onDelete, onSave, isSaving,
+  onEditPhoto, onRemovePhoto, onToggleShowPhoto, photoBusy,
+  onResendCode, resendingCode,
 }: {
   player: Player;
   // The original invitation record (when player.source === "invitation"). Provides
@@ -1467,6 +1560,12 @@ function PlayerDetailView({
   onDelete: () => void;
   onSave: (updates: PlayerUpdateFields) => void;
   isSaving: boolean;
+  onEditPhoto: () => void;
+  onRemovePhoto: () => void;
+  onToggleShowPhoto: (show: boolean) => void;
+  photoBusy: boolean;
+  onResendCode: () => void;
+  resendingCode: boolean;
 }) {
   const isRegistered = player.registration_status === "registered";
   const isLiveOnSite = isRegistered && player.show_on_site;
@@ -1580,6 +1679,41 @@ function PlayerDetailView({
         )}
       </SheetHeader>
       <div className="px-6 py-5 space-y-6">
+        {/* ── Profile Photo ───────────────────────────────────────────── */}
+        <section>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Profile Photo</h3>
+          <div className="rounded-lg border px-4 py-4 flex items-center gap-4">
+            <PlayerAvatar p={player} size={64} />
+            <div className="flex flex-col gap-2 min-w-0">
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={onEditPhoto} disabled={photoBusy}>
+                  <Camera className="h-3.5 w-3.5" />
+                  {player.profile_picture_url ? "Replace" : "Upload"}
+                </Button>
+                {player.profile_picture_url && (
+                  <Button size="sm" variant="outline" className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={onRemovePhoto} disabled={photoBusy}>
+                    <ImageOff className="h-3.5 w-3.5" />
+                    Remove
+                  </Button>
+                )}
+              </div>
+              {player.profile_picture_url ? (
+                <label className="flex items-center gap-2 text-sm">
+                  <Switch
+                    checked={player.show_profile_picture}
+                    onCheckedChange={(v) => onToggleShowPhoto(v)}
+                    disabled={photoBusy}
+                  />
+                  <span className="text-muted-foreground">Show on public roster</span>
+                </label>
+              ) : (
+                <span className="text-xs text-muted-foreground">No photo yet.</span>
+              )}
+            </div>
+          </div>
+        </section>
+
         {/* ── Personal ────────────────────────────────────────────────── */}
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Personal</h3>
@@ -1733,6 +1867,13 @@ function PlayerDetailView({
             <DetailField label="Policy" value={policyValue(sourceInvitation?.agree_policy)} />
           </div>
         </section>
+
+        {!editMode && player.access_code && (
+          <Button variant="outline" onClick={onResendCode} disabled={resendingCode} className="w-full gap-1.5">
+            <Mail className="h-4 w-4" />
+            {resendingCode ? "Sending…" : "Resend access code email"}
+          </Button>
+        )}
 
         {!editMode && (
           <Button variant="outline" onClick={onDelete} className="w-full gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10">

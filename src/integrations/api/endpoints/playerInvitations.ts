@@ -65,6 +65,9 @@ export interface Player {
   display_city: string | null;
   display_state: string | null;
   display_country: string | null;
+  // Circular profile photo + public-visibility toggle.
+  profile_picture_url: string | null;
+  show_profile_picture: boolean;
   source: PlayerSource;
   invitation_id: string | null;
   access_code: string | null;
@@ -79,7 +82,7 @@ export type PlayerUpdateFields = Partial<Pick<Player,
   'first_name' | 'last_name' | 'email' | 'phone' | 'division' | 'club' |
   'handicap_index' | 'birth_year' | 'birth_month' | 'birth_day' |
   'shirt_size' | 'wagr' | 'street_address' | 'city' | 'state' | 'country' | 'zip' |
-  'display_city' | 'display_state' | 'display_country'
+  'display_city' | 'display_state' | 'display_country' | 'show_profile_picture'
 >>;
 
 export interface CreateInvitationData {
@@ -200,4 +203,23 @@ export const playerInvitationsApi = {
   /** Toggle whether a registered player is shown on dixieamateur.com */
   updateShowOnSite: (id: string, show_on_site: boolean): Promise<Player> =>
     apiClient.patch(`/api/customers/players/${id}`, { show_on_site }),
+
+  /** Upload/replace a player's (circle-cropped) profile photo */
+  uploadPlayerPhoto: (id: string, blob: Blob): Promise<Player> => {
+    const fd = new FormData();
+    fd.append("file", blob, "profile.jpg");
+    return apiClient.postForm(`/api/customers/players/${id}/photo`, fd);
+  },
+
+  /** Remove a player's profile photo */
+  deletePlayerPhoto: (id: string): Promise<Player> =>
+    apiClient.delete(`/api/customers/players/${id}/photo`),
+
+  /** Toggle whether the player's photo appears on the public roster */
+  updateShowProfilePicture: (id: string, show_profile_picture: boolean): Promise<Player> =>
+    apiClient.patch(`/api/customers/players/${id}`, { show_profile_picture }),
+
+  /** Re-send the acceptance email (with the player's existing access code) */
+  resendPlayerCode: (id: string): Promise<{ success: boolean; email_sent: boolean }> =>
+    apiClient.post(`/api/customers/players/${id}/resend-code`),
 };
